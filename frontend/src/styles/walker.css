@@ -885,12 +885,37 @@
   box-shadow: 0 0 0 3px var(--wk-accent-soft);
   animation: wk-pulse 1.5s ease-in-out infinite;
 }
-.wk-cell-check {
+/* Enter-in-T&E checkbox affordance (BIZ-008): visible at rest beside the duration, no hover needed.
+   Unticked stays neutral (hollow box) — amber is reserved for "uncategorized" elsewhere in the app.
+   Ticked turns solid green with a check; the duration itself keeps its own color/legibility. */
+.wk-cell-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0 5px 0 0;
+  vertical-align: middle;
+  border: 1.5px solid var(--wk-text-lo);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+.wk-cell-checkbox:checked {
+  background: var(--wk-green);
+  border-color: var(--wk-green);
+}
+.wk-cell-checkbox:checked::after {
+  content: '';
   position: absolute;
-  top: 3px;
-  right: 4px;
-  font-size: 9px;
-  color: var(--wk-green);
+  left: 3px;
+  top: 0px;
+  width: 3px;
+  height: 7px;
+  border: solid var(--wk-bg-0);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
 .wk-cell-input {
   width: 100%;
