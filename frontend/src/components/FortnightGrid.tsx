@@ -1,4 +1,5 @@
 import type { MouseEvent } from 'react'
+import { useState } from 'react'
 import type { DayColumn, FortnightRow } from '../types'
 import { checklistKey } from '../types'
 import { formatDuration } from '../lib/time'
@@ -24,6 +25,39 @@ interface ChecklistModeProps extends BaseProps {
 }
 
 type FortnightGridProps = FortnightModeProps | ChecklistModeProps
+
+const COPY_FEEDBACK_MS = 1500
+
+/**
+ * Small icon button that copies the T&E code number to the clipboard — keying into T&E means
+ * retyping this number by hand, so a one-click copy removes a transcription step. Shows a brief
+ * checkmark confirmation, then reverts.
+ */
+function CopyCodeButton({ codeNumber }: { codeNumber: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const onClick = (e: MouseEvent) => {
+    e.stopPropagation()
+    void navigator.clipboard.writeText(codeNumber).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), COPY_FEEDBACK_MS)
+    })
+  }
+
+  const label = copied ? 'Copied!' : `Copy code ${codeNumber}`
+
+  return (
+    <button
+      type="button"
+      className="wk-btn-icon wk-copy-code"
+      title={label}
+      aria-label={label}
+      onClick={onClick}
+    >
+      {copied ? '✓' : '⧉'}
+    </button>
+  )
+}
 
 /**
  * Shared BY-CODE grid. `fortnight` cells edit durations; `checklist` cells toggle "entered into T&E".
@@ -93,7 +127,10 @@ export function FortnightGrid(props: FortnightGridProps) {
                     {row.activity !== row.code.name && (
                       <div className="wk-rowhead-act">{row.activity}</div>
                     )}
-                    <div className="wk-rowhead-code">{row.code.number}</div>
+                    <div className="wk-rowhead-code-row">
+                      <span className="wk-rowhead-code">{row.code.number}</span>
+                      <CopyCodeButton codeNumber={row.code.number} />
+                    </div>
                   </div>
                   {mode === 'checklist' && (
                     <button

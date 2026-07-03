@@ -782,11 +782,26 @@
   text-overflow: ellipsis;
   margin-top: 1px;
 }
+.wk-rowhead-code-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
 .wk-rowhead-code {
   font-family: var(--wk-font-mono);
   font-size: var(--wk-fs-10);
   color: var(--wk-text-lo);
-  margin-top: 2px;
+}
+.wk-copy-code {
+  padding: 1px 4px;
+  font-size: var(--wk-fs-10);
+  border-color: transparent;
+  line-height: 1.4;
+}
+.wk-copy-code:hover {
+  color: var(--wk-green);
+  border-color: var(--wk-green);
 }
 .wk-rowbadge {
   font-family: var(--wk-font-mono);
