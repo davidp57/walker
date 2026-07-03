@@ -257,3 +257,95 @@ def test_list_task_tags_empty_when_no_tasks(client: TestClient) -> None:
 
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_create_task_with_recurrence_rule(client: TestClient) -> None:
+    response = client.post(
+        "/api/tasks",
+        json={"title": "Key in T&E", "recurrence_rule": {"kind": "every_n_days", "n": 14}},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["recurrence_rule"] == {"kind": "every_n_days", "n": 14}
+
+
+def test_create_task_rejects_malformed_recurrence_rule(client: TestClient) -> None:
+    response = client.post(
+        "/api/tasks",
+        json={"title": "Bad rule", "recurrence_rule": {"kind": "every_n_days", "n": -1}},
+    )
+
+    assert response.status_code == 422
+
+
+def test_create_task_rejects_unknown_recurrence_kind(client: TestClient) -> None:
+    response = client.post(
+        "/api/tasks",
+        json={"title": "Bad rule", "recurrence_rule": {"kind": "yearly"}},
+    )
+
+    assert response.status_code == 422
+
+
+def test_completing_a_non_recurring_task_marks_it_done(client: TestClient) -> None:
+    created = client.post("/api/tasks", json={"title": "One-off"}).json()
+
+    response = client.post(f"/api/tasks/{created['id']}/complete")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "done"
+    assert body["due_date"] is None
+
+
+def test_completing_a_recurring_task_rolls_it_forward_every_n_days(client: TestClient) -> None:
+    created = client.post(
+        "/api/tasks",
+        json={
+            "title": "Key in T&E",
+            "status": "in_progress",
+            "due_date": "2026-07-01",
+            "recurrence_rule": {"kind": "every_n_days", "n": 14},
+        },
+    ).json()
+
+    response = client.post(f"/api/tasks/{created['id']}/complete")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "todo"
+    assert body["due_date"] == "2026-07-15"
+    # No history: it's the same Task row, just rolled forward.
+    assert body["id"] == created["id"]
+
+
+def test_completing_a_fortnight_relative_task_snaps_to_working_days_via_settings(
+    client: TestClient,
+) -> None:
+    # Mon-Fri work rhythm (Sun-first booleans).
+    mon_fri = [False, True, True, True, True, True, False]
+    client.put("/api/settings", json={"workdays": mon_fri, "density": "comfortable"})
+    # 2026-06-29 (Monday) is an absence, so the last-working-day-before-end snap must skip past it.
+    client.post("/api/settings/absences", json={"date": "2026-06-29", "reason": "Leave"})
+
+    created = client.post(
+        "/api/tasks",
+        json={
+            "title": "Key in T&E",
+            "due_date": "2026-06-15",
+            "recurrence_rule": {"kind": "fortnight_relative", "anchor": "end", "offset_days": -1},
+        },
+    ).json()
+
+    response = client.post(f"/api/tasks/{created['id']}/complete")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "todo"
+    assert body["due_date"] == "2026-06-26"  # last working day before 2026-06-29, itself skipped
+
+
+def test_complete_unknown_task_returns_404(client: TestClient) -> None:
+    response = client.post("/api/tasks/999/complete")
+
+    assert response.status_code == 404
