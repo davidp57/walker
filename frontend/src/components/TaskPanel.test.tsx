@@ -13,6 +13,7 @@ function makeTask(overrides: Partial<Task> = {}): Task {
     dueDate: null,
     tags: ['backend'],
     codeId: null,
+    recurrenceRule: null,
     createdAt: '2026-07-01T00:00:00Z',
     updatedAt: '2026-07-01T00:00:00Z',
     ...overrides,
@@ -56,14 +57,14 @@ describe('TaskPanel', () => {
     expect(screen.getByTestId('wk-task-save')).toBeDisabled()
   })
 
-  it('prefills fields when editing an existing task', () => {
+  it('prefills fields when editing an existing task', async () => {
     const task = makeTask({ title: 'Fix bug', description: 'Notes here' })
     render(
       <TaskPanel task={task} codes={[]} tagSuggestions={[]} onSave={vi.fn()} onClose={vi.fn()} />,
     )
 
     expect(screen.getByTestId('wk-task-title-input')).toHaveValue('Fix bug')
-    expect(screen.getByTestId('wk-task-description-input')).toHaveValue('Notes here')
+    expect(await screen.findByText('Notes here')).toBeInTheDocument()
     expect(screen.getByText('backend')).toBeInTheDocument()
   })
 
@@ -161,5 +162,130 @@ describe('TaskPanel', () => {
 
     expect(onSave).not.toHaveBeenCalled()
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('defaults to no recurrence rule', () => {
+    const onSave = vi.fn()
+    render(
+      <TaskPanel task={null} codes={[]} tagSuggestions={[]} onSave={onSave} onClose={vi.fn()} />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-title-input'), { target: { value: 'Task' } })
+    fireEvent.click(screen.getByTestId('wk-task-save'))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ recurrenceRule: null }))
+  })
+
+  it('sets an every-N-days recurrence rule', () => {
+    const onSave = vi.fn()
+    render(
+      <TaskPanel task={null} codes={[]} tagSuggestions={[]} onSave={onSave} onClose={vi.fn()} />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-title-input'), { target: { value: 'Task' } })
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-kind-select'), {
+      target: { value: 'every_n_days' },
+    })
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-every-n-days-input'), {
+      target: { value: '5' },
+    })
+    fireEvent.click(screen.getByTestId('wk-task-save'))
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ recurrenceRule: { kind: 'every_n_days', n: 5 } }),
+    )
+  })
+
+  it('sets a weekly recurrence rule on chosen weekdays', () => {
+    const onSave = vi.fn()
+    render(
+      <TaskPanel task={null} codes={[]} tagSuggestions={[]} onSave={onSave} onClose={vi.fn()} />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-title-input'), { target: { value: 'Task' } })
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-kind-select'), {
+      target: { value: 'weekly' },
+    })
+    fireEvent.click(screen.getByTestId('wk-task-recurrence-weekday-2')) // add Wed
+    fireEvent.click(screen.getByTestId('wk-task-recurrence-weekday-4')) // add Fri
+    fireEvent.click(screen.getByTestId('wk-task-save'))
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ recurrenceRule: { kind: 'weekly', weekdays: [0, 2, 4] } }),
+    )
+  })
+
+  it('sets a monthly recurrence rule on a day of month', () => {
+    const onSave = vi.fn()
+    render(
+      <TaskPanel task={null} codes={[]} tagSuggestions={[]} onSave={onSave} onClose={vi.fn()} />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-title-input'), { target: { value: 'Task' } })
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-kind-select'), {
+      target: { value: 'monthly' },
+    })
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-monthly-day-input'), {
+      target: { value: '15' },
+    })
+    fireEvent.click(screen.getByTestId('wk-task-save'))
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({ recurrenceRule: { kind: 'monthly', day: 15 } }),
+    )
+  })
+
+  it('sets a fortnight-relative recurrence rule with anchor and offset', () => {
+    const onSave = vi.fn()
+    render(
+      <TaskPanel task={null} codes={[]} tagSuggestions={[]} onSave={onSave} onClose={vi.fn()} />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-title-input'), { target: { value: 'Task' } })
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-kind-select'), {
+      target: { value: 'fortnight_relative' },
+    })
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-anchor-select'), {
+      target: { value: 'end' },
+    })
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-offset-input'), {
+      target: { value: '-1' },
+    })
+    fireEvent.click(screen.getByTestId('wk-task-save'))
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recurrenceRule: { kind: 'fortnight_relative', anchor: 'end', offsetDays: -1 },
+      }),
+    )
+  })
+
+  it('prefills the recurrence rule when editing an existing recurring task', () => {
+    const task = makeTask({
+      recurrenceRule: { kind: 'every_n_days', n: 7 },
+    })
+    render(
+      <TaskPanel task={task} codes={[]} tagSuggestions={[]} onSave={vi.fn()} onClose={vi.fn()} />,
+    )
+
+    expect(screen.getByTestId('wk-task-recurrence-kind-select')).toHaveValue('every_n_days')
+    expect(screen.getByTestId('wk-task-recurrence-every-n-days-input')).toHaveValue(7)
+  })
+
+  it('clears the recurrence rule when switching back to "does not repeat"', () => {
+    const onSave = vi.fn()
+    const task = makeTask({
+      recurrenceRule: { kind: 'every_n_days', n: 7 },
+    })
+    render(
+      <TaskPanel task={task} codes={[]} tagSuggestions={[]} onSave={onSave} onClose={vi.fn()} />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-recurrence-kind-select'), {
+      target: { value: '' },
+    })
+    fireEvent.click(screen.getByTestId('wk-task-save'))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ recurrenceRule: null }))
   })
 })

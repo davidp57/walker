@@ -417,6 +417,7 @@ describe('App — start a Timer from a Task (BIZ-023)', () => {
     dueDate: null,
     tags: [],
     codeId: realCode.id,
+    recurrenceRule: null,
     createdAt: '2026-07-01T00:00:00Z',
     updatedAt: '2026-07-01T00:00:00Z',
   }

@@ -1,7 +1,7 @@
 """entry task link
 
 Revision ID: 2dcd1014de82
-Revises: 19677d96f929
+Revises: c78f0831d366
 Create Date: 2026-07-03 21:37:10.129786
 """
 
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "2dcd1014de82"
-down_revision: str | None = "19677d96f929"
+down_revision: str | None = "c78f0831d366"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

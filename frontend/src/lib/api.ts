@@ -1,7 +1,15 @@
 // Typed client for the Walker JSON API (served under /api — see ADR-0003).
 // The dev server proxies /api to the FastAPI backend; in production the SPA and API
 // share an origin, so relative paths work in both.
-import type { Entry, ReferenceCode, Task, TaskPriority, TaskStatus, TimesheetCode } from '../types'
+import type {
+  Entry,
+  ReferenceCode,
+  RecurrenceRule,
+  Task,
+  TaskPriority,
+  TaskStatus,
+  TimesheetCode,
+} from '../types'
 
 interface ApiActivity {
   code: string
@@ -403,6 +411,13 @@ export async function removeAbsence(date: string): Promise<SettingsData> {
   return mapSettings((await response.json()) as ApiSettings)
 }
 
+/** The recurrence rule as carried over the wire — same shapes as `services/recurrence.py`. */
+type ApiRecurrenceRule =
+  | { kind: 'every_n_days'; n: number }
+  | { kind: 'weekly'; weekdays: number[] }
+  | { kind: 'monthly'; day: number }
+  | { kind: 'fortnight_relative'; anchor: 'start' | 'end'; offset_days: number }
+
 interface ApiTask {
   id: number
   title: string
@@ -412,8 +427,25 @@ interface ApiTask {
   due_date: string | null
   tags: string[]
   timesheet_code_id: number | null
+  recurrence_rule: ApiRecurrenceRule | null
   created_at: string
   updated_at: string
+}
+
+function mapRecurrenceRuleFromApi(rule: ApiRecurrenceRule | null): RecurrenceRule | null {
+  if (rule == null) return null
+  if (rule.kind === 'fortnight_relative') {
+    return { kind: 'fortnight_relative', anchor: rule.anchor, offsetDays: rule.offset_days }
+  }
+  return rule
+}
+
+function mapRecurrenceRuleToApi(rule: RecurrenceRule | null | undefined): ApiRecurrenceRule | null {
+  if (rule == null) return null
+  if (rule.kind === 'fortnight_relative') {
+    return { kind: 'fortnight_relative', anchor: rule.anchor, offset_days: rule.offsetDays }
+  }
+  return rule
 }
 
 function mapTask(task: ApiTask): Task {
@@ -426,6 +458,7 @@ function mapTask(task: ApiTask): Task {
     dueDate: task.due_date,
     tags: task.tags,
     codeId: task.timesheet_code_id == null ? null : String(task.timesheet_code_id),
+    recurrenceRule: mapRecurrenceRuleFromApi(task.recurrence_rule),
     createdAt: task.created_at,
     updatedAt: task.updated_at,
   }
@@ -440,6 +473,7 @@ export interface TaskWrite {
   dueDate?: string | null
   tags?: string[]
   codeId?: string | null
+  recurrenceRule?: RecurrenceRule | null
 }
 
 function taskBody(input: TaskWrite): Record<string, unknown> {
@@ -451,6 +485,7 @@ function taskBody(input: TaskWrite): Record<string, unknown> {
     due_date: input.dueDate ?? null,
     tags: input.tags ?? [],
     timesheet_code_id: input.codeId == null ? null : Number(input.codeId),
+    recurrence_rule: mapRecurrenceRuleToApi(input.recurrenceRule),
   }
 }
 
@@ -468,6 +503,11 @@ export async function createTask(input: TaskWrite): Promise<Task> {
 /** Update every field of a Task. */
 export async function updateTask(id: string, input: TaskWrite): Promise<Task> {
   return mapTask(await sendJson<ApiTask>(`/api/tasks/${id}`, 'PUT', taskBody(input)))
+}
+
+/** Complete a Task: Done for a plain Task, rolled forward to To-do for a recurring one (BIZ-025). */
+export async function completeTask(id: string): Promise<Task> {
+  return mapTask(await sendJson<ApiTask>(`/api/tasks/${id}/complete`, 'POST'))
 }
 
 /** Delete a Task. */

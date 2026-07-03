@@ -4,6 +4,10 @@ A Task is the persisted, metadata-rich form of what the Timer tracks: a title (u
 comment when started from a Task), a markdown description, a status, an optional priority and due
 date, free-text tags, and an optional Timesheet-code reference (real *or* virtual, or none — orphan
 Tasks are allowed). Scoped to a ``user_id`` from day one (ADR-0007).
+
+A Task may also carry a **recurrence rule** (BIZ-025): completing a recurring Task rolls it
+forward instead of staying Done — see ``services/recurrence.py`` for the rule shapes and the
+next-due computation, and ``services/tasks.py`` for the roll-forward wiring.
 """
 
 from __future__ import annotations
@@ -65,3 +69,4 @@ class Task(TimestampMixin, Base):
     due_date: Mapped[date_type | None] = mapped_column(Date, default=None, index=True)
     tags: Mapped[list[str]] = mapped_column(JSON, default=list)
     timesheet_code_id: Mapped[int | None] = mapped_column(ForeignKey("timesheet_codes.id"), default=None, index=True)
+    recurrence_rule: Mapped[dict[str, object] | None] = mapped_column(JSON, default=None)
