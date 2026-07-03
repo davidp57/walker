@@ -245,12 +245,19 @@ class TaskRead(BaseModel):
     due_date: date | None
     tags: list[str]
     timesheet_code_id: int | None
+    recurrence_rule: dict[str, object] | None
     created_at: datetime.datetime
     updated_at: datetime.datetime
 
 
 class TaskCreate(BaseModel):
-    """Payload to create a Task. Only ``title`` is required; an orphan Task has no code."""
+    """Payload to create a Task. Only ``title`` is required; an orphan Task has no code.
+
+    ``recurrence_rule`` is one of the shapes documented in ``services/recurrence.py``, e.g.
+    ``{"kind": "every_n_days", "n": 3}``, ``{"kind": "weekly", "weekdays": [0, 2, 4]}``,
+    ``{"kind": "monthly", "day": 15}``, or
+    ``{"kind": "fortnight_relative", "anchor": "end", "offset_days": -1}``.
+    """
 
     title: str
     description: str | None = None
@@ -259,6 +266,7 @@ class TaskCreate(BaseModel):
     due_date: date | None = None
     tags: list[str] = []
     timesheet_code_id: int | None = None
+    recurrence_rule: dict[str, object] | None = None
 
 
 class TaskUpdate(BaseModel):
@@ -271,3 +279,4 @@ class TaskUpdate(BaseModel):
     due_date: date | None = None
     tags: list[str] = []
     timesheet_code_id: int | None = None
+    recurrence_rule: dict[str, object] | None = None
