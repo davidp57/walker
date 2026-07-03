@@ -10,6 +10,58 @@ from walker.models import Entry, TimesheetCode, User
 from walker.services.checklist import derive_checklist, toggle_mark
 
 
+def test_derive_collapses_virtual_codes_into_real_code(session: Session) -> None:
+    """Virtual codes sharing a real code must collapse into one checklist line (ADR-0008)."""
+    user = User(username="me")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    real = TimesheetCode(user_id=user.id, number="N9/1", label="L", name="Real", color="#111")
+    session.add(real)
+    session.commit()
+    session.refresh(real)
+    virtual_a = TimesheetCode(
+        user_id=user.id, number="N9/1", label="L", name="Project A", color="#222", real_code_id=real.id
+    )
+    virtual_b = TimesheetCode(
+        user_id=user.id, number="N9/1", label="L", name="Project B", color="#333", real_code_id=real.id
+    )
+    session.add_all([virtual_a, virtual_b])
+    session.commit()
+    session.refresh(virtual_a)
+    session.refresh(virtual_b)
+    session.add_all(
+        [
+            Entry(
+                user_id=user.id,
+                date=date(2026, 7, 1),
+                start_minute=540,
+                end_minute=600,
+                timesheet_code_id=virtual_a.id,
+                activity="Bug fixing",
+            ),
+            Entry(
+                user_id=user.id,
+                date=date(2026, 7, 1),
+                start_minute=600,
+                end_minute=630,
+                timesheet_code_id=virtual_b.id,
+                activity="Bug fixing",
+            ),
+        ]
+    )
+    session.commit()
+
+    result = derive_checklist(session, user.id, date(2026, 7, 2))
+
+    assert result.total == 1
+    item = result.items[0]
+    assert item.timesheet_code_id == real.id
+    assert item.activity == "Bug fixing"
+    assert item.day == 1
+    assert item.minutes == 90
+
+
 def test_derive_keeps_ticks_after_grid_grows(session: Session) -> None:
     user = User(username="me")
     session.add(user)
