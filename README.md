@@ -40,6 +40,9 @@ For a stable instance you can leave running while another checkout is being acti
 .\scripts\deploy-local.ps1 -Path C:\dev\walker-run
 ```
 
+Then just double-click `C:\dev\walker-run\start-walker.bat` — it starts the server; open
+`http://localhost:8000` yourself. Close its console window (or Ctrl-C) to stop it.
+
 Then run the two commands it prints (`.venv\Scripts\Activate.ps1` + `uvicorn walker.api.app:app
 --port 8000`) — this serves the API and the built SPA on one port. Re-run the script against the
 same `-Path` later to pick up newer commits.

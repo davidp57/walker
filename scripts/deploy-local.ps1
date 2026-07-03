@@ -63,10 +63,8 @@ try {
 } finally { Pop-Location }
 
 Write-Host ''
-Write-Host 'Done. To run it:' -ForegroundColor Green
-Write-Host "  cd $Path"
-Write-Host '  .\.venv\Scripts\Activate.ps1'
-Write-Host '  uvicorn walker.api.app:app --port 8000'
+Write-Host 'Done. To run it, double-click:' -ForegroundColor Green
+Write-Host "  $Path\start-walker.bat"
 Write-Host ''
 Write-Host '  -> http://localhost:8000  (serves the API and the built SPA on one port)' -ForegroundColor Green
 Write-Host ''
