@@ -1,14 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createCode,
+  createTask,
   createVirtualCode,
+  deleteTask,
   fetchChecklist,
   fetchCodes,
   fetchEntries,
   fetchFortnight,
   fetchSettings,
+  fetchTaskTags,
+  fetchTasks,
   importCatalog,
   patchEntry,
+  updateTask,
 } from './api'
 
 describe('fetchCodes', () => {
@@ -337,5 +342,195 @@ describe('importCatalog', () => {
     expect(init.method).toBe('POST')
     expect(init.body).toBeInstanceOf(FormData)
     expect(result).toEqual({ created: 2, updated: 0 })
+  })
+})
+
+describe('fetchTasks', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('maps GET /api/tasks into Task[] with string ids', async () => {
+    const payload = [
+      {
+        id: 1,
+        title: 'Renew passport',
+        description: null,
+        status: 'todo',
+        priority: null,
+        due_date: null,
+        tags: [],
+        timesheet_code_id: null,
+        created_at: '2026-07-01T00:00:00Z',
+        updated_at: '2026-07-01T00:00:00Z',
+      },
+    ]
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const tasks = await fetchTasks()
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/tasks')
+    expect(tasks).toEqual([
+      {
+        id: '1',
+        title: 'Renew passport',
+        description: '',
+        status: 'todo',
+        priority: null,
+        dueDate: null,
+        tags: [],
+        codeId: null,
+        createdAt: '2026-07-01T00:00:00Z',
+        updatedAt: '2026-07-01T00:00:00Z',
+      },
+    ])
+  })
+})
+
+describe('createTask', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('POSTs the task body with defaults and maps the response back', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 3,
+            title: 'Fix bug',
+            description: 'notes',
+            status: 'in_progress',
+            priority: 'high',
+            due_date: '2026-07-15',
+            tags: ['urgent'],
+            timesheet_code_id: 9,
+            created_at: '2026-07-01T00:00:00Z',
+            updated_at: '2026-07-01T00:00:00Z',
+          }),
+          { status: 201 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const task = await createTask({
+      title: 'Fix bug',
+      description: 'notes',
+      status: 'in_progress',
+      priority: 'high',
+      dueDate: '2026-07-15',
+      tags: ['urgent'],
+      codeId: '9',
+    })
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/tasks')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body as string)).toEqual({
+      title: 'Fix bug',
+      description: 'notes',
+      status: 'in_progress',
+      priority: 'high',
+      due_date: '2026-07-15',
+      tags: ['urgent'],
+      timesheet_code_id: 9,
+    })
+    expect(task.id).toBe('3')
+    expect(task.codeId).toBe('9')
+  })
+
+  it('defaults optional fields when omitted (orphan task)', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 4,
+            title: 'Just a title',
+            description: null,
+            status: 'todo',
+            priority: null,
+            due_date: null,
+            tags: [],
+            timesheet_code_id: null,
+            created_at: '2026-07-01T00:00:00Z',
+            updated_at: '2026-07-01T00:00:00Z',
+          }),
+          { status: 201 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await createTask({ title: 'Just a title' })
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(init.body as string)).toEqual({
+      title: 'Just a title',
+      description: null,
+      status: 'todo',
+      priority: null,
+      due_date: null,
+      tags: [],
+      timesheet_code_id: null,
+    })
+  })
+})
+
+describe('updateTask', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('PUTs the task body to /api/tasks/{id}', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 3,
+            title: 'Updated',
+            description: null,
+            status: 'done',
+            priority: null,
+            due_date: null,
+            tags: [],
+            timesheet_code_id: null,
+            created_at: '2026-07-01T00:00:00Z',
+            updated_at: '2026-07-02T00:00:00Z',
+          }),
+          { status: 200 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await updateTask('3', { title: 'Updated', status: 'done' })
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/tasks/3')
+    expect(init.method).toBe('PUT')
+  })
+})
+
+describe('deleteTask', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('DELETEs /api/tasks/{id}', async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await deleteTask('3')
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/tasks/3')
+    expect(init.method).toBe('DELETE')
+  })
+})
+
+describe('fetchTaskTags', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('GETs /api/tasks/tags and returns the raw string list', async () => {
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify(['backend', 'urgent']), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const tags = await fetchTaskTags()
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/tasks/tags')
+    expect(tags).toEqual(['backend', 'urgent'])
   })
 })

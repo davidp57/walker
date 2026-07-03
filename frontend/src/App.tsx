@@ -12,6 +12,8 @@ import { TrackerScreen, type DayGroup } from './screens/TrackerScreen'
 import { FortnightScreen } from './screens/FortnightScreen'
 import { CodeCatalogScreen } from './screens/CodeCatalogScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
+import { TasksScreen } from './screens/TasksScreen'
+import { TaskPanel, type TaskDraft } from './components/TaskPanel'
 import type {
   Absence,
   ActivityName,
@@ -20,6 +22,7 @@ import type {
   Density,
   Entry,
   FortnightRow,
+  Task,
   TaskSuggestion,
   TimesheetCode,
 } from './types'
@@ -34,14 +37,18 @@ import {
   addCodeFromReference as apiAddCodeFromReference,
   createCode as apiCreateCode,
   createEntry as apiCreateEntry,
+  createTask as apiCreateTask,
   createVirtualCode as apiCreateVirtualCode,
   deleteCode as apiDeleteCode,
   deleteEntry as apiDeleteEntry,
+  deleteTask as apiDeleteTask,
   fetchChecklist,
   fetchCodes,
   fetchEntriesRange,
   fetchFortnight,
   fetchSettings,
+  fetchTaskTags,
+  fetchTasks,
   importCatalog as apiImportCatalog,
   patchEntry as apiPatchEntry,
   removeAbsence as apiRemoveAbsence,
@@ -53,6 +60,7 @@ import {
   toggleChecklist as apiToggleChecklist,
   updateCode as apiUpdateCode,
   updateSettings as apiUpdateSettings,
+  updateTask as apiUpdateTask,
   updateVirtualCode as apiUpdateVirtualCode,
 } from './lib/api'
 
@@ -179,6 +187,13 @@ function AppInner() {
   // the undo window elapses or another delete/undo replaces it.
   const [pendingDelete, setPendingDelete] = useState<Entry | null>(null)
 
+  // Tasks (BIZ-021): server-backed list + side panel.
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [tasksLoading, setTasksLoading] = useState(true)
+  const [taskTags, setTaskTags] = useState<string[]>([])
+  // `{ task: null }` = creating a new Task; `{ task }` = editing an existing one.
+  const [taskPanel, setTaskPanel] = useState<{ task: Task | null } | null>(null)
+
   // Settings (drive the fortnight grid + density)
   const [workdays, setWorkdays] = useState<boolean[]>([false, true, true, true, true, true, false]) // Sun..Sat
   const [absences, setAbsences] = useState<Absence[]>([])
@@ -201,6 +216,13 @@ function AppInner() {
         setAbsences(s.absences)
       })
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your settings.')))
+    fetchTasks()
+      .then(setTasks)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your tasks.')))
+      .finally(() => setTasksLoading(false))
+    fetchTaskTags()
+      .then(setTaskTags)
+      .catch(() => setTaskTags([]))
   }, [notifyError])
 
   // Load entries for the tracker window (BIZ-003); widening `trackerFrom` loads earlier days.
@@ -509,6 +531,29 @@ function AppInner() {
         })
     }
     picker.click()
+  }
+
+  // ---- Tasks (server-backed — BIZ-021) ----
+  const reloadTasks = () =>
+    fetchTasks()
+      .then(setTasks)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not refresh your tasks.')))
+  const reloadTaskTags = () =>
+    fetchTaskTags()
+      .then(setTaskTags)
+      .catch(() => undefined)
+  const saveTask = (draft: TaskDraft) => {
+    const current = taskPanel?.task ?? null
+    const op = current ? apiUpdateTask(current.id, draft) : apiCreateTask(draft)
+    op.then(() => {
+      reloadTasks()
+      reloadTaskTags()
+    }).catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the task.')))
+  }
+  const deleteTask = (task: Task) => {
+    apiDeleteTask(task.id)
+      .then(reloadTasks)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the task.')))
   }
 
   // Comment suggestions (scoped to the draft's code when set)
@@ -845,6 +890,15 @@ function AppInner() {
           onChecklistReset={resetChecklistMarks}
         />
       )}
+      {route === 'tasks' && (
+        <TasksScreen
+          tasks={tasks}
+          codesById={codesById}
+          loading={tasksLoading}
+          onNew={() => setTaskPanel({ task: null })}
+          onOpenTask={(task) => setTaskPanel({ task })}
+        />
+      )}
       {route === 'codes' && (
         <CodeCatalogScreen
           codes={codes}
@@ -991,6 +1045,17 @@ function AppInner() {
           }}
           onDelete={() => deleteEntryWithUndo(editorEntry, refreshCell)}
           onClose={() => setEditorEntry(null)}
+        />
+      )}
+
+      {taskPanel && (
+        <TaskPanel
+          task={taskPanel.task}
+          codes={codes}
+          tagSuggestions={taskTags}
+          onSave={saveTask}
+          onDelete={taskPanel.task ? () => deleteTask(taskPanel.task!) : undefined}
+          onClose={() => setTaskPanel(null)}
         />
       )}
 

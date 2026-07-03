@@ -1,0 +1,67 @@
+"""The Task model — a unit of work to do or being done (see CONTEXT.md, lot TASKS PRD).
+
+A Task is the persisted, metadata-rich form of what the Timer tracks: a title (used as the Timer's
+comment when started from a Task), a markdown description, a status, an optional priority and due
+date, free-text tags, and an optional Timesheet-code reference (real *or* virtual, or none — orphan
+Tasks are allowed). Scoped to a ``user_id`` from day one (ADR-0007).
+"""
+
+from __future__ import annotations
+
+import enum
+from datetime import date as date_type
+
+from sqlalchemy import JSON, Date, Enum, ForeignKey, String, Text
+from sqlalchemy.orm import Mapped, mapped_column
+
+from walker.models.base import Base, TimestampMixin
+
+
+class TaskStatus(enum.StrEnum):
+    """The Task status workflow: To-do -> In-progress -> Waiting -> Test -> Done.
+
+    Waiting and Test are skippable; Done is terminal (see lot TASKS PRD, Implementation Decisions).
+    """
+
+    TODO = "todo"
+    IN_PROGRESS = "in_progress"
+    WAITING = "waiting"
+    TEST = "test"
+    DONE = "done"
+
+
+class TaskPriority(enum.StrEnum):
+    """A Task's priority, so the consultant knows what to do first."""
+
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class Task(TimestampMixin, Base):
+    """A Task: title + markdown description, status, priority, due date, tags, optional code.
+
+    ``timesheet_code_id`` accepts a real *or* virtual code's id (same FK target as
+    ``Entry.timesheet_code_id``); ``None`` means an orphan Task with no charge code. Tags are
+    modeled as a simple JSON list of strings — free-text, no separate Tag entity, mirroring how
+    little structure the domain actually needs (unlike ``Activity``, tags carry no data of their
+    own beyond their text).
+    """
+
+    __tablename__ = "tasks"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(255))
+    description: Mapped[str | None] = mapped_column(Text(), default=None)
+    status: Mapped[TaskStatus] = mapped_column(
+        Enum(TaskStatus, values_callable=lambda enum_cls: [member.value for member in enum_cls]),
+        default=TaskStatus.TODO,
+    )
+    priority: Mapped[TaskPriority | None] = mapped_column(
+        Enum(TaskPriority, values_callable=lambda enum_cls: [member.value for member in enum_cls]),
+        default=None,
+    )
+    due_date: Mapped[date_type | None] = mapped_column(Date, default=None, index=True)
+    tags: Mapped[list[str]] = mapped_column(JSON, default=list)
+    timesheet_code_id: Mapped[int | None] = mapped_column(ForeignKey("timesheet_codes.id"), default=None, index=True)

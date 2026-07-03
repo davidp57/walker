@@ -91,3 +91,25 @@ export interface TaskSuggestion {
 export type Density = 'comfortable' | 'compact'
 
 export const checklistKey = (rowKey: FortnightRowKey, day: number): string => `${rowKey}#${day}`
+
+/** The Task status workflow: To-do -> In-progress -> Waiting -> Test -> Done (Waiting/Test skippable). */
+export type TaskStatus = 'todo' | 'in_progress' | 'waiting' | 'test' | 'done'
+
+export type TaskPriority = 'low' | 'medium' | 'high'
+
+/**
+ * A Task: the persisted, metadata-rich form of a thing to do (see CONTEXT.md). Optionally linked to
+ * a Timesheet code (real or virtual) — an orphan Task (`codeId === null`) is a normal, supported state.
+ */
+export interface Task {
+  id: string
+  title: string
+  description: string // markdown, plain text for now (WYSIWYG editor lands in a later ticket)
+  status: TaskStatus
+  priority: TaskPriority | null
+  dueDate: string | null // ISO date "YYYY-MM-DD"
+  tags: string[]
+  codeId: string | null
+  createdAt: string // ISO datetime
+  updatedAt: string // ISO datetime
+}
