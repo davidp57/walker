@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import { Logo } from './Logo'
-import { IconTracker, IconFortnight, IconChecklist, IconCatalog, IconSettings } from './icons'
+import { IconTracker, IconFortnight, IconCatalog, IconSettings } from './icons'
 
-export type Route = 'tracker' | 'fortnight' | 'checklist' | 'codes' | 'settings'
+export type Route = 'tracker' | 'fortnight' | 'codes' | 'settings'
 
 interface NavItem {
   key: Route
@@ -13,7 +13,6 @@ interface NavItem {
 const NAV: NavItem[] = [
   { key: 'tracker', label: 'Today', icon: <IconTracker /> },
   { key: 'fortnight', label: 'Fortnight', icon: <IconFortnight /> },
-  { key: 'checklist', label: 'Enter in T&E', icon: <IconChecklist /> },
   { key: 'codes', label: 'Code catalog', icon: <IconCatalog /> },
   { key: 'settings', label: 'Settings', icon: <IconSettings /> },
 ]
