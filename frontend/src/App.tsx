@@ -25,7 +25,7 @@ import type {
   TimesheetCode,
 } from './types'
 import { resolveChecklistRows } from './lib/checklist'
-import { formatDuration } from './lib/time'
+import { elapsedSecondsSince, formatDuration } from './lib/time'
 import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor } from './lib/tasks'
 import {
@@ -128,12 +128,6 @@ interface TimerDraft {
 }
 const EMPTY_DRAFT: TimerDraft = { codeId: null, activity: null, description: '' }
 
-const startOfTodayMs = () => {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
-}
-
 export default function App() {
   const [route, setRoute] = useState<Route>('tracker')
   const [codes, setCodes] = useState<TimesheetCode[]>([])
@@ -226,6 +220,10 @@ export default function App() {
   const running = entries.find((e) => e.end === null) ?? null
   const runningId = running?.id ?? null
 
+  // Entries still lacking a Timesheet code (BIZ-010) — surfaced as a live count in the shell so
+  // nothing is left uncoded before the fortnight closes. Mirrors EntryRow's own `flagged` rule.
+  const uncategorizedCount = useMemo(() => entries.filter((e) => !e.codeId).length, [entries])
+
   // Tick the clock every second only while a timer is running.
   useEffect(() => {
     if (runningId == null) return
@@ -236,9 +234,7 @@ export default function App() {
   const codesById = useMemo(() => Object.fromEntries(codes.map((c) => [c.id, c])), [codes])
 
   const timerCode = draft.codeId ? (codesById[draft.codeId] ?? null) : null
-  const elapsedSeconds = running
-    ? Math.max(0, (now - startOfTodayMs()) / 1000 - running.start * 60)
-    : 0
+  const elapsedSeconds = running ? elapsedSecondsSince(running.date, running.start, now) : 0
   const runningMinutes = Math.floor(elapsedSeconds / 60)
 
   // ---- Timer operations (server-backed) ----
@@ -715,7 +711,12 @@ export default function App() {
   )
 
   return (
-    <AppShell route={route} onNavigate={setRoute} timer={timerBar}>
+    <AppShell
+      route={route}
+      onNavigate={setRoute}
+      timer={timerBar}
+      uncategorizedCount={uncategorizedCount}
+    >
       {route === 'tracker' && (
         <TrackerScreen
           groups={trackerGroups}
