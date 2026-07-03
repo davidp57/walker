@@ -1,7 +1,7 @@
 // Typed client for the Walker JSON API (served under /api — see ADR-0003).
 // The dev server proxies /api to the FastAPI backend; in production the SPA and API
 // share an origin, so relative paths work in both.
-import type { Entry, ReferenceCode, TimesheetCode } from '../types'
+import type { Entry, ReferenceCode, Task, TaskPriority, TaskStatus, TimesheetCode } from '../types'
 
 interface ApiActivity {
   code: string
@@ -383,4 +383,84 @@ export async function removeAbsence(date: string): Promise<SettingsData> {
     throw new Error(`${response.status} ${response.statusText} for /api/settings/absences/${date}`)
   }
   return mapSettings((await response.json()) as ApiSettings)
+}
+
+interface ApiTask {
+  id: number
+  title: string
+  description: string | null
+  status: string
+  priority: string | null
+  due_date: string | null
+  tags: string[]
+  timesheet_code_id: number | null
+  created_at: string
+  updated_at: string
+}
+
+function mapTask(task: ApiTask): Task {
+  return {
+    id: String(task.id),
+    title: task.title,
+    description: task.description ?? '',
+    status: task.status as TaskStatus,
+    priority: (task.priority as TaskPriority | null) ?? null,
+    dueDate: task.due_date,
+    tags: task.tags,
+    codeId: task.timesheet_code_id == null ? null : String(task.timesheet_code_id),
+    createdAt: task.created_at,
+    updatedAt: task.updated_at,
+  }
+}
+
+/** Fields sent when creating or updating a Task. */
+export interface TaskWrite {
+  title: string
+  description?: string | null
+  status?: TaskStatus
+  priority?: TaskPriority | null
+  dueDate?: string | null
+  tags?: string[]
+  codeId?: string | null
+}
+
+function taskBody(input: TaskWrite): Record<string, unknown> {
+  return {
+    title: input.title,
+    description: input.description ?? null,
+    status: input.status ?? 'todo',
+    priority: input.priority ?? null,
+    due_date: input.dueDate ?? null,
+    tags: input.tags ?? [],
+    timesheet_code_id: input.codeId == null ? null : Number(input.codeId),
+  }
+}
+
+/** Fetch the current user's Tasks. */
+export async function fetchTasks(): Promise<Task[]> {
+  const tasks = await getJson<ApiTask[]>('/api/tasks')
+  return tasks.map(mapTask)
+}
+
+/** Create a Task. Orphan Tasks (no code) are allowed. */
+export async function createTask(input: TaskWrite): Promise<Task> {
+  return mapTask(await sendJson<ApiTask>('/api/tasks', 'POST', taskBody(input)))
+}
+
+/** Update every field of a Task. */
+export async function updateTask(id: string, input: TaskWrite): Promise<Task> {
+  return mapTask(await sendJson<ApiTask>(`/api/tasks/${id}`, 'PUT', taskBody(input)))
+}
+
+/** Delete a Task. */
+export async function deleteTask(id: string): Promise<void> {
+  const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText} for /api/tasks/${id}`)
+  }
+}
+
+/** Fetch every distinct tag used across the user's Tasks (for autocomplete). */
+export async function fetchTaskTags(): Promise<string[]> {
+  return getJson<string[]>('/api/tasks/tags')
 }

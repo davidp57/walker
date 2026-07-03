@@ -53,6 +53,8 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
   })
   vi.spyOn(api, 'fetchFortnight').mockResolvedValue({})
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
+  vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
+  vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
 }
 
 describe('App — tracking on a virtual code (BIZ-013)', () => {
@@ -170,6 +172,8 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
     })
     vi.spyOn(api, 'fetchFortnight').mockResolvedValue({})
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
+    vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
+    vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
 
     render(<App />)
 
@@ -203,6 +207,8 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
     })
     vi.spyOn(api, 'fetchFortnight').mockResolvedValue({})
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
+    vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
+    vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
 
     render(<App />)
 

@@ -68,6 +68,33 @@ export const IconCatalog = ({ size = 15, style, className }: IconProps) => (
   </svg>
 )
 
+/** Bulleted-list-with-checkbox glyph for the Tasks nav item — distinct from the Entry checklist. */
+export const IconTasks = ({ size = 15, style, className }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{ ...base(size), ...style }}
+    className={className}
+    aria-hidden
+  >
+    <rect x="3.5" y="4.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.6" />
+    <path
+      d="M4.7 7 6 8.3 7.8 6"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <rect x="3.5" y="14.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.6" />
+    <path
+      d="M11.5 7h9M11.5 17h9M11.5 12h6"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+  </svg>
+)
+
 export const IconSettings = ({ size = 15, style, className }: IconProps) => (
   <svg
     viewBox="0 0 24 24"

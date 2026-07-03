@@ -230,3 +230,44 @@ class AbsenceWrite(BaseModel):
 
     date: date
     reason: str
+
+
+class TaskRead(BaseModel):
+    """A Task, as returned by the ``/api/tasks`` endpoints."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    description: str | None
+    status: str
+    priority: str | None
+    due_date: date | None
+    tags: list[str]
+    timesheet_code_id: int | None
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+
+
+class TaskCreate(BaseModel):
+    """Payload to create a Task. Only ``title`` is required; an orphan Task has no code."""
+
+    title: str
+    description: str | None = None
+    status: str = "todo"
+    priority: str | None = None
+    due_date: date | None = None
+    tags: list[str] = []
+    timesheet_code_id: int | None = None
+
+
+class TaskUpdate(BaseModel):
+    """Payload to update a Task (same shape as create — all fields are replaced)."""
+
+    title: str
+    description: str | None = None
+    status: str = "todo"
+    priority: str | None = None
+    due_date: date | None = None
+    tags: list[str] = []
+    timesheet_code_id: int | None = None

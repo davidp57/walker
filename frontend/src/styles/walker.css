@@ -1377,3 +1377,206 @@
 .wk-undo-toast-action:hover {
   text-decoration: underline;
 }
+
+/* ---------- Tasks (BIZ-021) ---------- */
+.wk-tasks-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--wk-space-3);
+  margin-bottom: var(--wk-space-4);
+  flex-wrap: wrap;
+}
+.wk-tasks-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.wk-tasks-toolbar select {
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  color: var(--wk-text-hi);
+  font-size: var(--wk-fs-12);
+  padding: 5px 8px;
+}
+.wk-task-group {
+  margin-bottom: var(--wk-space-5);
+}
+.wk-task-group-title {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  padding: 6px 4px;
+}
+.wk-task-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-lg);
+  overflow: hidden;
+}
+.wk-task-table th {
+  text-align: left;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--wk-line);
+  background: var(--wk-bg-2);
+  cursor: pointer;
+  user-select: none;
+}
+.wk-task-table th.is-sorted {
+  color: var(--wk-text-hi);
+}
+.wk-task-row {
+  cursor: pointer;
+}
+.wk-task-row:not(:last-child) td {
+  border-bottom: 1px solid var(--wk-line-soft);
+}
+.wk-task-row:hover {
+  background: var(--wk-bg-2);
+}
+.wk-task-table td {
+  padding: 10px 14px;
+  font-size: var(--wk-fs-13);
+  color: var(--wk-text);
+  vertical-align: middle;
+}
+.wk-task-title {
+  color: var(--wk-text-hi);
+  font-weight: var(--wk-fw-medium);
+}
+.wk-task-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+.wk-task-tag {
+  font-family: var(--wk-font-mono);
+  font-size: 10px;
+  color: var(--wk-text-mid);
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-pill);
+  padding: 2px 8px;
+}
+.wk-task-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  padding: 3px 9px;
+  border-radius: var(--wk-radius-pill);
+  border: 1px solid var(--wk-line-soft);
+  color: var(--wk-text-mid);
+  white-space: nowrap;
+}
+.wk-task-status.is-done {
+  color: var(--wk-green);
+  border-color: var(--wk-green-soft);
+  background: var(--wk-green-soft);
+}
+.wk-task-status.is-in_progress {
+  color: var(--wk-accent);
+  border-color: var(--wk-accent-line);
+  background: var(--wk-accent-soft);
+}
+.wk-task-priority {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  text-transform: capitalize;
+}
+.wk-task-priority.is-high {
+  color: var(--wk-danger);
+}
+.wk-task-priority.is-medium {
+  color: var(--wk-amber);
+}
+.wk-task-priority.is-low {
+  color: var(--wk-text-lo);
+}
+.wk-task-due.is-overdue {
+  color: var(--wk-danger);
+}
+
+/* Side panel (Task detail): a drawer anchored right, distinct from the centered wk-modal. */
+.wk-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 8, 12, 0.5);
+  display: flex;
+  justify-content: flex-end;
+  z-index: var(--wk-z-modal);
+}
+.wk-panel {
+  width: 420px;
+  max-width: 92vw;
+  height: 100%;
+  background: var(--wk-bg-1);
+  border-left: 1px solid var(--wk-line);
+  box-shadow: var(--wk-shadow-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.wk-panel-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.wk-panel-foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--wk-line-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.wk-tag-input-wrap {
+  position: relative;
+}
+.wk-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.wk-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text);
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-pill);
+  padding: 3px 6px 3px 10px;
+}
+.wk-tag-chip button {
+  background: none;
+  border: none;
+  color: var(--wk-text-lo);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 11px;
+}
+.wk-tag-chip button:hover {
+  color: var(--wk-danger);
+}

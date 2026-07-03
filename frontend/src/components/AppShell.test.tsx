@@ -5,7 +5,7 @@ import { AppShell } from './AppShell'
 afterEach(() => cleanup())
 
 describe('AppShell — nav', () => {
-  it('has exactly four nav items and no "Enter in T&E" destination', () => {
+  it('has exactly five nav items (incl. Tasks — BIZ-021) and no "Enter in T&E" destination', () => {
     render(
       <AppShell route="tracker" onNavigate={vi.fn()} timer={null}>
         <div />
@@ -14,7 +14,8 @@ describe('AppShell — nav', () => {
 
     const nav = screen.getByRole('navigation')
     const items = nav.querySelectorAll('.wk-nav-item')
-    expect(items).toHaveLength(4)
+    expect(items).toHaveLength(5)
+    expect(screen.getByText('Tasks')).toBeInTheDocument()
     expect(screen.queryByText('Enter in T&E')).not.toBeInTheDocument()
     expect(screen.queryByText('Enter into T&E')).not.toBeInTheDocument()
   })
