@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   completeTask,
+  completeTimer,
   createCode,
   createTask,
   createVirtualCode,
@@ -14,6 +15,7 @@ import {
   fetchTasks,
   importCatalog,
   patchEntry,
+  switchTimer,
   updateTask,
 } from './api'
 
@@ -103,6 +105,7 @@ describe('fetchEntries', () => {
         timesheet_code_id: 3,
         activity: 'Bug fixing',
         description: 'x',
+        task_id: null,
       },
       {
         id: 8,
@@ -112,6 +115,7 @@ describe('fetchEntries', () => {
         timesheet_code_id: null,
         activity: null,
         description: null,
+        task_id: 5,
       },
     ]
     vi.stubGlobal(
@@ -131,6 +135,7 @@ describe('fetchEntries', () => {
         codeId: '3',
         activity: 'Bug fixing',
         description: 'x',
+        taskId: null,
       },
       {
         id: '8',
@@ -140,6 +145,7 @@ describe('fetchEntries', () => {
         codeId: null,
         activity: null,
         description: '',
+        taskId: '5',
       },
     ])
   })
@@ -172,6 +178,105 @@ describe('patchEntry', () => {
     expect(url).toBe('/api/entries/7')
     expect(init.method).toBe('PATCH')
     expect(JSON.parse(init.body as string)).toEqual({ timesheet_code_id: 3, end_minute: 600 })
+  })
+
+  it('maps the taskId field into task_id (BIZ-023)', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 7,
+            date: '2026-07-02',
+            start_minute: 540,
+            end_minute: 600,
+            timesheet_code_id: 3,
+            activity: 'Bug fixing',
+            description: 'x',
+            task_id: 5,
+          }),
+          { status: 200 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const entry = await patchEntry('7', { taskId: '5' })
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(init.body as string)).toEqual({ task_id: 5 })
+    expect(entry.taskId).toBe('5')
+  })
+})
+
+describe('switchTimer', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('sends taskId as task_id and maps it back on the new entry (BIZ-023)', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 11,
+            date: '2026-07-02',
+            start_minute: 540,
+            end_minute: null,
+            timesheet_code_id: 3,
+            activity: 'Bug fixing',
+            description: 'Renew passport',
+            task_id: 5,
+          }),
+          { status: 201 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const entry = await switchTimer({
+      codeId: '3',
+      activity: 'Bug fixing',
+      description: 'Renew passport',
+      taskId: '5',
+    })
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/timer/switch')
+    expect(JSON.parse(init.body as string)).toEqual({
+      timesheet_code_id: 3,
+      activity: 'Bug fixing',
+      description: 'Renew passport',
+      task_id: 5,
+    })
+    expect(entry.taskId).toBe('5')
+  })
+})
+
+describe('completeTimer', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('POSTs /api/timer/complete and maps the closed entry', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 11,
+            date: '2026-07-02',
+            start_minute: 540,
+            end_minute: 600,
+            timesheet_code_id: 3,
+            activity: 'Bug fixing',
+            description: 'Renew passport',
+            task_id: 5,
+          }),
+          { status: 200 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const entry = await completeTimer()
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/timer/complete')
+    expect(init.method).toBe('POST')
+    expect(entry.end).toBe(600)
+    expect(entry.taskId).toBe('5')
   })
 })
 

@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Task, TaskStatus, TimesheetCode } from '../types'
+import { IconPlay } from '../components/icons'
 import { TaskBoard } from '../components/TaskBoard'
 
 export type TaskSortField = 'status' | 'priority' | 'due' | 'title'
@@ -12,6 +13,9 @@ interface TasksScreenProps {
   loading?: boolean
   onNew: () => void
   onOpenTask: (task: Task) => void
+  // Start a Timer from this Task (BIZ-023) — title as comment, code prefilled. Omit to hide the
+  // row action (e.g. a read-only context).
+  onStartTask?: (task: Task) => void
   /** Called when a Task is moved to another column on the board (BIZ-022). */
   onMoveTask?: (task: Task, status: TaskStatus) => void
 }
@@ -77,6 +81,7 @@ export function TasksScreen({
   loading = false,
   onNew,
   onOpenTask,
+  onStartTask,
   onMoveTask,
 }: TasksScreenProps) {
   const [view, setView] = useState<TaskViewMode>('list')
@@ -167,6 +172,22 @@ export function TasksScreen({
             '—'
           )}
         </td>
+        {onStartTask && (
+          <td>
+            <button
+              type="button"
+              className="wk-btn-icon"
+              title="Start a Timer from this task"
+              data-testid={`wk-task-start-${task.id}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onStartTask(task)
+              }}
+            >
+              <IconPlay />
+            </button>
+          </td>
+        )}
       </tr>
     )
   }
@@ -262,6 +283,7 @@ export function TasksScreen({
                   {sortHeader('priority', 'Priority')}
                   {sortHeader('due', 'Due')}
                   <th>Code</th>
+                  {onStartTask && <th />}
                 </tr>
               </thead>
               <tbody>{g.items.map(renderRow)}</tbody>

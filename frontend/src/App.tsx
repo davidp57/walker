@@ -35,6 +35,7 @@ import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
   addCodeFromReference as apiAddCodeFromReference,
+  completeTimer as apiCompleteTimer,
   createCode as apiCreateCode,
   createEntry as apiCreateEntry,
   createTask as apiCreateTask,
@@ -193,6 +194,9 @@ function AppInner() {
   const [taskTags, setTaskTags] = useState<string[]>([])
   // `{ task: null }` = creating a new Task; `{ task }` = editing an existing one.
   const [taskPanel, setTaskPanel] = useState<{ task: Task | null } | null>(null)
+  // The Task a start-from-Task action (BIZ-023) is starting a Timer for, while its Code picker
+  // (target 'task') is open — title becomes the comment, code is prefilled, Activity is chosen.
+  const [pendingTaskStart, setPendingTaskStart] = useState<Task | null>(null)
 
   // Settings (drive the fortnight grid + density)
   const [workdays, setWorkdays] = useState<boolean[]>([false, true, true, true, true, true, false]) // Sun..Sat
@@ -311,6 +315,29 @@ function AppInner() {
         return reload()
       })
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not stop the timer.')))
+  }
+  // Complete (BIZ-023): stop the Timer and mark its linked Task Done, in one call — the running
+  // entry's categorization is saved first, exactly as Stop does, so nothing typed is lost.
+  const completeTimer = () => {
+    if (!running) return
+    apiPatchEntry(running.id, {
+      codeId: draft.codeId,
+      activity: draft.activity,
+      description: draft.description,
+    })
+      .then(() => apiCompleteTimer())
+      .then(() => {
+        setDraft(EMPTY_DRAFT)
+        return Promise.all([reload(), reloadTasks()])
+      })
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not complete the task.')))
+  }
+  // Start a Timer from a Task (BIZ-023): title becomes the comment, code is prefilled — the Code
+  // picker still opens so the Activity is chosen (scoped to the Task's code when it has one).
+  const startTaskTimer = (task: Task) => {
+    setDraft({ codeId: task.codeId, activity: null, description: task.title })
+    setPendingTaskStart(task)
+    setPicker({ target: 'task' })
   }
   const cancelTimer = () => {
     if (running) {
@@ -831,6 +858,8 @@ function AppInner() {
       onCancel={cancelTimer}
       onSwitchTask={() => setPicker({ target: 'timer' })}
       onSubmitDescription={() => startTimerWithDescription(draft.description)}
+      taskId={running?.taskId ?? null}
+      onComplete={completeTimer}
       startMinute={running?.start ?? null}
       onEditStart={(minute) => {
         if (running) {
@@ -911,6 +940,7 @@ function AppInner() {
           loading={tasksLoading}
           onNew={() => setTaskPanel({ task: null })}
           onOpenTask={(task) => setTaskPanel({ task })}
+          onStartTask={startTaskTimer}
           onMoveTask={moveTask}
         />
       )}
@@ -964,16 +994,31 @@ function AppInner() {
               ? 'Switch task'
               : picker.target === 'new'
                 ? 'Pick code & activity'
-                : 'Categorize entry'
+                : picker.target === 'task'
+                  ? 'Start task — pick an activity'
+                  : 'Categorize entry'
           }
-          codes={codes}
-          onCreateNew={(q) => setEditor({ code: null, initialName: q })}
-          onCreateNewVirtual={() => {
-            const reopenPicker = picker.target
-            setPicker(null)
-            setVirtualEditor({ code: null, reopenPicker })
-          }}
-          onSearchReference={searchReference}
+          codes={
+            // Start-from-Task (BIZ-023): the Task's code is prefilled — scope the picker to just
+            // that code so only the Activity remains to be chosen. An orphan Task (no code) still
+            // gets the full picker, exactly like "Switch task".
+            picker.target === 'task' && pendingTaskStart?.codeId
+              ? codes.filter((c) => c.id === pendingTaskStart.codeId)
+              : codes
+          }
+          onCreateNew={
+            picker.target === 'task' ? undefined : (q) => setEditor({ code: null, initialName: q })
+          }
+          onCreateNewVirtual={
+            picker.target === 'task'
+              ? undefined
+              : () => {
+                  const reopenPicker = picker.target
+                  setPicker(null)
+                  setVirtualEditor({ code: null, reopenPicker })
+                }
+          }
+          onSearchReference={picker.target === 'task' ? undefined : searchReference}
           onAddFromReference={(number) =>
             apiAddCodeFromReference(number)
               .then(reloadCodes)
@@ -999,6 +1044,17 @@ function AppInner() {
               setAddDraft((d) =>
                 d ? { ...d, codeId, activity, description: lastDescription ?? d.description } : d,
               )
+            } else if (picker.target === 'task') {
+              const task = pendingTaskStart
+              if (task) {
+                setDraft({ codeId, activity, description: task.title })
+                apiSwitchTimer({ codeId, activity, description: task.title, taskId: task.id })
+                  .then(() => Promise.all([reload(), reloadTasks()]))
+                  .catch((err: unknown) =>
+                    notifyError(errorMessage(err, 'Could not start the timer.')),
+                  )
+              }
+              setPendingTaskStart(null)
             } else {
               apiPatchEntry(picker.target, {
                 codeId,
@@ -1012,7 +1068,10 @@ function AppInner() {
             }
             setPicker(null)
           }}
-          onClose={() => setPicker(null)}
+          onClose={() => {
+            setPicker(null)
+            setPendingTaskStart(null)
+          }}
         />
       )}
 

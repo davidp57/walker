@@ -45,6 +45,7 @@ export interface Entry {
   codeId: string | null // null = uncategorized / needs completing
   activity: ActivityName | null // the chosen activity's label
   description: string
+  taskId?: string | null // the Task this Entry was started from (BIZ-023), or null/absent
 }
 
 /** A non-worked day, reflected from T&E (read-only) or entered manually in the POC. */

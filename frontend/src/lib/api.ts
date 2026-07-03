@@ -64,6 +64,7 @@ interface ApiEntry {
   timesheet_code_id: number | null
   activity: string | null
   description: string | null
+  task_id: number | null
 }
 
 function mapEntry(entry: ApiEntry): Entry {
@@ -75,6 +76,7 @@ function mapEntry(entry: ApiEntry): Entry {
     codeId: entry.timesheet_code_id == null ? null : String(entry.timesheet_code_id),
     activity: entry.activity,
     description: entry.description ?? '',
+    taskId: entry.task_id == null ? null : String(entry.task_id),
   }
 }
 
@@ -95,14 +97,19 @@ export interface TimerCategory {
   codeId?: string | null
   activity?: string | null
   description?: string | null
+  taskId?: string | null
 }
 
 function categoryBody(category: TimerCategory): Record<string, unknown> {
-  return {
+  const body: Record<string, unknown> = {
     timesheet_code_id: category.codeId == null ? null : Number(category.codeId),
     activity: category.activity ?? null,
     description: category.description ?? null,
   }
+  if (category.taskId !== undefined) {
+    body.task_id = category.taskId == null ? null : Number(category.taskId)
+  }
+  return body
 }
 
 /** List the current user's entries for a day (ISO "YYYY-MM-DD"). */
@@ -128,9 +135,14 @@ export async function switchTimer(category: TimerCategory = {}): Promise<Entry> 
   return mapEntry(await sendJson<ApiEntry>('/api/timer/switch', 'POST', categoryBody(category)))
 }
 
-/** Close the running entry. */
+/** Close the running entry. Leaves a linked Task's status unchanged (see `completeTimer`). */
 export async function stopTimer(): Promise<Entry> {
   return mapEntry(await sendJson<ApiEntry>('/api/timer/stop', 'POST'))
+}
+
+/** Close the running entry and mark its linked Task Done, in one call (BIZ-023). */
+export async function completeTimer(): Promise<Entry> {
+  return mapEntry(await sendJson<ApiEntry>('/api/timer/complete', 'POST'))
 }
 
 /** Edit any field of an entry; only provided keys are sent. */
@@ -144,6 +156,9 @@ export async function patchEntry(id: string, patch: Partial<Entry>): Promise<Ent
   }
   if (patch.activity !== undefined) body.activity = patch.activity
   if (patch.description !== undefined) body.description = patch.description
+  if (patch.taskId !== undefined) {
+    body.task_id = patch.taskId == null ? null : Number(patch.taskId)
+  }
   return mapEntry(await sendJson<ApiEntry>(`/api/entries/${id}`, 'PATCH', body))
 }
 
@@ -158,6 +173,9 @@ export async function createEntry(fields: Partial<Entry> = {}): Promise<Entry> {
   }
   if (fields.activity !== undefined) body.activity = fields.activity
   if (fields.description !== undefined) body.description = fields.description
+  if (fields.taskId !== undefined) {
+    body.task_id = fields.taskId == null ? null : Number(fields.taskId)
+  }
   return mapEntry(await sendJson<ApiEntry>('/api/entries', 'POST', body))
 }
 

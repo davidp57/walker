@@ -22,7 +22,11 @@ describe('TimerBar — Enter-to-start (BIZ-009)', () => {
   it('pressing Enter in the description field starts a Timer carrying that description', () => {
     const onSubmitDescription = vi.fn()
     render(
-      <TimerBar {...baseProps} description="writing spec" onSubmitDescription={onSubmitDescription} />,
+      <TimerBar
+        {...baseProps}
+        description="writing spec"
+        onSubmitDescription={onSubmitDescription}
+      />,
     )
 
     const input = screen.getByPlaceholderText('What are you working on?')
@@ -67,5 +71,49 @@ describe('TimerBar — Enter-to-start (BIZ-009)', () => {
     fireEvent.keyDown(input, { key: 'a' })
 
     expect(onSubmitDescription).not.toHaveBeenCalled()
+  })
+})
+
+describe('TimerBar — Stop | Complete split (BIZ-023)', () => {
+  it('shows a plain Stop button when the running entry has no linked task', () => {
+    render(<TimerBar {...baseProps} running taskId={null} onComplete={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument()
+  })
+
+  it('shows Stop and Complete when the running entry is linked to a task', () => {
+    render(<TimerBar {...baseProps} running taskId="5" onComplete={vi.fn()} />)
+
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Complete' })).toBeInTheDocument()
+  })
+
+  it('calls onStop (not onComplete) when Stop is clicked', () => {
+    const onStop = vi.fn()
+    const onComplete = vi.fn()
+    render(<TimerBar {...baseProps} running taskId="5" onStop={onStop} onComplete={onComplete} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+
+    expect(onStop).toHaveBeenCalledTimes(1)
+    expect(onComplete).not.toHaveBeenCalled()
+  })
+
+  it('calls onComplete (not onStop) when Complete is clicked', () => {
+    const onStop = vi.fn()
+    const onComplete = vi.fn()
+    render(<TimerBar {...baseProps} running taskId="5" onStop={onStop} onComplete={onComplete} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Complete' }))
+
+    expect(onComplete).toHaveBeenCalledTimes(1)
+    expect(onStop).not.toHaveBeenCalled()
+  })
+
+  it('does not show Complete while stopped, even with a linked task from the last run', () => {
+    render(<TimerBar {...baseProps} running={false} taskId="5" onComplete={vi.fn()} />)
+
+    expect(screen.queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument()
   })
 })

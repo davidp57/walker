@@ -2,7 +2,8 @@
 
 Captures real minutes to the minute (no rounding). An Entry with ``end_minute`` NULL is the
 single running timer for its user; categorization (code, activity, description) is optional and
-editable after the fact (capture-first).
+editable after the fact (capture-first). ``task_id`` optionally links the Entry to the Task it was
+started from (BIZ-023) — ``None`` for Entries not started from a listed Task.
 """
 
 from __future__ import annotations
@@ -28,3 +29,4 @@ class Entry(TimestampMixin, Base):
     timesheet_code_id: Mapped[int | None] = mapped_column(ForeignKey("timesheet_codes.id"), default=None, index=True)
     activity: Mapped[str | None] = mapped_column(String(255), default=None)
     description: Mapped[str | None] = mapped_column(String(1000), default=None)
+    task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id"), default=None, index=True)

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ActivityName, TaskSuggestion, TimesheetCode } from '../types'
 import { formatClock, formatStopwatch, parseMilitaryClock, selectOnFocus } from '../lib/time'
-import { IconPlay, IconStop } from './icons'
+import { IconChecklist, IconPlay, IconStop } from './icons'
 
 interface TimerBarProps {
   running: boolean
@@ -21,6 +21,10 @@ interface TimerBarProps {
   // Enter in the description field (BIZ-009): starts a Timer carrying the typed description.
   // Only fires while stopped — Enter while running is a no-op (avoids a phantom double-start).
   onSubmitDescription?: () => void
+  // The running entry's linked Task id, if any (BIZ-023) — when set, Stop splits into Stop |
+  // Complete. `null`/`undefined` while stopped or when the running entry carries no Task.
+  taskId?: string | null
+  onComplete?: () => void // stop the Timer and mark the linked Task Done
 }
 
 export function TimerBar({
@@ -39,6 +43,8 @@ export function TimerBar({
   startMinute,
   onEditStart,
   onSubmitDescription,
+  taskId,
+  onComplete,
 }: TimerBarProps) {
   const [focused, setFocused] = useState(false)
   const showSuggestions = focused && suggestions.length > 0
@@ -156,10 +162,20 @@ export function TimerBar({
       )}
 
       {running ? (
-        <button type="button" className="wk-btn wk-btn-danger" onClick={onStop}>
-          <IconStop style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }} />{' '}
-          Stop
-        </button>
+        <>
+          <button type="button" className="wk-btn wk-btn-danger" onClick={onStop}>
+            <IconStop style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }} />{' '}
+            Stop
+          </button>
+          {taskId != null && (
+            <button type="button" className="wk-btn wk-btn-primary" onClick={onComplete}>
+              <IconChecklist
+                style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }}
+              />{' '}
+              Complete
+            </button>
+          )}
+        </>
       ) : (
         <button type="button" className="wk-btn wk-btn-primary" onClick={onStart}>
           <IconPlay style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }} />{' '}
