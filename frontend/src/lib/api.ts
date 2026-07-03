@@ -15,6 +15,9 @@ interface ApiCode {
   name: string
   color: string
   activities: ApiActivity[]
+  is_virtual: boolean
+  real_code_id: number | null
+  real_code_number: string | null
 }
 
 async function getJson<T>(path: string): Promise<T> {
@@ -25,10 +28,24 @@ async function getJson<T>(path: string): Promise<T> {
   return (await response.json()) as T
 }
 
-/** Fetch the current user's code catalog. Backend ids are numeric; the SPA uses string ids. */
+function mapCode(code: ApiCode): TimesheetCode {
+  return {
+    id: String(code.id),
+    number: code.number,
+    label: code.label,
+    name: code.name,
+    color: code.color,
+    activities: code.activities,
+    isVirtual: code.is_virtual,
+    realCodeId: code.real_code_id == null ? null : String(code.real_code_id),
+    realCodeNumber: code.real_code_number,
+  }
+}
+
+/** Fetch the current user's code catalog (real and virtual). Backend ids are numeric; the SPA uses string ids. */
 export async function fetchCodes(): Promise<TimesheetCode[]> {
   const codes = await getJson<ApiCode[]>('/api/codes')
-  return codes.map((code) => ({ ...code, id: String(code.id) }))
+  return codes.map(mapCode)
 }
 
 interface ApiEntry {
@@ -165,14 +182,44 @@ function codeBody(input: CodeWrite): Record<string, unknown> {
 
 /** Create a code (+ activities). */
 export async function createCode(input: CodeWrite): Promise<TimesheetCode> {
-  const code = await sendJson<ApiCode>('/api/codes', 'POST', codeBody(input))
-  return { ...code, id: String(code.id) }
+  return mapCode(await sendJson<ApiCode>('/api/codes', 'POST', codeBody(input)))
 }
 
 /** Update a code (replaces its activities). */
 export async function updateCode(id: string, input: CodeWrite): Promise<TimesheetCode> {
-  const code = await sendJson<ApiCode>(`/api/codes/${id}`, 'PUT', codeBody(input))
-  return { ...code, id: String(code.id) }
+  return mapCode(await sendJson<ApiCode>(`/api/codes/${id}`, 'PUT', codeBody(input)))
+}
+
+/** Fields sent when creating a virtual code (ADR-0008): backed by exactly one real code. */
+export interface VirtualCodeWrite {
+  realCodeId: string
+  name: string
+  color?: string | null
+}
+
+/** Create a virtual code linked to a real code; borrows the real code's number/label/activities. */
+export async function createVirtualCode(input: VirtualCodeWrite): Promise<TimesheetCode> {
+  return mapCode(
+    await sendJson<ApiCode>('/api/codes/virtual', 'POST', {
+      real_code_id: Number(input.realCodeId),
+      name: input.name,
+      color: input.color ?? null,
+    }),
+  )
+}
+
+/** Update a virtual code's name, colour, and/or backing real code (ADR-0008). */
+export async function updateVirtualCode(
+  id: string,
+  input: VirtualCodeWrite,
+): Promise<TimesheetCode> {
+  return mapCode(
+    await sendJson<ApiCode>(`/api/codes/virtual/${id}`, 'PUT', {
+      real_code_id: Number(input.realCodeId),
+      name: input.name,
+      color: input.color ?? null,
+    }),
+  )
 }
 
 /** Delete a code; the server rejects deletion of a code still referenced by an entry. */
@@ -200,8 +247,7 @@ export async function searchReference(q: string, limit = 20): Promise<ReferenceC
 
 /** Copy a reference code (by number) into the user's active codes. */
 export async function addCodeFromReference(number: string): Promise<TimesheetCode> {
-  const code = await sendJson<ApiCode>('/api/codes/from-reference', 'POST', { number })
-  return { ...code, id: String(code.id) }
+  return mapCode(await sendJson<ApiCode>('/api/codes/from-reference', 'POST', { number }))
 }
 
 /** Import a catalog CSV into the reference catalog; upserts by number. Returns created/updated. */

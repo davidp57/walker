@@ -5,6 +5,7 @@ import { AppShell, type Route } from './components/AppShell'
 import { TimerBar } from './components/TimerBar'
 import { CodePicker } from './components/CodePicker'
 import { CodeEditor } from './components/CodeEditor'
+import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
 import { CellEntriesModal } from './components/CellEntriesModal'
 import { TrackerScreen, type DayGroup } from './screens/TrackerScreen'
@@ -23,13 +24,16 @@ import type {
   TaskSuggestion,
   TimesheetCode,
 } from './types'
+import { resolveChecklistRows } from './lib/checklist'
 import { formatDuration } from './lib/time'
 import { shouldRetagInPlace } from './lib/timer'
+import { lastDescriptionFor } from './lib/tasks'
 import {
   addAbsence as apiAddAbsence,
   addCodeFromReference as apiAddCodeFromReference,
   createCode as apiCreateCode,
   createEntry as apiCreateEntry,
+  createVirtualCode as apiCreateVirtualCode,
   deleteCode as apiDeleteCode,
   deleteEntry as apiDeleteEntry,
   fetchChecklist,
@@ -48,6 +52,7 @@ import {
   toggleChecklist as apiToggleChecklist,
   updateCode as apiUpdateCode,
   updateSettings as apiUpdateSettings,
+  updateVirtualCode as apiUpdateVirtualCode,
 } from './lib/api'
 
 // ---- Today (real local date, matches the server-recorded entries) ----
@@ -142,6 +147,13 @@ export default function App() {
   const [editor, setEditor] = useState<{ code: TimesheetCode | null; initialName?: string } | null>(
     null,
   )
+  // `reopenPicker` is set when the virtual-code editor was opened from CodePicker's "create on the
+  // fly" action (BIZ-013): on save, the picker reopens on the same target so the newly created
+  // virtual code can be picked in one more click ("used immediately" — see saveVirtualCode below).
+  const [virtualEditor, setVirtualEditor] = useState<{
+    code: TimesheetCode | null
+    reopenPicker?: string | null
+  } | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
@@ -341,7 +353,9 @@ export default function App() {
       .then(setCodes)
       .catch(() => {})
   const isCodeInUse = (id: string): boolean =>
-    entries.some((e) => e.codeId === id) || Object.keys(matrix).some((k) => k.startsWith(`${id}|`))
+    entries.some((e) => e.codeId === id) ||
+    Object.keys(matrix).some((k) => k.startsWith(`${id}|`)) ||
+    codes.some((c) => c.realCodeId === id)
   const saveCode = (code: TimesheetCode) => {
     const payload = {
       number: code.number,
@@ -359,6 +373,22 @@ export default function App() {
     apiDeleteCode(code.id)
       .then(reloadCodes)
       .catch(() => {})
+  }
+  // Create a virtual code (BIZ-013 "used immediately", design decision: reopen the picker rather
+  // than auto-picking an activity — the newly created code is right there, one click away, with no
+  // need to guess which activity the user wants).
+  const saveVirtualCode = (input: {
+    realCodeId: string
+    name: string
+    color: string
+  }): Promise<void> => {
+    const reopenTarget = virtualEditor?.reopenPicker ?? null
+    const op = virtualEditor?.code
+      ? apiUpdateVirtualCode(virtualEditor.code.id, input)
+      : apiCreateVirtualCode(input)
+    return op.then(reloadCodes).then(() => {
+      if (reopenTarget !== null) setPicker({ target: reopenTarget })
+    })
   }
   const importCatalogFile = () => {
     const picker = document.createElement('input')
@@ -447,6 +477,15 @@ export default function App() {
         })
         .filter((r): r is FortnightRow => Boolean(r.code)),
     [matrix, codesById],
+  )
+
+  // Enter-in-T&E view (ADR-0008): resolve virtual codes to their real code and collapse rows that
+  // share one — several fine-grained Walker rows become one real-code × activity line, matching
+  // both the server's `derive_checklist` and what gets keyed into T&E. `checked` (fetched from the
+  // checklist endpoint) is already real-code-keyed, so its keys must match these rows' keys.
+  const checklistRows: FortnightRow[] = useMemo(
+    () => resolveChecklistRows(rows, codesById),
+    [rows, codesById],
   )
 
   // The running timer as a fortnight cell: shown live in its code × activity row, but only when it
@@ -678,7 +717,7 @@ export default function App() {
       {route === 'checklist' && (
         <ChecklistScreen
           days={days}
-          rows={rows}
+          rows={checklistRows}
           checked={checked}
           onChange={applyChecklistChange}
           onReset={resetChecklistMarks}
@@ -688,7 +727,9 @@ export default function App() {
         <CodeCatalogScreen
           codes={codes}
           onNew={() => setEditor({ code: null })}
+          onNewVirtual={() => setVirtualEditor({ code: null })}
           onEdit={(code) => setEditor({ code })}
+          onEditVirtual={(code) => setVirtualEditor({ code })}
           onDelete={deleteCode}
           isCodeInUse={isCodeInUse}
           onImport={importCatalogFile}
@@ -735,6 +776,11 @@ export default function App() {
           }
           codes={codes}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
+          onCreateNewVirtual={() => {
+            const reopenPicker = picker.target
+            setPicker(null)
+            setVirtualEditor({ code: null, reopenPicker })
+          }}
           onSearchReference={searchReference}
           onAddFromReference={(number) =>
             apiAddCodeFromReference(number)
@@ -742,12 +788,29 @@ export default function App() {
               .catch(() => {})
           }
           onPick={(codeId, activity) => {
+            // Prefill from the last comment used on this code (real or virtual) + activity, when one
+            // exists (BIZ-013) — otherwise leave the description as it was.
+            const lastDescription = lastDescriptionFor(entries, codeId, activity)
             if (picker.target === 'timer') {
               pickTask(codeId, activity)
+              if (lastDescription !== null) {
+                setDraft((d) => ({ ...d, description: lastDescription }))
+                if (running) {
+                  apiPatchEntry(running.id, { description: lastDescription })
+                    .then(reload)
+                    .catch(() => reload())
+                }
+              }
             } else if (picker.target === 'new') {
-              setAddDraft((d) => (d ? { ...d, codeId, activity } : d))
+              setAddDraft((d) =>
+                d ? { ...d, codeId, activity, description: lastDescription ?? d.description } : d,
+              )
             } else {
-              apiPatchEntry(picker.target, { codeId, activity })
+              apiPatchEntry(picker.target, {
+                codeId,
+                activity,
+                ...(lastDescription !== null ? { description: lastDescription } : {}),
+              })
                 .then(reload)
                 .catch(() => reload())
             }
@@ -766,6 +829,20 @@ export default function App() {
             editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
           }
           onClose={() => setEditor(null)}
+        />
+      )}
+
+      {virtualEditor && (
+        <VirtualCodeEditor
+          code={virtualEditor.code}
+          realCodes={codes.filter((c) => !c.isVirtual)}
+          onSave={saveVirtualCode}
+          onDelete={
+            virtualEditor.code && !isCodeInUse(virtualEditor.code.id)
+              ? () => deleteCode(virtualEditor.code!)
+              : undefined
+          }
+          onClose={() => setVirtualEditor(null)}
         />
       )}
 

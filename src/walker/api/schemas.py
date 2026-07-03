@@ -25,9 +25,11 @@ class ActivityRead(BaseModel):
 
 
 class CodeRead(BaseModel):
-    """A Timesheet code with its activities, as returned by ``GET /api/codes``."""
+    """A Timesheet code with its activities, as returned by ``GET /api/codes``.
 
-    model_config = ConfigDict(from_attributes=True)
+    ``number``, ``label``, and ``activities`` are the *resolved* values: a virtual code's own for a
+    real code, borrowed from its real code otherwise (ADR-0008).
+    """
 
     id: int
     number: str
@@ -35,6 +37,9 @@ class CodeRead(BaseModel):
     name: str
     color: str
     activities: list[ActivityRead]
+    is_virtual: bool = False
+    real_code_id: int | None = None
+    real_code_number: str | None = None
 
 
 class ActivityWrite(BaseModel):
@@ -56,6 +61,22 @@ class CodeCreate(BaseModel):
 
 class CodeUpdate(CodeCreate):
     """Payload to update a code (same shape as create; activities are replaced)."""
+
+
+class VirtualCodeCreate(BaseModel):
+    """Payload to create a virtual code: name + colour + the real code it resolves to (ADR-0008)."""
+
+    real_code_id: int
+    name: str
+    color: str | None = None
+
+
+class VirtualCodeUpdate(BaseModel):
+    """Payload to update a virtual code (same shape as create)."""
+
+    real_code_id: int
+    name: str
+    color: str | None = None
 
 
 class ImportSummary(BaseModel):

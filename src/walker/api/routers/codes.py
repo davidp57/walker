@@ -8,12 +8,15 @@ from sqlalchemy.orm import Session
 
 from walker.api.dependencies import get_current_user
 from walker.api.schemas import (
+    ActivityRead,
     ActivityWrite,
     AddFromReference,
     CodeCreate,
     CodeRead,
     CodeUpdate,
     ImportSummary,
+    VirtualCodeCreate,
+    VirtualCodeUpdate,
 )
 from walker.db import get_session
 from walker.exceptions import CatalogImportError, NotFoundError, ValidationError
@@ -28,16 +31,31 @@ def _activities(items: list[ActivityWrite]) -> list[ParsedActivity]:
     return [ParsedActivity(code=item.code, label=item.label) for item in items]
 
 
+def _code_read(code: TimesheetCode) -> CodeRead:
+    """Build the API representation, resolving number/label/activities (ADR-0008)."""
+    return CodeRead(
+        id=code.id,
+        number=code.resolved_number,
+        label=code.resolved_label,
+        name=code.name,
+        color=code.color,
+        activities=[ActivityRead(code=a.code, label=a.label) for a in code.resolved_activities],
+        is_virtual=code.is_virtual,
+        real_code_id=code.real_code_id,
+        real_code_number=code.real_code.number if code.real_code is not None else None,
+    )
+
+
 @router.get("/codes", response_model=list[CodeRead])
 def list_codes(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> list[TimesheetCode]:
-    """Return the current user's codes, each with its activities, ordered by number."""
+) -> list[CodeRead]:
+    """Return the current user's codes (real and virtual), each with its activities."""
     codes = session.scalars(
         select(TimesheetCode).where(TimesheetCode.user_id == user.id).order_by(TimesheetCode.number)
     ).all()
-    return list(codes)
+    return [_code_read(code) for code in codes]
 
 
 @router.post("/codes", response_model=CodeRead, status_code=status.HTTP_201_CREATED)
@@ -45,10 +63,10 @@ def create_code(
     body: CodeCreate,
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> TimesheetCode:
+) -> CodeRead:
     """Create a code (+ activities)."""
     try:
-        return catalog.create_code(
+        code = catalog.create_code(
             session,
             user.id,
             number=body.number,
@@ -59,6 +77,53 @@ def create_code(
         )
     except ValidationError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _code_read(code)
+
+
+@router.post("/codes/virtual", response_model=CodeRead, status_code=status.HTTP_201_CREATED)
+def create_virtual_code(
+    body: VirtualCodeCreate,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> CodeRead:
+    """Create a virtual code backed by a real code (ADR-0008)."""
+    try:
+        code = catalog.create_virtual_code(
+            session,
+            user.id,
+            real_code_id=body.real_code_id,
+            name=body.name,
+            color=body.color,
+        )
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _code_read(code)
+
+
+@router.put("/codes/virtual/{code_id}", response_model=CodeRead)
+def update_virtual_code(
+    code_id: int,
+    body: VirtualCodeUpdate,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> CodeRead:
+    """Update a virtual code's name, colour, and/or backing real code (ADR-0008)."""
+    try:
+        code = catalog.update_virtual_code(
+            session,
+            user.id,
+            code_id,
+            real_code_id=body.real_code_id,
+            name=body.name,
+            color=body.color,
+        )
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _code_read(code)
 
 
 @router.put("/codes/{code_id}", response_model=CodeRead)
@@ -67,10 +132,10 @@ def update_code(
     body: CodeUpdate,
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> TimesheetCode:
+) -> CodeRead:
     """Update a code and replace its activities."""
     try:
-        return catalog.update_code(
+        code = catalog.update_code(
             session,
             user.id,
             code_id,
@@ -82,6 +147,7 @@ def update_code(
         )
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    return _code_read(code)
 
 
 @router.delete("/codes/{code_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -105,12 +171,13 @@ def add_from_reference(
     body: AddFromReference,
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
-) -> TimesheetCode:
+) -> CodeRead:
     """Copy a reference code (with all its activities) into the user's active codes."""
     try:
-        return reference.add_from_reference(session, user.id, body.number)
+        code = reference.add_from_reference(session, user.id, body.number)
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    return _code_read(code)
 
 
 @router.post("/catalog/import", response_model=ImportSummary)

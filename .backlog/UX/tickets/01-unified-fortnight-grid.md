@@ -14,8 +14,9 @@ Lot UX — `.backlog/UX/PRD.md`.
 Merge the Fortnight and "Enter in T&E" screens into **one** Fortnight screen with a header segmented
 toggle (**Review** | **Enter in T&E**), defaulting to Review. The standalone "Enter in T&E" nav item
 and its route are removed (nav 5 → 4); the checklist screen's logic (fill order, cell/row toggling,
-progress) folds into the unified screen. Grid geometry is identical across modes — including the
-**Total column (row / daily / grand), now visible in both** — so it stays a 1:1 T&E mirror. Review
+progress) folds into the unified screen. Same grid; Review groups by code (virtual codes as their own
+rows), Enter in T&E resolved to the real code (ADR-0008) — including the **Total column (row / daily /
+grand), now visible in both** — so Enter in T&E stays a 1:1 T&E mirror. Review
 shows `+ Add entry` and no progress bar; Enter in T&E shows the progress bar, the `X / Y lines entered`
 counter, and Reset. Both modes reproduce today's behavior. No API, schema, or persistence change.
 

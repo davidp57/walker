@@ -13,7 +13,6 @@ source of truth for **scope and status**.
 | Lot | Status |
 |-----|--------|
 | [UX](UX/PRD.md) — Post-MVP UX improvements: daily-loop keyboard flow, uncategorized count, delete undo, WCAG-AA contrast, label consistency, error/loading feedback, unified Fortnight grid (Review / Enter in T&E) | ⬜ |
-| [VCODE](VCODE/PRD.md) — Virtual codes: user-created codes backed by a real T&E code, for finer classification (two-level aggregation; amends BIZ-007) | ⬜ |
 | [TASKS](TASKS/PRD.md) — Task manager: Tasks (markdown, status, priority, due, tags, optional code), list + kanban views, start-timer-from-task, Stop\|Complete, recurrence | ⬜ |
 
 ## Archived lots
@@ -21,6 +20,7 @@ source of truth for **scope and status**.
 | Lot | Status |
 |-----|--------|
 | [CORE](archive/CORE.md) — MVP tracker: domain model, catalog import, timer/entries, fortnight view, checklist, frontend shell | ✅ |
+| [VCODE](archive/VCODE.md) — Virtual codes: user-created codes backed by a real T&E code, for finer classification (two-level aggregation; amends BIZ-007) | ✅ |
 
 ## ID prefixes & priorities
 

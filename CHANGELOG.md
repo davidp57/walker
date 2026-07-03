@@ -7,6 +7,19 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ### Added
 
+- **VCODE lot shipped**: virtual codes (ADR-0008) — user-created codes backed by exactly one real T&E
+  code, for finer classification than T&E offers.
+  - A virtual code borrows its real code's number, technical label, and Activities, and owns its own
+    name and colour; `POST/PUT /api/codes/virtual` (create/edit), reusing `DELETE /api/codes/{id}`.
+  - Two-level aggregation: the Fortnight/Review grid shows a virtual code as its own row; the
+    Enter-in-T&E checklist resolves virtual codes to their real code, collapsing several virtual codes
+    sharing one real code into a single T&E line.
+  - Code catalog: virtual codes listed among real ones with a "virtual" badge and backing real code;
+    "New virtual code" and per-card edit/delete (delete guard when an Entry or a virtual code depends
+    on it).
+  - Code picker: lists virtual codes, supports creating one on the fly (picks the real code + name,
+    reopens the picker to use it immediately), and prefills the description from the last comment used
+    on that code + activity.
 - **CORE lot shipped**: the SPA now runs entirely off the real `/api`, mock store removed.
   - Code catalog: `GET/POST/PUT/DELETE /api/codes`, `POST /api/codes/from-reference`, CSV import
     (`POST /api/catalog/import`, upsert by `code_number`); delete blocked while a code is in use.
