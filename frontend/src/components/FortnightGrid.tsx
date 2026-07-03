@@ -18,6 +18,7 @@ interface FortnightModeProps extends BaseProps {
 interface ChecklistModeProps extends BaseProps {
   mode: 'checklist'
   checked: Record<string, boolean>
+  runningCell: { key: string; day: number } | null // the live timer's cell — tinted, read-only, not tickable
   onToggleCell: (rowKey: string, day: number, mods: { shift: boolean; meta: boolean }) => void
   onToggleRow: (rowKey: string) => void
 }
@@ -26,7 +27,7 @@ type FortnightGridProps = FortnightModeProps | ChecklistModeProps
 
 /**
  * Shared BY-CODE grid. `fortnight` cells edit durations; `checklist` cells toggle "entered into T&E".
- * The visual geometry is identical so the two screens read 1:1.
+ * The Total column and the running-timer's tinted/read-only cell show in both modes.
  */
 export function FortnightGrid(props: FortnightGridProps) {
   const { days, rows, mode } = props
@@ -55,14 +56,22 @@ export function FortnightGrid(props: FortnightGridProps) {
               </div>
             </th>
           ))}
-          {isFortnight && <th className="wk-total-h">Total</th>}
+          <th className="wk-total-h">Total</th>
         </tr>
       </thead>
 
       <tbody>
         {rows.map((row) => {
+          // In checklist mode, the running timer's cell is excluded from fill/badge/total accounting
+          // — a running cell is never "entered" (it isn't final until the timer stops).
+          const isRunningCell = (d: { day: number }) =>
+            props.runningCell?.key === row.key && props.runningCell?.day === d.day
           const fillDays = days.filter(
-            (d) => !d.isWeekend && !d.isAbsence && (row.minutesByDay[d.day] || 0) > 0,
+            (d) =>
+              !d.isWeekend &&
+              !d.isAbsence &&
+              (row.minutesByDay[d.day] || 0) > 0 &&
+              !(mode === 'checklist' && isRunningCell(d)),
           )
           const doneCount =
             mode === 'checklist'
@@ -107,11 +116,9 @@ export function FortnightGrid(props: FortnightGridProps) {
 
                 const isWorkingDay = !d.isWeekend && !d.isAbsence
                 const running =
-                  isFortnight &&
-                  (props as FortnightModeProps).runningCell?.key === row.key &&
-                  (props as FortnightModeProps).runningCell?.day === d.day
+                  props.runningCell?.key === row.key && props.runningCell?.day === d.day
                 // Fortnight: filled cells drill in; empty working cells add a prefilled entry. The
-                // live-timer cell is read-only (stop the timer to edit it).
+                // live-timer cell is read-only in both modes (stop the timer to edit/tick it).
                 const canAdd = isFortnight && isWorkingDay && !filled && !running
                 const clickable = isWorkingDay && !running && (filled || canAdd)
                 const cls = [
@@ -158,28 +165,26 @@ export function FortnightGrid(props: FortnightGridProps) {
                 )
               })}
 
-              {isFortnight && <td className="wk-rowtotal">{formatDuration(rowTotal)}</td>}
+              <td className="wk-rowtotal">{formatDuration(rowTotal)}</td>
             </tr>
           )
         })}
       </tbody>
 
-      {isFortnight && (
-        <tfoot>
-          <tr>
-            <td className="wk-foot-label">Daily total</td>
-            {days.map((d) => {
-              const t = colTotal(d.day)
-              return (
-                <td key={d.day} className={`wk-coltotal${d.isWeekend ? ' is-weekend' : ''}`}>
-                  {!d.isWeekend && !d.isAbsence && t > 0 ? formatDuration(t) : ''}
-                </td>
-              )
-            })}
-            <td className="wk-grandtotal">{formatDuration(grandTotal)}</td>
-          </tr>
-        </tfoot>
-      )}
+      <tfoot>
+        <tr>
+          <td className="wk-foot-label">Daily total</td>
+          {days.map((d) => {
+            const t = colTotal(d.day)
+            return (
+              <td key={d.day} className={`wk-coltotal${d.isWeekend ? ' is-weekend' : ''}`}>
+                {!d.isWeekend && !d.isAbsence && t > 0 ? formatDuration(t) : ''}
+              </td>
+            )
+          })}
+          <td className="wk-grandtotal">{formatDuration(grandTotal)}</td>
+        </tr>
+      </tfoot>
     </table>
   )
 }

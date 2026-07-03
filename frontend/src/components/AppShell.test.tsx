@@ -1,9 +1,23 @@
 import { cleanup, render, screen } from '@testing-library/react'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppShell } from './AppShell'
 
-afterEach(() => {
-  cleanup()
+afterEach(() => cleanup())
+
+describe('AppShell — nav', () => {
+  it('has exactly four nav items and no "Enter in T&E" destination', () => {
+    render(
+      <AppShell route="tracker" onNavigate={vi.fn()} timer={null}>
+        <div />
+      </AppShell>,
+    )
+
+    const nav = screen.getByRole('navigation')
+    const items = nav.querySelectorAll('.wk-nav-item')
+    expect(items).toHaveLength(4)
+    expect(screen.queryByText('Enter in T&E')).not.toBeInTheDocument()
+    expect(screen.queryByText('Enter into T&E')).not.toBeInTheDocument()
+  })
 })
 
 describe('AppShell — nav label consistency', () => {
@@ -14,15 +28,6 @@ describe('AppShell — nav label consistency', () => {
       </AppShell>,
     )
     expect(screen.getByText('Activity')).toBeInTheDocument()
-  })
-
-  it('labels the Checklist destination "Enter into T&E", matching its screen title', () => {
-    render(
-      <AppShell route="checklist" onNavigate={() => {}} timer={null}>
-        <div />
-      </AppShell>,
-    )
-    expect(screen.getByText('Enter into T&E')).toBeInTheDocument()
   })
 })
 

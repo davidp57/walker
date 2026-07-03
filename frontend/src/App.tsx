@@ -10,7 +10,6 @@ import { EntryEditor } from './components/EntryEditor'
 import { CellEntriesModal } from './components/CellEntriesModal'
 import { TrackerScreen, type DayGroup } from './screens/TrackerScreen'
 import { FortnightScreen } from './screens/FortnightScreen'
-import { ChecklistScreen } from './screens/ChecklistScreen'
 import { CodeCatalogScreen } from './screens/CodeCatalogScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import type {
@@ -579,15 +578,6 @@ function AppInner() {
     [matrix, codesById],
   )
 
-  // Enter-in-T&E view (ADR-0008): resolve virtual codes to their real code and collapse rows that
-  // share one — several fine-grained Walker rows become one real-code × activity line, matching
-  // both the server's `derive_checklist` and what gets keyed into T&E. `checked` (fetched from the
-  // checklist endpoint) is already real-code-keyed, so its keys must match these rows' keys.
-  const checklistRows: FortnightRow[] = useMemo(
-    () => resolveChecklistRows(rows, codesById),
-    [rows, codesById],
-  )
-
   // The running timer as a fortnight cell: shown live in its code × activity row, but only when it
   // is categorized and its day falls in the period on screen. Read-only (can't edit a live timer).
   const runningCell = useMemo(() => {
@@ -601,7 +591,17 @@ function AppInner() {
     return { key: `${running.codeId}|${running.activity}`, day, code, activity: running.activity }
   }, [running, anchor, days, codesById])
 
-  // Fortnight rows with the running timer's live minutes folded into its cell (checklist stays raw).
+  // The running cell's key, resolved virtual→real (ADR-0008) so it matches `checklistRows`' keys —
+  // Enter-in-T&E must tint/exclude the running cell even when tracked on a virtual code.
+  const enterRunningCell = useMemo(() => {
+    if (!runningCell) return null
+    const realCode = runningCell.code.realCodeId
+      ? (codesById[runningCell.code.realCodeId] ?? runningCell.code)
+      : runningCell.code
+    return { key: `${realCode.id}|${runningCell.activity}`, day: runningCell.day }
+  }, [runningCell, codesById])
+
+  // Fortnight rows with the running timer's live minutes folded into its cell.
   // Injected even at 0 minutes so a just-started timer shows up immediately as a running cell.
   const gridRows: FortnightRow[] = useMemo(() => {
     if (!runningCell) return rows
@@ -621,6 +621,18 @@ function AppInner() {
     }
     return [...rows, { key, code, activity, minutesByDay: { [day]: runningMinutes } }]
   }, [rows, runningCell, runningMinutes])
+
+  // Enter-in-T&E view (ADR-0008): resolve virtual codes to their real code and collapse rows that
+  // share one — several fine-grained Walker rows become one real-code × activity line, matching
+  // both the server's `derive_checklist` and what gets keyed into T&E. `checked` (fetched from the
+  // checklist endpoint) is already real-code-keyed, so its keys must match these rows' keys. Built
+  // from `gridRows` (not raw `rows`) so the running cell is present here too (BIZ-007) — it is
+  // excluded from fill order/ticking via `enterRunningCell`, so its live minutes never affect the
+  // entered-count arithmetic, only its (tinted, read-only) visibility.
+  const checklistRows: FortnightRow[] = useMemo(
+    () => resolveChecklistRows(gridRows, codesById),
+    [gridRows, codesById],
+  )
 
   // ---- Fortnight cell drill-down (edit the entries behind a grid cell) ----
   const cellDayIso = (day: number): string => {
@@ -818,23 +830,19 @@ function AppInner() {
         <FortnightScreen
           periodLabel={periodLabel}
           days={days}
-          rows={gridRows}
+          reviewRows={gridRows}
+          enterRows={checklistRows}
           runningCell={runningCell ? { key: runningCell.key, day: runningCell.day } : null}
+          enterRunningCell={enterRunningCell}
+          checked={checked}
           onPrev={() => setAnchor((a) => shiftFortnight(a, -1))}
           onNext={() => setAnchor((a) => shiftFortnight(a, 1))}
           onThis={() => setAnchor(TODAY)}
           onOpenCell={openCell}
           onAddCell={openAddInCell}
           onAddEntry={openAddEntryFortnight}
-        />
-      )}
-      {route === 'checklist' && (
-        <ChecklistScreen
-          days={days}
-          rows={checklistRows}
-          checked={checked}
-          onChange={applyChecklistChange}
-          onReset={resetChecklistMarks}
+          onChecklistChange={applyChecklistChange}
+          onChecklistReset={resetChecklistMarks}
         />
       )}
       {route === 'codes' && (
