@@ -170,6 +170,38 @@ def test_patch_can_move_entry_to_another_date(client: TestClient) -> None:
     assert response.json()["date"] == "2026-06-15"
 
 
+def test_entry_can_be_tracked_and_round_trips_on_a_virtual_code(client: TestClient) -> None:
+    """An Entry is a plain FK to timesheet_codes.id — tracking a virtual code needs no schema change
+    (ADR-0008): it should categorize and read back exactly like a real code (BIZ-013)."""
+    real = client.post(
+        "/api/codes",
+        json={
+            "number": "N9/1042",
+            "label": "MNT - PAP V4",
+            "name": "Paper V4",
+            "activities": [{"code": "0001", "label": "Bug fixing"}],
+        },
+    ).json()
+    virtual = client.post(
+        "/api/codes/virtual",
+        json={"real_code_id": real["id"], "name": "Workday contact info", "color": "#abcdef"},
+    ).json()
+    entry_id = client.post("/api/timer/start").json()["id"]
+
+    response = client.patch(
+        f"/api/entries/{entry_id}",
+        json={"timesheet_code_id": virtual["id"], "activity": "Bug fixing", "description": "Filled contact info"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["timesheet_code_id"] == virtual["id"]
+
+    entries = client.get("/api/entries", params={"date": TODAY}).json()
+    assert entries[0]["timesheet_code_id"] == virtual["id"]
+    assert entries[0]["activity"] == "Bug fixing"
+    assert entries[0]["description"] == "Filled contact info"
+
+
 def test_entries_are_scoped_to_the_current_user(client: TestClient, session: Session) -> None:
     other = User(username="someone-else")
     session.add(other)
