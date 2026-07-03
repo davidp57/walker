@@ -7,6 +7,37 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ### Added
 
+- **UX lot shipped**: post-MVP UX improvements surfaced by a review of the running app — frontend-only,
+  no API/schema/domain change (durations still recorded and aggregated exactly as before, ADR-0005).
+  - **Unified Fortnight grid** (BIZ-007): Fortnight and "Enter in T&E" merged into one screen with a
+    Review / Enter in T&E header toggle (default Review); the standalone "Enter in T&E" nav item and
+    route are gone (nav 5 → 4). Same grid — Review groups by code (virtual codes as their own rows),
+    Enter in T&E resolves to the real code (ADR-0008) — sharing day columns, the Total column
+    (row/daily/grand), weekend/absence styling, and the tinted read-only running-Timer cell; switching
+    modes keeps period and data in place.
+  - **Enter-in-T&E checkbox affordance** (BIZ-008): each filled working cell shows a checkbox beside its
+    duration at rest; ticked turns green with a check, matching the existing tick/shift-click/⌘-click/
+    row-badge interactions.
+  - **Keyboard-driven timer loop** (BIZ-009): Enter in the description field starts a Timer with that
+    description; Ctrl/Cmd+Enter toggles start/stop, Ctrl/Cmd+K opens the task switcher — ignored while
+    typing elsewhere. The capture-first empty Start is unchanged.
+  - **Uncategorized-Entry count** (BIZ-010): a live, client-derived badge on the Activity nav item shows
+    how many Entries still lack a Timesheet code; hidden at zero.
+  - **Entry mutation safety** (BIZ-011): deleting an Entry is now undoable (6s window, recreates via the
+    existing create endpoint); "+ Add entry" persists nothing until Save; row actions (edit/resume/
+    delete) have clearer icons and larger click targets.
+  - **Copy the T&E code** (BIZ-016): a copy icon beside the row header's T&E code number in the Fortnight
+    grid copies it to the clipboard with visible confirmation.
+  - **Timer midnight fix** (TEC-001): the running Timer's elapsed time is derived from the Entry's real
+    start instead of local midnight, so it stays correct across a midnight boundary.
+  - **Visible API errors + loading feedback** (TEC-002): a toast surfaces failed saves/loads instead of
+    swallowing them silently; screens show loading feedback so the empty state no longer flashes before
+    first data.
+  - **WCAG-AA contrast + minimum text sizes** (TEC-003): the secondary-text token went from ~3.2:1 to
+    4.68–5.38:1 against dark-theme surfaces; functional text (headers, totals, meta) floored at 11px.
+  - **Label consistency + Activity dedup** (CHR-001): nav labels now match their screen titles; a Code's
+    Activity line is hidden in grid/Entry rows when it merely repeats the project name.
+  - See `.backlog/archive/UX.md` for the full ticket list and implementation notes.
 - **VCODE lot shipped**: virtual codes (ADR-0008) — user-created codes backed by exactly one real T&E
   code, for finer classification than T&E offers.
   - A virtual code borrows its real code's number, technical label, and Activities, and owns its own
