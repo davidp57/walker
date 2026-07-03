@@ -1,7 +1,7 @@
 # CHR-002 — Amend BIZ-007 acceptance criterion for virtual codes (cross-lot)
 
 ID: CHR-002
-Status: ⬜ ready
+Status: ✅ done
 Type: chore
 Priority: P3
 
@@ -19,10 +19,21 @@ scheduled together. See ADR-0008.
 
 ## Acceptance criteria
 
-- [ ] BIZ-007's "identical geometry" criterion is reworded to "same grid; Review by code (virtual rows), Enter resolved to the real code."
-- [ ] BIZ-008 and the UX PRD are checked for consistency with the two-level model; any further edit needed is noted.
-- [ ] No other BIZ-007 content is changed.
+- [x] BIZ-007's "identical geometry" criterion is reworded to "same grid; Review by code (virtual rows), Enter resolved to the real code."
+- [x] BIZ-008 and the UX PRD are checked for consistency with the two-level model; any further edit needed is noted.
+- [x] No other BIZ-007 content is changed.
 
 ## Blocked by
 
 None — can start immediately.
+
+## Comments
+
+Reworded the "identical geometry" language in `.backlog/UX/PRD.md` (user story 16, implementation
+decision) and `.backlog/UX/tickets/01-unified-fortnight-grid.md` ("What to build") to: row/day/duration/
+Total-column geometry stays shared, but row **grouping** differs by mode per ADR-0008 (Review by code,
+Enter in T&E resolved to the real code). No other BIZ-007 content touched.
+
+Checked BIZ-008 (checkbox affordance ticket): it operates per rendered cell regardless of whether that
+row is a real or a resolved-virtual code, so it needs no edit — the two-level model is transparent to
+it. No further edit noted.

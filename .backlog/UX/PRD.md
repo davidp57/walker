@@ -88,9 +88,10 @@ The work is frontend / presentation only — no domain or API change.
     destination), so that I have one obvious place to prepare my fortnight.
 15. As a consultant, I want a Review / Enter in T&E toggle in the header, so that I choose what I'm
     doing rather than guessing from which screen I opened.
-16. As a consultant, I want the grid geometry identical in both modes (rows, day columns, durations,
-    weekend greying, absence striping, the tinted read-only running-Timer cell, and the Total column),
-    so that it stays a 1:1 mirror of T&E and totals stay visible while I tick.
+16. As a consultant, I want the same grid in both modes — Review grouped by code (a virtual code its
+    own row), Enter in T&E resolved to the real code — sharing day columns, durations, weekend greying,
+    absence striping, the tinted read-only running-Timer cell, and the Total column, so that Enter in
+    T&E stays a 1:1 mirror of T&E and totals stay visible while I tick (see ADR-0008).
 17. As a consultant, I want the period navigation available in both modes and switching modes to keep
     period and data in place, so that toggling never reloads or loses context; the screen opens in
     Review by default.
@@ -147,9 +148,11 @@ Frontend only. Grouped by area; the unified grid is the largest, most-specified 
   not persisted across reloads. A segmented header toggle switches it (reusing the existing
   segmented-control pattern). Review shows "+ Add entry"; Enter in T&E shows the progress bar, the
   "X / Y lines entered" counter, and Reset. Period navigation is shared.
-- The shared grid keeps identical geometry across modes, including the Total column (row / daily /
-  grand), which was previously hidden in the checklist. Weekend greying, absence striping, and the
-  read-only running-Timer cell are the same in both modes.
+- The shared grid keeps the same geometry across modes for everything except row grouping (day columns,
+  the Total column — row / daily / grand, previously hidden in the checklist — weekend greying, absence
+  striping, and the read-only running-Timer cell). Row grouping differs by design (ADR-0008): Review
+  groups by code, so a virtual code is its own row; Enter in T&E resolves virtual codes to their real
+  code, collapsing several virtual rows sharing one real code into a single T&E line.
 - Review interactions are unchanged (drill into a filled cell; prefilled new Entry on an empty working
   cell; no progress bar). In Enter in T&E, each filled working cell renders a checkbox beside its
   duration; toggling marks the Code × Activity × Day line entered; a per-row badge marks the row;
