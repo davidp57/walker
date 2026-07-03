@@ -6,7 +6,8 @@ interface CodePickerProps {
   codes: TimesheetCode[]
   onPick: (codeId: string, activity: ActivityName) => void
   onClose: () => void
-  onCreateNew?: (query: string) => void // create a code on the fly when nothing matches
+  onCreateNew?: (query: string) => void // create a real code on the fly when nothing matches
+  onCreateNewVirtual?: (query: string) => void // create a virtual code on the fly (BIZ-013)
   onSearchReference?: (q: string) => Promise<ReferenceCode[]> // find codes in the general catalog
   onAddFromReference?: (number: string) => void // add a reference code to my active codes
 }
@@ -18,6 +19,7 @@ export function CodePicker({
   onPick,
   onClose,
   onCreateNew,
+  onCreateNewVirtual,
   onSearchReference,
   onAddFromReference,
 }: CodePickerProps) {
@@ -88,6 +90,14 @@ export function CodePicker({
                 <span>
                   <span className="wk-picker-name" style={{ display: 'block' }}>
                     {code.name}
+                    {code.isVirtual && (
+                      <span
+                        className="wk-act-chip"
+                        style={{ marginLeft: 8, fontSize: 11, verticalAlign: 'middle' }}
+                      >
+                        virtual
+                      </span>
+                    )}
                   </span>
                   <span className="wk-picker-meta" style={{ display: 'block' }}>
                     {code.number} · {code.label}
@@ -141,15 +151,26 @@ export function CodePicker({
           {results.length === 0 && refToAdd.length === 0 && (
             <div className="wk-modal-empty">
               No codes match.
-              {onCreateNew && query.trim() && (
-                <div style={{ marginTop: 12 }}>
-                  <button
-                    type="button"
-                    className="wk-btn-ghost"
-                    onClick={() => onCreateNew(query.trim())}
-                  >
-                    ➕ Create a new code
-                  </button>
+              {query.trim() && (onCreateNew || onCreateNewVirtual) && (
+                <div style={{ marginTop: 12, display: 'flex', gap: 8, justifyContent: 'center' }}>
+                  {onCreateNew && (
+                    <button
+                      type="button"
+                      className="wk-btn-ghost"
+                      onClick={() => onCreateNew(query.trim())}
+                    >
+                      ➕ Create a new code
+                    </button>
+                  )}
+                  {onCreateNewVirtual && (
+                    <button
+                      type="button"
+                      className="wk-btn-ghost"
+                      onClick={() => onCreateNewVirtual(query.trim())}
+                    >
+                      ➕ Create a new virtual code
+                    </button>
+                  )}
                 </div>
               )}
             </div>

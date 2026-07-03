@@ -26,6 +26,7 @@ import type {
 } from './types'
 import { formatDuration } from './lib/time'
 import { shouldRetagInPlace } from './lib/timer'
+import { lastDescriptionFor } from './lib/tasks'
 import {
   addAbsence as apiAddAbsence,
   addCodeFromReference as apiAddCodeFromReference,
@@ -144,7 +145,10 @@ export default function App() {
   const [editor, setEditor] = useState<{ code: TimesheetCode | null; initialName?: string } | null>(
     null,
   )
-  const [virtualEditorOpen, setVirtualEditorOpen] = useState(false)
+  // `reopenPicker` is set when the virtual-code editor was opened from CodePicker's "create on the
+  // fly" action (BIZ-013): on save, the picker reopens on the same target so the newly created
+  // virtual code can be picked in one more click ("used immediately" — see saveVirtualCode below).
+  const [virtualEditor, setVirtualEditor] = useState<{ reopenPicker: string | null } | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
@@ -363,9 +367,16 @@ export default function App() {
       .then(reloadCodes)
       .catch(() => {})
   }
+  // Create a virtual code (BIZ-013 "used immediately", design decision: reopen the picker rather
+  // than auto-picking an activity — the newly created code is right there, one click away, with no
+  // need to guess which activity the user wants).
   const saveVirtualCode = (input: { realCodeId: string; name: string; color: string }) => {
+    const reopenTarget = virtualEditor?.reopenPicker ?? null
     apiCreateVirtualCode(input)
       .then(reloadCodes)
+      .then(() => {
+        if (reopenTarget !== null) setPicker({ target: reopenTarget })
+      })
       .catch(() => {})
   }
   const importCatalogFile = () => {
@@ -696,7 +707,7 @@ export default function App() {
         <CodeCatalogScreen
           codes={codes}
           onNew={() => setEditor({ code: null })}
-          onNewVirtual={() => setVirtualEditorOpen(true)}
+          onNewVirtual={() => setVirtualEditor({ reopenPicker: null })}
           onEdit={(code) => setEditor({ code })}
           onDelete={deleteCode}
           isCodeInUse={isCodeInUse}
@@ -744,6 +755,11 @@ export default function App() {
           }
           codes={codes}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
+          onCreateNewVirtual={() => {
+            const reopenPicker = picker.target
+            setPicker(null)
+            setVirtualEditor({ reopenPicker })
+          }}
           onSearchReference={searchReference}
           onAddFromReference={(number) =>
             apiAddCodeFromReference(number)
@@ -751,12 +767,29 @@ export default function App() {
               .catch(() => {})
           }
           onPick={(codeId, activity) => {
+            // Prefill from the last comment used on this code (real or virtual) + activity, when one
+            // exists (BIZ-013) — otherwise leave the description as it was.
+            const lastDescription = lastDescriptionFor(entries, codeId, activity)
             if (picker.target === 'timer') {
               pickTask(codeId, activity)
+              if (lastDescription !== null) {
+                setDraft((d) => ({ ...d, description: lastDescription }))
+                if (running) {
+                  apiPatchEntry(running.id, { description: lastDescription })
+                    .then(reload)
+                    .catch(() => reload())
+                }
+              }
             } else if (picker.target === 'new') {
-              setAddDraft((d) => (d ? { ...d, codeId, activity } : d))
+              setAddDraft((d) =>
+                d ? { ...d, codeId, activity, description: lastDescription ?? d.description } : d,
+              )
             } else {
-              apiPatchEntry(picker.target, { codeId, activity })
+              apiPatchEntry(picker.target, {
+                codeId,
+                activity,
+                ...(lastDescription !== null ? { description: lastDescription } : {}),
+              })
                 .then(reload)
                 .catch(() => reload())
             }
@@ -778,11 +811,11 @@ export default function App() {
         />
       )}
 
-      {virtualEditorOpen && (
+      {virtualEditor && (
         <VirtualCodeEditor
           realCodes={codes.filter((c) => !c.isVirtual)}
           onSave={saveVirtualCode}
-          onClose={() => setVirtualEditorOpen(false)}
+          onClose={() => setVirtualEditor(null)}
         />
       )}
 
