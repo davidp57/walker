@@ -41,16 +41,24 @@ def switch_timer(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Entry:
-    """Close the running Entry and open a new one, atomically."""
-    return entry_service.switch_timer(
-        session,
-        user.id,
-        date.today(),
-        _now_minute(),
-        timesheet_code_id=body.timesheet_code_id,
-        activity=body.activity,
-        description=body.description,
-    )
+    """Close the running Entry and open a new one, atomically.
+
+    ``task_id`` records the start-from-Task link (BIZ-023); starting on a To-do Task moves it to
+    In-progress.
+    """
+    try:
+        return entry_service.switch_timer(
+            session,
+            user.id,
+            date.today(),
+            _now_minute(),
+            timesheet_code_id=body.timesheet_code_id,
+            activity=body.activity,
+            description=body.description,
+            task_id=body.task_id,
+        )
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
 
 
 @router.post("/timer/stop", response_model=EntryRead)
@@ -58,9 +66,21 @@ def stop_timer(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Entry:
-    """Close the running Entry."""
+    """Close the running Entry. Leaves a linked Task's status unchanged (see ``/timer/complete``)."""
     try:
         return entry_service.stop_timer(session, user.id, _now_minute())
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+
+
+@router.post("/timer/complete", response_model=EntryRead)
+def complete_timer(
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> Entry:
+    """Close the running Entry and mark its linked Task Done, in one call (BIZ-023)."""
+    try:
+        return entry_service.complete_timer(session, user.id, _now_minute())
     except ValidationError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
 
@@ -84,6 +104,7 @@ def create_entry(
         timesheet_code_id=body.timesheet_code_id,
         activity=body.activity,
         description=body.description,
+        task_id=body.task_id,
     )
 
 

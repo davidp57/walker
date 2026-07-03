@@ -116,6 +116,7 @@ class EntryRead(BaseModel):
     timesheet_code_id: int | None
     activity: str | None
     description: str | None
+    task_id: int | None
 
 
 class FortnightRowRead(BaseModel):
@@ -170,11 +171,16 @@ class ChecklistToggle(BaseModel):
 
 
 class TimerSwitch(BaseModel):
-    """Optional categorization applied to the new Entry opened by a timer switch."""
+    """Optional categorization applied to the new Entry opened by a timer switch.
+
+    ``task_id`` links the new Entry to the Task it was started from (BIZ-023) — set by the
+    start-from-Task action; omitted (``None``) for a plain switch.
+    """
 
     timesheet_code_id: int | None = None
     activity: str | None = None
     description: str | None = None
+    task_id: int | None = None
 
 
 class EntryCreate(BaseModel):
@@ -186,6 +192,7 @@ class EntryCreate(BaseModel):
     timesheet_code_id: int | None = None
     activity: str | None = None
     description: str | None = None
+    task_id: int | None = None
 
 
 class EntryPatch(BaseModel):
@@ -197,6 +204,7 @@ class EntryPatch(BaseModel):
     timesheet_code_id: int | None = None
     activity: str | None = None
     description: str | None = None
+    task_id: int | None = None
 
 
 class AbsenceRead(BaseModel):

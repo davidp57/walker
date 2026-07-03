@@ -45,6 +45,33 @@ describe('TasksScreen', () => {
     expect(onOpenTask).toHaveBeenCalledWith(task)
   })
 
+  it("calls onStartTask (not onOpenTask) when a row's Start action is clicked (BIZ-023)", () => {
+    const onOpenTask = vi.fn()
+    const onStartTask = vi.fn()
+    const task = makeTask({ id: '42', title: 'Fix bug' })
+    render(
+      <TasksScreen
+        tasks={[task]}
+        codesById={{}}
+        onNew={vi.fn()}
+        onOpenTask={onOpenTask}
+        onStartTask={onStartTask}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-task-start-42'))
+
+    expect(onStartTask).toHaveBeenCalledWith(task)
+    expect(onOpenTask).not.toHaveBeenCalled()
+  })
+
+  it('does not render a Start action when onStartTask is omitted', () => {
+    const task = makeTask({ id: '42', title: 'Fix bug' })
+    render(<TasksScreen tasks={[task]} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    expect(screen.queryByTestId('wk-task-start-42')).not.toBeInTheDocument()
+  })
+
   it('sorts by due date ascending by default, with orphan due dates last', () => {
     const tasks = [
       makeTask({ id: '1', title: 'Later', dueDate: '2026-08-01' }),

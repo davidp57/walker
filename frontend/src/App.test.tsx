@@ -406,3 +406,79 @@ describe('App — Fortnight screen (BIZ-007)', () => {
     expect(await screen.findByTitle('Timer running — stop it to edit')).toBeInTheDocument()
   })
 })
+
+describe('App — start a Timer from a Task (BIZ-023)', () => {
+  const task = {
+    id: '7',
+    title: 'Renew passport',
+    description: '',
+    status: 'todo' as const,
+    priority: null,
+    dueDate: null,
+    tags: [],
+    codeId: realCode.id,
+    createdAt: '2026-07-01T00:00:00Z',
+    updatedAt: '2026-07-01T00:00:00Z',
+  }
+
+  it('starting a Timer from a Task sets the comment to its title and prefills its code, carrying the task id', async () => {
+    mockBaseApi([realCode], [])
+    vi.spyOn(api, 'fetchTasks').mockResolvedValue([task])
+    const switchTimer = vi.spyOn(api, 'switchTimer').mockResolvedValue({
+      id: '20',
+      date: new Date().toISOString().slice(0, 10),
+      start: 540,
+      end: null,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: task.title,
+      taskId: task.id,
+    })
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByText('Tasks'))
+    fireEvent.click(await screen.findByTestId('wk-task-start-7'))
+
+    // The picker opens scoped to the task's code — only its activity remains to be picked.
+    fireEvent.click(await screen.findByText('Bug fixing'))
+
+    await waitFor(() =>
+      expect(switchTimer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          codeId: realCode.id,
+          activity: 'Bug fixing',
+          description: task.title,
+          taskId: task.id,
+        }),
+      ),
+    )
+  })
+
+  it('shows Complete alongside Stop once the running Timer is linked to a task, and completing it calls completeTimer', async () => {
+    const runningTaskEntry: Entry = {
+      id: '20',
+      date: new Date().toISOString().slice(0, 10),
+      start: 540,
+      end: null,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: task.title,
+      taskId: task.id,
+    }
+    mockBaseApi([realCode], [runningTaskEntry])
+    vi.spyOn(api, 'fetchTasks').mockResolvedValue([{ ...task, status: 'in_progress' }])
+    const completeTimer = vi.spyOn(api, 'completeTimer').mockResolvedValue({
+      ...runningTaskEntry,
+      end: 600,
+    })
+    vi.spyOn(api, 'patchEntry').mockResolvedValue(runningTaskEntry)
+
+    render(<App />)
+
+    const completeButton = await screen.findByRole('button', { name: 'Complete' })
+    fireEvent.click(completeButton)
+
+    await waitFor(() => expect(completeTimer).toHaveBeenCalledTimes(1))
+  })
+})

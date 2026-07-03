@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from walker.config import settings
-from walker.models import Entry, TimesheetCode, User
+from walker.models import Entry, Task, TimesheetCode, User
 
 TODAY = date.today().isoformat()
 
@@ -211,3 +211,104 @@ def test_entries_are_scoped_to_the_current_user(client: TestClient, session: Ses
     session.commit()
 
     assert client.get("/api/entries", params={"date": TODAY}).json() == []
+
+
+# ---- Task integration (BIZ-023) ----
+
+
+def _seed_task(session: Session, status: str = "todo") -> Task:
+    user = User(username=settings.default_user)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    task = Task(user_id=user.id, title="Renew passport", status=status)
+    session.add(task)
+    session.commit()
+    session.refresh(task)
+    return task
+
+
+def test_switch_can_carry_a_task(client: TestClient, session: Session) -> None:
+    task = _seed_task(session)
+
+    response = client.post("/api/timer/switch", json={"task_id": task.id, "description": task.title})
+
+    assert response.status_code == 201
+    assert response.json()["task_id"] == task.id
+
+
+def test_patch_can_set_the_entry_s_task(client: TestClient, session: Session) -> None:
+    task = _seed_task(session)
+    entry_id = client.post("/api/timer/start").json()["id"]
+
+    response = client.patch(f"/api/entries/{entry_id}", json={"task_id": task.id})
+
+    assert response.status_code == 200
+    assert response.json()["task_id"] == task.id
+
+
+def test_create_entry_can_carry_a_task(client: TestClient, session: Session) -> None:
+    task = _seed_task(session)
+
+    response = client.post("/api/entries", json={"task_id": task.id})
+
+    assert response.status_code == 201
+    assert response.json()["task_id"] == task.id
+
+
+def test_starting_a_timer_on_a_todo_task_moves_it_to_in_progress(client: TestClient, session: Session) -> None:
+    task = _seed_task(session, status="todo")
+
+    client.post("/api/timer/switch", json={"task_id": task.id, "description": task.title})
+
+    body = client.get("/api/tasks").json()
+    assert body[0]["status"] == "in_progress"
+
+
+def test_starting_a_timer_on_a_non_todo_task_leaves_its_status_unchanged(client: TestClient, session: Session) -> None:
+    task = _seed_task(session, status="waiting")
+
+    client.post("/api/timer/switch", json={"task_id": task.id, "description": task.title})
+
+    body = client.get("/api/tasks").json()
+    assert body[0]["status"] == "waiting"
+
+
+def test_complete_stops_the_timer_and_marks_the_task_done(client: TestClient, session: Session) -> None:
+    task = _seed_task(session, status="in_progress")
+    client.post("/api/timer/switch", json={"task_id": task.id, "description": task.title})
+
+    response = client.post("/api/timer/complete")
+
+    assert response.status_code == 200
+    entry = response.json()
+    assert entry["end_minute"] is not None
+    assert entry["task_id"] == task.id
+    task_body = client.get("/api/tasks").json()[0]
+    assert task_body["status"] == "done"
+
+
+def test_complete_without_a_running_entry_is_rejected(client: TestClient) -> None:
+    response = client.post("/api/timer/complete")
+
+    assert response.status_code == 409
+
+
+def test_complete_without_a_linked_task_just_stops(client: TestClient) -> None:
+    client.post("/api/timer/start")
+
+    response = client.post("/api/timer/complete")
+
+    assert response.status_code == 200
+    assert response.json()["end_minute"] is not None
+
+
+def test_stop_leaves_the_linked_task_s_status_unchanged(client: TestClient, session: Session) -> None:
+    task = _seed_task(session, status="in_progress")
+    client.post("/api/timer/switch", json={"task_id": task.id, "description": task.title})
+
+    response = client.post("/api/timer/stop")
+
+    assert response.status_code == 200
+    task_body = client.get("/api/tasks").json()[0]
+    assert task_body["status"] == "in_progress"
