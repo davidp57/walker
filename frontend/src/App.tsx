@@ -25,7 +25,7 @@ import type {
   TimesheetCode,
 } from './types'
 import { resolveChecklistRows } from './lib/checklist'
-import { formatDuration } from './lib/time'
+import { elapsedSecondsSince, formatDuration } from './lib/time'
 import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor } from './lib/tasks'
 import {
@@ -127,12 +127,6 @@ interface TimerDraft {
   description: string
 }
 const EMPTY_DRAFT: TimerDraft = { codeId: null, activity: null, description: '' }
-
-const startOfTodayMs = () => {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
-}
 
 export default function App() {
   const [route, setRoute] = useState<Route>('tracker')
@@ -236,9 +230,7 @@ export default function App() {
   const codesById = useMemo(() => Object.fromEntries(codes.map((c) => [c.id, c])), [codes])
 
   const timerCode = draft.codeId ? (codesById[draft.codeId] ?? null) : null
-  const elapsedSeconds = running
-    ? Math.max(0, (now - startOfTodayMs()) / 1000 - running.start * 60)
-    : 0
+  const elapsedSeconds = running ? elapsedSecondsSince(running.date, running.start, now) : 0
   const runningMinutes = Math.floor(elapsedSeconds / 60)
 
   // ---- Timer operations (server-backed) ----
