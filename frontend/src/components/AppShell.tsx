@@ -24,9 +24,20 @@ interface AppShellProps {
   /** The persistent Timer bar, rendered above every screen. */
   timer: ReactNode
   children: ReactNode
+  /**
+   * Count of Entries still lacking a Timesheet code (BIZ-010). Shown as a badge on the Today nav
+   * item; hidden at zero so nothing to code reads as a neutral, uncluttered nav.
+   */
+  uncategorizedCount?: number
 }
 
-export function AppShell({ route, onNavigate, timer, children }: AppShellProps) {
+export function AppShell({
+  route,
+  onNavigate,
+  timer,
+  children,
+  uncategorizedCount = 0,
+}: AppShellProps) {
   return (
     <div className="wk-app">
       <aside className="wk-sidebar">
@@ -41,6 +52,15 @@ export function AppShell({ route, onNavigate, timer, children }: AppShellProps) 
             >
               <span className="wk-nav-ico">{item.icon}</span>
               <span>{item.label}</span>
+              {item.key === 'tracker' && uncategorizedCount > 0 && (
+                <span
+                  className="wk-nav-badge"
+                  data-testid="wk-uncategorized-badge"
+                  title={`${uncategorizedCount} entr${uncategorizedCount === 1 ? 'y' : 'ies'} without a Timesheet code`}
+                >
+                  {uncategorizedCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
