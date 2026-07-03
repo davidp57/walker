@@ -158,3 +158,54 @@ describe('App — tracking on a virtual code (BIZ-013)', () => {
     expect(await screen.findByText('Workday contact info')).toBeInTheDocument()
   })
 })
+
+describe('App — uncategorized-Entry count in the shell (BIZ-010)', () => {
+  it('shows a live count of uncategorized Entries and decreases it once categorized', async () => {
+    const secondUncategorized: Entry = {
+      ...uncategorizedEntry,
+      id: '11',
+      start: 600,
+      end: 660,
+    }
+    mockBaseApi([realCode], [uncategorizedEntry, secondUncategorized])
+    const fetchEntriesRange = vi.spyOn(api, 'fetchEntriesRange')
+    const patchEntry = vi.spyOn(api, 'patchEntry').mockResolvedValue({
+      ...uncategorizedEntry,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+    })
+
+    render(<App />)
+
+    const badge = await screen.findByTestId('wk-uncategorized-badge')
+    expect(badge).toHaveTextContent('2')
+
+    // Once categorized, the reload after the patch fetches the now-categorized Entry — the badge
+    // drops from 2 to 1.
+    fetchEntriesRange.mockResolvedValue([
+      { ...uncategorizedEntry, codeId: realCode.id, activity: 'Bug fixing' },
+      secondUncategorized,
+    ])
+    const flags = await screen.findAllByText('⚑ Add code & activity')
+    fireEvent.click(flags[0])
+    const activityButtons = await screen.findAllByText('Bug fixing')
+    fireEvent.click(activityButtons[0])
+    await waitFor(() => expect(patchEntry).toHaveBeenCalled())
+
+    await waitFor(() => expect(screen.getByTestId('wk-uncategorized-badge')).toHaveTextContent('1'))
+  })
+
+  it('hides the badge when there are no uncategorized Entries', async () => {
+    const categorizedEntry: Entry = {
+      ...uncategorizedEntry,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+    }
+    mockBaseApi([realCode], [categorizedEntry])
+
+    render(<App />)
+
+    await screen.findByText('Today')
+    expect(screen.queryByTestId('wk-uncategorized-badge')).not.toBeInTheDocument()
+  })
+})

@@ -53,6 +53,17 @@ export function formatStopwatch(totalSeconds: number): string {
   return `${Math.floor(s / 3600)}:${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 }
 
+/**
+ * Elapsed seconds for a running Timer, from the Entry's real start (its `date` + minutes-since-
+ * midnight `start`) to `nowMs`. Anchoring on the entry's own date — rather than local midnight —
+ * keeps this correct for a timer left running across midnight, or one whose start is not "today".
+ */
+export function elapsedSecondsSince(date: string, startMinute: number, nowMs: number): number {
+  const [y, m, d] = date.split('-').map(Number)
+  const startMs = new Date(y, m - 1, d, 0, startMinute, 0).getTime()
+  return Math.max(0, (nowMs - startMs) / 1000)
+}
+
 /** Select-all helper for inline edit inputs. */
 export const selectOnFocus = (e: FocusEvent<HTMLInputElement>): void => {
   try {
