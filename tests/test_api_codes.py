@@ -172,3 +172,125 @@ def test_catalog_import_never_creates_or_touches_virtual_codes(client: TestClien
     virtuals = [c for c in body if c["is_virtual"]]
     assert len(virtuals) == 1
     assert virtuals[0]["name"] == "Project A"
+
+
+def test_update_virtual_code_changes_name_color_and_target(client: TestClient) -> None:
+    real = _create_real_code(client)
+    other_real = client.post(
+        "/api/codes",
+        json={"number": "N9/2000", "label": "OTHER", "activities": [{"code": "0001", "label": "A"}]},
+    ).json()
+    virtual = client.post(
+        "/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project A", "color": "#111111"}
+    ).json()
+
+    response = client.put(
+        f"/api/codes/virtual/{virtual['id']}",
+        json={"real_code_id": other_real["id"], "name": "Project A Renamed", "color": "#222222"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["name"] == "Project A Renamed"
+    assert body["color"] == "#222222"
+    assert body["real_code_id"] == other_real["id"]
+    assert body["number"] == other_real["number"]
+    assert body["label"] == other_real["label"]
+
+    listed = client.get("/api/codes").json()
+    updated = next(c for c in listed if c["id"] == virtual["id"])
+    assert updated["name"] == "Project A Renamed"
+    assert updated["real_code_number"] == other_real["number"]
+
+
+def test_update_virtual_code_allows_keeping_its_own_name(client: TestClient) -> None:
+    real = _create_real_code(client)
+    virtual = client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project A"}).json()
+
+    response = client.put(
+        f"/api/codes/virtual/{virtual['id']}",
+        json={"real_code_id": real["id"], "name": "Project A", "color": "#333333"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["color"] == "#333333"
+
+
+def test_update_virtual_code_rejects_duplicate_name_of_another_virtual_code(client: TestClient) -> None:
+    real = _create_real_code(client)
+    client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project A"})
+    virtual_b = client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project B"}).json()
+
+    response = client.put(
+        f"/api/codes/virtual/{virtual_b['id']}",
+        json={"real_code_id": real["id"], "name": "Project A"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_update_virtual_code_rejects_unknown_real_code(client: TestClient) -> None:
+    real = _create_real_code(client)
+    virtual = client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project A"}).json()
+
+    response = client.put(
+        f"/api/codes/virtual/{virtual['id']}",
+        json={"real_code_id": 999, "name": "Project A"},
+    )
+
+    assert response.status_code == 404
+
+
+def test_update_virtual_code_rejects_virtual_as_new_target(client: TestClient) -> None:
+    real = _create_real_code(client)
+    virtual_a = client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project A"}).json()
+    virtual_b = client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project B"}).json()
+
+    response = client.put(
+        f"/api/codes/virtual/{virtual_b['id']}",
+        json={"real_code_id": virtual_a["id"], "name": "Project B"},
+    )
+
+    assert response.status_code == 409
+
+
+def test_delete_unused_virtual_code_succeeds(client: TestClient) -> None:
+    real = _create_real_code(client)
+    virtual = client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project A"}).json()
+
+    response = client.delete(f"/api/codes/{virtual['id']}")
+
+    assert response.status_code == 204
+    body = client.get("/api/codes").json()
+    assert all(c["id"] != virtual["id"] for c in body)
+
+
+def test_delete_virtual_code_referenced_by_entry_is_blocked(client: TestClient) -> None:
+    real = _create_real_code(client)
+    virtual = client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project A"}).json()
+    client.post(
+        "/api/entries",
+        json={
+            "date": "2026-07-01",
+            "start_minute": 540,
+            "end_minute": 600,
+            "timesheet_code_id": virtual["id"],
+            "activity": real["activities"][0]["label"],
+        },
+    )
+
+    response = client.delete(f"/api/codes/{virtual['id']}")
+
+    assert response.status_code == 409
+
+
+def test_delete_real_code_with_virtual_child_is_blocked(client: TestClient) -> None:
+    real = _create_real_code(client)
+    client.post("/api/codes/virtual", json={"real_code_id": real["id"], "name": "Project A"})
+
+    response = client.delete(f"/api/codes/{real['id']}")
+
+    assert response.status_code == 409
+
+    body = client.get("/api/codes").json()
+    assert any(c["id"] == real["id"] for c in body)

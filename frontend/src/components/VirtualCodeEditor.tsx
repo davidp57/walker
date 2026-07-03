@@ -2,8 +2,10 @@ import { useState } from 'react'
 import type { TimesheetCode } from '../types'
 
 interface VirtualCodeEditorProps {
+  code: TimesheetCode | null // null = create a new virtual code
   realCodes: TimesheetCode[] // real codes only — the candidates for the backing code
   onSave: (input: { realCodeId: string; name: string; color: string }) => void
+  onDelete?: () => void // omitted when the code can't be deleted (new, or in use)
   onClose: () => void
 }
 
@@ -18,11 +20,17 @@ const PALETTE = [
   '#d67ba8',
 ]
 
-/** Modal to create a virtual code: pick the backing real code, name it, give it a colour (ADR-0008). */
-export function VirtualCodeEditor({ realCodes, onSave, onClose }: VirtualCodeEditorProps) {
-  const [realCodeId, setRealCodeId] = useState(realCodes[0]?.id ?? '')
-  const [name, setName] = useState('')
-  const [color, setColor] = useState(PALETTE[0])
+/** Modal to create/edit a virtual code: pick the backing real code, name it, give it a colour (ADR-0008). */
+export function VirtualCodeEditor({
+  code,
+  realCodes,
+  onSave,
+  onDelete,
+  onClose,
+}: VirtualCodeEditorProps) {
+  const [realCodeId, setRealCodeId] = useState(code?.realCodeId ?? realCodes[0]?.id ?? '')
+  const [name, setName] = useState(code?.name ?? '')
+  const [color, setColor] = useState(code?.color ?? PALETTE[0])
 
   const canSave = realCodeId !== '' && name.trim().length > 0
 
@@ -36,7 +44,7 @@ export function VirtualCodeEditor({ realCodes, onSave, onClose }: VirtualCodeEdi
     <div className="wk-overlay" onClick={onClose}>
       <div className="wk-modal" onClick={(e) => e.stopPropagation()}>
         <div className="wk-modal-head">
-          <span className="wk-modal-title">New virtual code</span>
+          <span className="wk-modal-title">{code ? 'Edit virtual code' : 'New virtual code'}</span>
           <button type="button" className="wk-modal-close" onClick={onClose}>
             ✕
           </button>
@@ -100,19 +108,43 @@ export function VirtualCodeEditor({ realCodes, onSave, onClose }: VirtualCodeEdi
             </>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
-            <button type="button" className="wk-btn-ghost" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="wk-btn wk-btn-primary"
-              style={{ padding: '10px 22px', opacity: canSave ? 1 : 0.5 }}
-              onClick={save}
-              disabled={!canSave}
-            >
-              Save
-            </button>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 4,
+            }}
+          >
+            <div>
+              {onDelete && (
+                <button
+                  type="button"
+                  className="wk-btn wk-btn-danger"
+                  style={{ padding: '10px 18px' }}
+                  onClick={() => {
+                    onDelete()
+                    onClose()
+                  }}
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button type="button" className="wk-btn-ghost" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="wk-btn wk-btn-primary"
+                style={{ padding: '10px 22px', opacity: canSave ? 1 : 0.5 }}
+                onClick={save}
+                disabled={!canSave}
+              >
+                Save
+              </button>
+            </div>
           </div>
         </div>
       </div>

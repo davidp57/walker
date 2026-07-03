@@ -6,6 +6,7 @@ interface CodeCatalogScreenProps {
   onNew: () => void
   onNewVirtual: () => void
   onEdit: (code: TimesheetCode) => void
+  onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
   isCodeInUse: (id: string) => boolean
   onImport?: () => void // import the reference catalog from a file
@@ -19,6 +20,7 @@ export function CodeCatalogScreen({
   onNew,
   onNewVirtual,
   onEdit,
+  onEditVirtual,
   onDelete,
   isCodeInUse,
   onImport,
@@ -166,7 +168,11 @@ export function CodeCatalogScreen({
                   </div>
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                  <button type="button" className="wk-btn-ghost" onClick={() => onEdit(c)}>
+                  <button
+                    type="button"
+                    className="wk-btn-ghost"
+                    onClick={() => (c.isVirtual ? onEditVirtual(c) : onEdit(c))}
+                  >
                     Edit
                   </button>
                   <button
