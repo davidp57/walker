@@ -18,6 +18,9 @@ interface TimerBarProps {
   onPickSuggestion: (s: TaskSuggestion) => void
   startMinute?: number | null // start of the running entry (minutes since midnight)
   onEditStart?: (minute: number) => void // adjust the running timer's start time
+  // Enter in the description field (BIZ-009): starts a Timer carrying the typed description.
+  // Only fires while stopped — Enter while running is a no-op (avoids a phantom double-start).
+  onSubmitDescription?: () => void
 }
 
 export function TimerBar({
@@ -35,6 +38,7 @@ export function TimerBar({
   onPickSuggestion,
   startMinute,
   onEditStart,
+  onSubmitDescription,
 }: TimerBarProps) {
   const [focused, setFocused] = useState(false)
   const showSuggestions = focused && suggestions.length > 0
@@ -62,6 +66,9 @@ export function TimerBar({
           onChange={(e) => onDescriptionChange(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => window.setTimeout(() => setFocused(false), 150)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !running) onSubmitDescription?.()
+          }}
         />
         {showSuggestions && (
           <div className="wk-suggest">

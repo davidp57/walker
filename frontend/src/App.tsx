@@ -25,7 +25,7 @@ import type {
   TimesheetCode,
 } from './types'
 import { resolveChecklistRows } from './lib/checklist'
-import { formatDuration } from './lib/time'
+import { elapsedSecondsSince, formatDuration } from './lib/time'
 import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor } from './lib/tasks'
 import {
@@ -128,12 +128,6 @@ interface TimerDraft {
 }
 const EMPTY_DRAFT: TimerDraft = { codeId: null, activity: null, description: '' }
 
-const startOfTodayMs = () => {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
-}
-
 // How long an undo affordance stays available after a delete (BIZ-011).
 const UNDO_WINDOW_MS = 6000
 
@@ -232,6 +226,10 @@ export default function App() {
   const running = entries.find((e) => e.end === null) ?? null
   const runningId = running?.id ?? null
 
+  // Entries still lacking a Timesheet code (BIZ-010) — surfaced as a live count in the shell so
+  // nothing is left uncoded before the fortnight closes. Mirrors EntryRow's own `flagged` rule.
+  const uncategorizedCount = useMemo(() => entries.filter((e) => !e.codeId).length, [entries])
+
   // Tick the clock every second only while a timer is running.
   useEffect(() => {
     if (runningId == null) return
@@ -242,14 +240,25 @@ export default function App() {
   const codesById = useMemo(() => Object.fromEntries(codes.map((c) => [c.id, c])), [codes])
 
   const timerCode = draft.codeId ? (codesById[draft.codeId] ?? null) : null
-  const elapsedSeconds = running
-    ? Math.max(0, (now - startOfTodayMs()) / 1000 - running.start * 60)
-    : 0
+  const elapsedSeconds = running ? elapsedSecondsSince(running.date, running.start, now) : 0
   const runningMinutes = Math.floor(elapsedSeconds / 60)
 
   // ---- Timer operations (server-backed) ----
   const startTimer = () => {
     apiStartTimer()
+      .then(reload)
+      .catch(() => reload())
+  }
+  // Enter-to-start (BIZ-009): start a Timer, then immediately attribute the typed description to
+  // it — the one-click empty Start (capture-first — ADR-0006) is untouched, this is a distinct
+  // gesture only reachable via Enter in the description field or the start/stop shortcut.
+  const startTimerWithDescription = (description: string) => {
+    apiStartTimer()
+      .then((created) =>
+        description.trim() === ''
+          ? created
+          : apiPatchEntry(created.id, { description }).catch(() => created),
+      )
       .then(reload)
       .catch(() => reload())
   }
@@ -279,6 +288,32 @@ export default function App() {
       setDraft(EMPTY_DRAFT)
     }
   }
+
+  // Global shortcuts (BIZ-009): Ctrl/Cmd+Enter toggles start/stop; Ctrl/Cmd+K opens the task
+  // switcher — so the daily loop never needs the mouse. Ignored while typing in an unrelated
+  // input/textarea/select (the description field's plain Enter is handled by TimerBar itself).
+  useEffect(() => {
+    const isTypingElsewhere = (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) return false
+      if (target.isContentEditable) return true
+      const tag = target.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      if (isTypingElsewhere(e.target)) return
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        if (running) stopTimer()
+        else startTimer()
+      } else if (e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPicker({ target: 'timer' })
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
 
   // Pick a task for the running timer. Re-tag an empty capture-first stub in place (attributing the
   // elapsed time to the picked task); only split (switch) for a genuine change on real work.
@@ -692,6 +727,7 @@ export default function App() {
       onStop={stopTimer}
       onCancel={cancelTimer}
       onSwitchTask={() => setPicker({ target: 'timer' })}
+      onSubmitDescription={() => startTimerWithDescription(draft.description)}
       startMinute={running?.start ?? null}
       onEditStart={(minute) => {
         if (running) {
@@ -716,7 +752,12 @@ export default function App() {
   )
 
   return (
-    <AppShell route={route} onNavigate={setRoute} timer={timerBar}>
+    <AppShell
+      route={route}
+      onNavigate={setRoute}
+      timer={timerBar}
+      uncategorizedCount={uncategorizedCount}
+    >
       {route === 'tracker' && (
         <TrackerScreen
           groups={trackerGroups}

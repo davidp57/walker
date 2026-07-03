@@ -140,7 +140,7 @@ export function EntryRow({
             </div>
             <div className="wk-code-meta">
               {code?.number}
-              {entry.activity ? ` · ${entry.activity}` : ''}
+              {entry.activity && entry.activity !== code?.name ? ` · ${entry.activity}` : ''}
             </div>
           </div>
         )}

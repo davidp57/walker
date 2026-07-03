@@ -102,6 +102,23 @@
   justify-content: center;
   opacity: 0.85;
 }
+.wk-nav-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--wk-radius-pill);
+  background: var(--wk-amber-soft);
+  border: 1px solid var(--wk-amber-line);
+  color: var(--wk-amber);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-10);
+  font-weight: var(--wk-fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
 
 .wk-sidebar-foot {
   padding: 14px 20px;
@@ -697,7 +714,7 @@
   color: var(--wk-text-lo);
 }
 .wk-day-name {
-  font-size: 9px;
+  font-size: var(--wk-fs-11);
   letter-spacing: 0.5px;
 }
 .wk-day-num {
@@ -773,7 +790,7 @@
 }
 .wk-rowbadge {
   font-family: var(--wk-font-mono);
-  font-size: 10px;
+  font-size: var(--wk-fs-11);
   padding: 3px 7px;
   border-radius: 12px;
   cursor: pointer;
