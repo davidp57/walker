@@ -7,11 +7,12 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 - **CORE** (MVP tracker) — the design UI wired end-to-end to a real FastAPI `/api`: catalog, timer/entries,
   fortnight aggregation, entry checklist, settings. See `.backlog/archive/CORE.md`.
+- **VCODE** (virtual codes) — user-created codes resolving to a real T&E code, two-level aggregation
+  (Review by code, Enter-in-T&E resolved to the real code). See `.backlog/archive/VCODE.md`.
 
-## Now — VCODE (virtual codes)
+## Now — not yet chosen
 
-Let the user create finer-grained codes that resolve to a real T&E code for classification, without
-changing what actually gets keyed into T&E. See `.backlog/VCODE/PRD.md`.
+Two lots are ready to pick up next; sequencing between them hasn't been decided.
 
 ## Forward-looking (not scheduled)
 
