@@ -48,7 +48,12 @@ describe('resolveChecklistRows', () => {
   it('collapses virtual codes sharing a real code into one row, summing minutes exactly', () => {
     const rows: FortnightRow[] = [
       { key: '2|Bug fixing', code: virtualA, activity: 'Bug fixing', minutesByDay: { 1: 60 } },
-      { key: '3|Bug fixing', code: virtualB, activity: 'Bug fixing', minutesByDay: { 1: 30, 2: 15 } },
+      {
+        key: '3|Bug fixing',
+        code: virtualB,
+        activity: 'Bug fixing',
+        minutesByDay: { 1: 30, 2: 15 },
+      },
     ]
 
     const result = resolveChecklistRows(rows, codesById)

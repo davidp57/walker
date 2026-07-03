@@ -18,7 +18,12 @@ export function resolveChecklistRows(
     const key = `${realCode.id}|${row.activity}`
     const existing = merged.get(key)
     if (!existing) {
-      merged.set(key, { key, code: realCode, activity: row.activity, minutesByDay: { ...row.minutesByDay } })
+      merged.set(key, {
+        key,
+        code: realCode,
+        activity: row.activity,
+        minutesByDay: { ...row.minutesByDay },
+      })
       return
     }
     const minutesByDay = { ...existing.minutesByDay }
