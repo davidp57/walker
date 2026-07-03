@@ -10,7 +10,10 @@ interface FortnightScreenProps {
   days: DayColumn[]
   reviewRows: FortnightRow[] // grouped by code — virtual codes are their own rows (Review)
   enterRows: FortnightRow[] // resolved to the real code (ADR-0008) — Enter in T&E
-  runningCell: { key: string; day: number } | null // the live timer's cell (read-only, tinted)
+  runningCell: { key: string; day: number } | null // the live timer's cell (read-only, tinted) — Review
+  // The running cell's key, resolved virtual→real (ADR-0008) so it matches `enterRows`' keys. Falls
+  // back to `runningCell` when omitted (equivalent when the running entry is on a real code already).
+  enterRunningCell?: { key: string; day: number } | null
   checked: ChecklistState
   onPrev: () => void // previous fortnight (crosses months)
   onNext: () => void // next fortnight
@@ -35,6 +38,7 @@ export function FortnightScreen({
   reviewRows,
   enterRows,
   runningCell,
+  enterRunningCell = runningCell,
   checked,
   onPrev,
   onNext,
@@ -55,7 +59,7 @@ export function FortnightScreen({
   days.forEach((d) => {
     if (d.isWeekend || d.isAbsence) return
     enterRows.forEach((r) => {
-      const isRunning = runningCell?.key === r.key && runningCell?.day === d.day
+      const isRunning = enterRunningCell?.key === r.key && enterRunningCell?.day === d.day
       if ((r.minutesByDay[d.day] || 0) > 0 && !isRunning) fillOrder.push(checklistKey(r.key, d.day))
     })
   })
@@ -84,9 +88,10 @@ export function FortnightScreen({
     const next: ChecklistState = { ...checked }
     days.forEach((d) => {
       if (d.isWeekend || d.isAbsence) return
-      const isRunning = runningCell?.key === rowKey && runningCell?.day === d.day
+      const isRunning = enterRunningCell?.key === rowKey && enterRunningCell?.day === d.day
       const r = enterRows.find((x) => x.key === rowKey)
-      if (r && (r.minutesByDay[d.day] || 0) > 0 && !isRunning) next[checklistKey(rowKey, d.day)] = true
+      if (r && (r.minutesByDay[d.day] || 0) > 0 && !isRunning)
+        next[checklistKey(rowKey, d.day)] = true
     })
     onChecklistChange(next)
   }
@@ -96,7 +101,8 @@ export function FortnightScreen({
       <div className="wk-screen-head">
         <div>
           <div className="wk-screen-title">
-            Fortnight — <span className="wk-accent">{mode === 'review' ? 'by code' : 'enter in T&E'}</span>
+            Fortnight —{' '}
+            <span className="wk-accent">{mode === 'review' ? 'by code' : 'enter in T&E'}</span>
           </div>
           <div className="wk-screen-sub">
             {mode === 'review'
@@ -180,7 +186,7 @@ export function FortnightScreen({
             days={days}
             rows={enterRows}
             checked={checked}
-            runningCell={runningCell}
+            runningCell={enterRunningCell}
             onToggleCell={toggleCell}
             onToggleRow={toggleRow}
           />

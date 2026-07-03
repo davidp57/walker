@@ -209,7 +209,10 @@ describe('FortnightScreen — Enter in T&E mode', () => {
     expect(screen.getByText('0/2')).toBeInTheDocument()
     fireEvent.click(screen.getByText('0/2'))
 
-    expect(onChecklistChange).toHaveBeenCalledWith({ '1|Bug fixing#1': true, '1|Bug fixing#2': true })
+    expect(onChecklistChange).toHaveBeenCalledWith({
+      '1|Bug fixing#1': true,
+      '1|Bug fixing#2': true,
+    })
   })
 
   it('calls onChecklistReset from the Reset button', () => {
@@ -270,6 +273,23 @@ describe('FortnightScreen — running timer cell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
 
     // Day 1 for the merged real-code row is the running cell; clicking it must not toggle.
+    const cell = screen.getByTitle('Timer running — stop it to edit')
+    fireEvent.click(cell)
+
+    expect(onChecklistChange).not.toHaveBeenCalled()
+  })
+
+  it('is not tickable in Enter in T&E mode when the timer runs on a virtual code (ADR-0008)', () => {
+    // Review's runningCell is keyed by the virtual code; enterRunningCell resolves it to the real
+    // code so it still matches the merged Enter-in-T&E row (App.tsx wires this resolution).
+    const onChecklistChange = vi.fn()
+    renderScreen({
+      runningCell: { key: '2|Bug fixing', day: 1 },
+      enterRunningCell: { key: '1|Bug fixing', day: 1 },
+      onChecklistChange,
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
+
     const cell = screen.getByTitle('Timer running — stop it to edit')
     fireEvent.click(cell)
 

@@ -478,15 +478,6 @@ export default function App() {
     [matrix, codesById],
   )
 
-  // Enter-in-T&E view (ADR-0008): resolve virtual codes to their real code and collapse rows that
-  // share one — several fine-grained Walker rows become one real-code × activity line, matching
-  // both the server's `derive_checklist` and what gets keyed into T&E. `checked` (fetched from the
-  // checklist endpoint) is already real-code-keyed, so its keys must match these rows' keys.
-  const checklistRows: FortnightRow[] = useMemo(
-    () => resolveChecklistRows(rows, codesById),
-    [rows, codesById],
-  )
-
   // The running timer as a fortnight cell: shown live in its code × activity row, but only when it
   // is categorized and its day falls in the period on screen. Read-only (can't edit a live timer).
   const runningCell = useMemo(() => {
@@ -510,7 +501,7 @@ export default function App() {
     return { key: `${realCode.id}|${runningCell.activity}`, day: runningCell.day }
   }, [runningCell, codesById])
 
-  // Fortnight rows with the running timer's live minutes folded into its cell (checklist stays raw).
+  // Fortnight rows with the running timer's live minutes folded into its cell.
   // Injected even at 0 minutes so a just-started timer shows up immediately as a running cell.
   const gridRows: FortnightRow[] = useMemo(() => {
     if (!runningCell) return rows
@@ -530,6 +521,18 @@ export default function App() {
     }
     return [...rows, { key, code, activity, minutesByDay: { [day]: runningMinutes } }]
   }, [rows, runningCell, runningMinutes])
+
+  // Enter-in-T&E view (ADR-0008): resolve virtual codes to their real code and collapse rows that
+  // share one — several fine-grained Walker rows become one real-code × activity line, matching
+  // both the server's `derive_checklist` and what gets keyed into T&E. `checked` (fetched from the
+  // checklist endpoint) is already real-code-keyed, so its keys must match these rows' keys. Built
+  // from `gridRows` (not raw `rows`) so the running cell is present here too (BIZ-007) — it is
+  // excluded from fill order/ticking via `enterRunningCell`, so its live minutes never affect the
+  // entered-count arithmetic, only its (tinted, read-only) visibility.
+  const checklistRows: FortnightRow[] = useMemo(
+    () => resolveChecklistRows(gridRows, codesById),
+    [gridRows, codesById],
+  )
 
   // ---- Fortnight cell drill-down (edit the entries behind a grid cell) ----
   const cellDayIso = (day: number): string => {

@@ -158,3 +158,42 @@ describe('App — tracking on a virtual code (BIZ-013)', () => {
     expect(await screen.findByText('Workday contact info')).toBeInTheDocument()
   })
 })
+
+describe('App — Fortnight screen (BIZ-007)', () => {
+  it('renders the unified Fortnight screen in Review mode by default, with no Enter in T&E nav item', async () => {
+    mockBaseApi([realCode], [uncategorizedEntry])
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByText('Fortnight'))
+
+    expect(await screen.findByRole('button', { name: 'Review' })).toHaveClass('is-active')
+    expect(
+      screen.queryByText('Enter in T&E', { selector: '.wk-nav-item span' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it("tints the running timer's cell as read-only in Enter in T&E even when tracked on a virtual code (ADR-0008)", async () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const runningEntry: Entry = {
+      id: '11',
+      date: today,
+      start: 540,
+      end: null,
+      codeId: virtualCode.id,
+      activity: 'Bug fixing',
+      description: '',
+    }
+    mockBaseApi([realCode, virtualCode], [runningEntry])
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByText('Fortnight'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Enter in T&E' }))
+    await screen.findByText('Paper V4')
+
+    // The running entry is on the virtual code; resolved to the real code (ADR-0008) its cell must
+    // still be tinted/read-only — "Timer running" title only appears on the resolved real-code row.
+    expect(await screen.findByTitle('Timer running — stop it to edit')).toBeInTheDocument()
+  })
+})

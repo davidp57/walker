@@ -113,7 +113,8 @@ export function FortnightGrid(props: FortnightGridProps) {
                 const done = mode === 'checklist' && (props as ChecklistModeProps).checked[key]
 
                 const isWorkingDay = !d.isWeekend && !d.isAbsence
-                const running = props.runningCell?.key === row.key && props.runningCell?.day === d.day
+                const running =
+                  props.runningCell?.key === row.key && props.runningCell?.day === d.day
                 // Fortnight: filled cells drill in; empty working cells add a prefilled entry. The
                 // live-timer cell is read-only in both modes (stop the timer to edit/tick it).
                 const canAdd = isFortnight && isWorkingDay && !filled && !running
