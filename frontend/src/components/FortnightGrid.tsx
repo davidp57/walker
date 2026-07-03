@@ -121,6 +121,9 @@ export function FortnightGrid(props: FortnightGridProps) {
                 // live-timer cell is read-only in both modes (stop the timer to edit/tick it).
                 const canAdd = isFortnight && isWorkingDay && !filled && !running
                 const clickable = isWorkingDay && !running && (filled || canAdd)
+                // Enter in T&E: every filled, tickable cell shows its checkbox at rest — no hover
+                // needed to discover it (BIZ-008). The running-timer cell never shows one.
+                const showCheckbox = mode === 'checklist' && filled && !running
                 const cls = [
                   'wk-cell',
                   d.isWeekend ? 'is-weekend' : '',
@@ -157,10 +160,18 @@ export function FortnightGrid(props: FortnightGridProps) {
                     onClick={onClick}
                     title={running ? 'Timer running — stop it to edit' : undefined}
                   >
+                    {showCheckbox && (
+                      <input
+                        type="checkbox"
+                        className="wk-cell-checkbox"
+                        checked={!!done}
+                        readOnly
+                        aria-label={`Mark ${formatDuration(minutes)} as entered`}
+                      />
+                    )}
                     <span>{filled || running ? formatDuration(minutes) : ''}</span>
                     {running && <span className="wk-cell-live" />}
                     {canAdd && <span className="wk-cell-add">+</span>}
-                    {done && <span className="wk-cell-check">✓</span>}
                   </td>
                 )
               })}
