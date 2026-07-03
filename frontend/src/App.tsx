@@ -243,6 +243,19 @@ export default function App() {
       .then(reload)
       .catch(() => reload())
   }
+  // Enter-to-start (BIZ-009): start a Timer, then immediately attribute the typed description to
+  // it — the one-click empty Start (capture-first — ADR-0006) is untouched, this is a distinct
+  // gesture only reachable via Enter in the description field or the start/stop shortcut.
+  const startTimerWithDescription = (description: string) => {
+    apiStartTimer()
+      .then((created) =>
+        description.trim() === ''
+          ? created
+          : apiPatchEntry(created.id, { description }).catch(() => created),
+      )
+      .then(reload)
+      .catch(() => reload())
+  }
   const stopTimer = () => {
     if (!running) return
     apiPatchEntry(running.id, {
@@ -269,6 +282,32 @@ export default function App() {
       setDraft(EMPTY_DRAFT)
     }
   }
+
+  // Global shortcuts (BIZ-009): Ctrl/Cmd+Enter toggles start/stop; Ctrl/Cmd+K opens the task
+  // switcher — so the daily loop never needs the mouse. Ignored while typing in an unrelated
+  // input/textarea/select (the description field's plain Enter is handled by TimerBar itself).
+  useEffect(() => {
+    const isTypingElsewhere = (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) return false
+      if (target.isContentEditable) return true
+      const tag = target.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      if (isTypingElsewhere(e.target)) return
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        if (running) stopTimer()
+        else startTimer()
+      } else if (e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPicker({ target: 'timer' })
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
 
   // Pick a task for the running timer. Re-tag an empty capture-first stub in place (attributing the
   // elapsed time to the picked task); only split (switch) for a genuine change on real work.
@@ -647,6 +686,7 @@ export default function App() {
       onStop={stopTimer}
       onCancel={cancelTimer}
       onSwitchTask={() => setPicker({ target: 'timer' })}
+      onSubmitDescription={() => startTimerWithDescription(draft.description)}
       startMinute={running?.start ?? null}
       onEditStart={(minute) => {
         if (running) {
