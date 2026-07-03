@@ -9,15 +9,14 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   fortnight aggregation, entry checklist, settings. See `.backlog/archive/CORE.md`.
 - **VCODE** (virtual codes) — user-created codes resolving to a real T&E code, two-level aggregation
   (Review by code, Enter in T&E resolved to the real code). See `.backlog/archive/VCODE.md`.
+- **UX** (post-MVP UX improvements) — keyboard-first daily loop, uncategorized count, delete undo,
+  WCAG-AA contrast, label consistency, visible error/loading feedback, unified Fortnight grid (Review /
+  Enter in T&E). See `.backlog/archive/UX.md`.
 
 ## Now — not yet chosen
 
-Two lots are ready to pick up next; sequencing between them hasn't been decided.
-
 ## Forward-looking (not scheduled)
 
-- **UX** — post-MVP UX improvements (daily-loop keyboard flow, uncategorized count, delete undo,
-  WCAG-AA contrast, label consistency, unified Fortnight grid). See `.backlog/UX/PRD.md`.
 - **TASKS** — task manager (list + kanban, start-timer-from-task, recurrence). See `.backlog/TASKS/PRD.md`.
 - Shared TS types generated from the OpenAPI spec (ADR-0003).
 - "Tracked vs theoretical hours" visual cue (default 8h, customizable) — nice-to-have.
