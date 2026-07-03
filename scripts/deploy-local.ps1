@@ -51,10 +51,10 @@ try {
     & '.\.venv\Scripts\python.exe' -m pip install --upgrade pip
     & '.\.venv\Scripts\python.exe' -m pip install -e .
 
-    Write-Host '-> Building the frontend (npm install + build)...' -ForegroundColor Cyan
+    Write-Host '-> Building the frontend (npm ci + build)...' -ForegroundColor Cyan
     Push-Location frontend
     try {
-        npm install
+        npm ci
         npm run build
     } finally { Pop-Location }
 
