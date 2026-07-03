@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import type { Task, TimesheetCode } from '../types'
+import type { Task, TaskStatus, TimesheetCode } from '../types'
+import { TaskBoard } from '../components/TaskBoard'
 
 export type TaskSortField = 'status' | 'priority' | 'due' | 'title'
 export type TaskGroupField = 'none' | 'status' | 'priority' | 'due'
+export type TaskViewMode = 'list' | 'board'
 
 interface TasksScreenProps {
   tasks: Task[]
@@ -10,6 +12,8 @@ interface TasksScreenProps {
   loading?: boolean
   onNew: () => void
   onOpenTask: (task: Task) => void
+  /** Called when a Task is moved to another column on the board (BIZ-022). */
+  onMoveTask?: (task: Task, status: TaskStatus) => void
 }
 
 const STATUS_LABEL: Record<Task['status'], string> = {
@@ -63,14 +67,19 @@ function groupKeyFor(task: Task, field: TaskGroupField, today: string): string {
   }
 }
 
-/** Sortable/groupable Task list (grid) — click a row to open its side panel (BIZ-021). */
+/**
+ * Tasks view — toggles between a sortable/groupable list (grid) and a kanban board (BIZ-022),
+ * both over the same Tasks. Click a row/card to open its side panel (BIZ-021).
+ */
 export function TasksScreen({
   tasks,
   codesById,
   loading = false,
   onNew,
   onOpenTask,
+  onMoveTask,
 }: TasksScreenProps) {
+  const [view, setView] = useState<TaskViewMode>('list')
   const [sort, setSort] = useState<TaskSortField>('due')
   const [sortDir, setSortDir] = useState<1 | -1>(1)
   const [group, setGroup] = useState<TaskGroupField>('none')
@@ -180,43 +189,72 @@ export function TasksScreen({
       </div>
 
       <div className="wk-tasks-toolbar">
-        <label>
-          Sort by
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value as TaskSortField)}
-            data-testid="wk-task-sort-select"
+        <div className="wk-task-view-toggle">
+          <button
+            type="button"
+            className={view === 'list' ? 'is-active' : undefined}
+            onClick={() => setView('list')}
+            data-testid="wk-task-view-list"
           >
-            <option value="due">Due date</option>
-            <option value="status">Status</option>
-            <option value="priority">Priority</option>
-            <option value="title">Title</option>
-          </select>
-        </label>
-        <label>
-          Group by
-          <select
-            value={group}
-            onChange={(e) => setGroup(e.target.value as TaskGroupField)}
-            data-testid="wk-task-group-select"
+            List
+          </button>
+          <button
+            type="button"
+            className={view === 'board' ? 'is-active' : undefined}
+            onClick={() => setView('board')}
+            data-testid="wk-task-view-board"
           >
-            <option value="none">None</option>
-            <option value="status">Status</option>
-            <option value="priority">Priority</option>
-            <option value="due">Due date</option>
-          </select>
-        </label>
+            Board
+          </button>
+        </div>
+        {view === 'list' && (
+          <>
+            <label>
+              Sort by
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as TaskSortField)}
+                data-testid="wk-task-sort-select"
+              >
+                <option value="due">Due date</option>
+                <option value="status">Status</option>
+                <option value="priority">Priority</option>
+                <option value="title">Title</option>
+              </select>
+            </label>
+            <label>
+              Group by
+              <select
+                value={group}
+                onChange={(e) => setGroup(e.target.value as TaskGroupField)}
+                data-testid="wk-task-group-select"
+              >
+                <option value="none">None</option>
+                <option value="status">Status</option>
+                <option value="priority">Priority</option>
+                <option value="due">Due date</option>
+              </select>
+            </label>
+          </>
+        )}
       </div>
 
       {loading ? (
         <div className="wk-loading">Loading…</div>
       ) : tasks.length === 0 ? (
         <div className="wk-modal-empty">No tasks yet. Use “New task” to capture one.</div>
+      ) : view === 'board' ? (
+        <TaskBoard
+          tasks={tasks}
+          codesById={codesById}
+          onOpenTask={onOpenTask}
+          onMoveTask={onMoveTask ?? (() => {})}
+        />
       ) : (
         groups.map((g) => (
           <div className="wk-task-group" key={g.label ?? 'all'}>
             {g.label && <div className="wk-task-group-title">{g.label}</div>}
-            <table className="wk-task-table">
+            <table className="wk-task-table" data-testid="wk-task-table">
               <thead>
                 <tr>
                   {sortHeader('title', 'Title')}

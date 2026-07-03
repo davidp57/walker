@@ -111,6 +111,54 @@ describe('TasksScreen', () => {
     expect(screen.getByText('No priority')).toBeInTheDocument()
   })
 
+  it('shows the list view by default, with a toggle to switch to the board', () => {
+    const task = makeTask({ id: '1', title: 'Fix bug' })
+    render(<TasksScreen tasks={[task]} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    expect(screen.getByTestId('wk-task-table')).toBeInTheDocument()
+    expect(screen.queryByTestId('wk-board-column-todo')).not.toBeInTheDocument()
+  })
+
+  it('switches to the kanban board when the board toggle is clicked', () => {
+    const task = makeTask({ id: '1', title: 'Fix bug' })
+    render(<TasksScreen tasks={[task]} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    fireEvent.click(screen.getByTestId('wk-task-view-board'))
+
+    expect(screen.getByTestId('wk-board-column-todo')).toBeInTheDocument()
+    expect(screen.queryByTestId('wk-task-table')).not.toBeInTheDocument()
+  })
+
+  it('switches back to the list from the board', () => {
+    const task = makeTask({ id: '1', title: 'Fix bug' })
+    render(<TasksScreen tasks={[task]} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    fireEvent.click(screen.getByTestId('wk-task-view-board'))
+    fireEvent.click(screen.getByTestId('wk-task-view-list'))
+
+    expect(screen.getByTestId('wk-task-table')).toBeInTheDocument()
+    expect(screen.queryByTestId('wk-board-column-todo')).not.toBeInTheDocument()
+  })
+
+  it('moving a task on the board calls onMoveTask with the new status', () => {
+    const onMoveTask = vi.fn()
+    const task = makeTask({ id: '1', title: 'Todo task', status: 'todo' })
+    render(
+      <TasksScreen
+        tasks={[task]}
+        codesById={{}}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+        onMoveTask={onMoveTask}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-task-view-board'))
+    fireEvent.click(screen.getByTestId('wk-board-card-move-next-1'))
+
+    expect(onMoveTask).toHaveBeenCalledWith(task, 'in_progress')
+  })
+
   it('shows the linked code name and tags on a row', () => {
     const task = makeTask({
       id: '1',
