@@ -49,6 +49,9 @@ export function CodeEditor({ code, initialName, onSave, onDelete, onClose }: Cod
       name: name.trim() || label.trim(),
       color,
       activities: cleanActivities.map((a) => ({ code: a.code.trim(), label: a.label.trim() })),
+      isVirtual: false,
+      realCodeId: null,
+      realCodeNumber: null,
     })
     onClose()
   }

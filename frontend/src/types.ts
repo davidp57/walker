@@ -7,7 +7,14 @@ export interface Activity {
   label: string // e.g. "Bug fixing"
 }
 
-/** A PwC charge code. `number` is only needed for T&E; `name` (libellé) is the primary label. */
+/**
+ * A PwC charge code. `number` is only needed for T&E; `name` (libellé) is the primary label.
+ *
+ * Either **real** (`isVirtual === false`, exists in T&E, imported) or **virtual** (Walker-only,
+ * `realCodeId` points at exactly one real code — ADR-0008). `number`, `label`, and `activities` are
+ * already resolved by the API: a virtual code's own for a real code, borrowed from its real code
+ * otherwise — the SPA never needs to resolve them itself.
+ */
 export interface TimesheetCode {
   id: string
   number: string // e.g. "N9/1042"
@@ -15,6 +22,9 @@ export interface TimesheetCode {
   label: string // technical T&E label, e.g. "MNT - PAP V4"
   color: string // accent dot color (hex)
   activities: Activity[] // this code's own activities (each code has its own list)
+  isVirtual: boolean
+  realCodeId: string | null // the backing real code, when this is a virtual code
+  realCodeNumber: string | null // the backing real code's number, for display in the catalog
 }
 
 /** A code from the reference catalog — searched to add into your active codes. */

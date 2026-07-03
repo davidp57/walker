@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   createCode,
+  createVirtualCode,
   fetchChecklist,
   fetchCodes,
   fetchEntries,
@@ -22,6 +23,9 @@ describe('fetchCodes', () => {
         name: 'Paper V4',
         color: '#5b9cf6',
         activities: [{ code: '0001', label: 'Bug fixing' }],
+        is_virtual: false,
+        real_code_id: null,
+        real_code_number: null,
       },
     ]
     const fetchMock = vi.fn(
@@ -44,8 +48,39 @@ describe('fetchCodes', () => {
         name: 'Paper V4',
         color: '#5b9cf6',
         activities: [{ code: '0001', label: 'Bug fixing' }],
+        isVirtual: false,
+        realCodeId: null,
+        realCodeNumber: null,
       },
     ])
+  })
+
+  it('maps a virtual code, resolving its real-code link to a string id', async () => {
+    const payload = [
+      {
+        id: 2,
+        number: 'N9/1042',
+        label: 'MNT - PAP V4',
+        name: 'Workday contact info',
+        color: '#abcdef',
+        activities: [{ code: '0001', label: 'Bug fixing' }],
+        is_virtual: true,
+        real_code_id: 1,
+        real_code_number: 'N9/1042',
+      },
+    ]
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })),
+    )
+
+    const codes = await fetchCodes()
+
+    expect(codes[0]).toMatchObject({
+      isVirtual: true,
+      realCodeId: '1',
+      realCodeNumber: 'N9/1042',
+    })
   })
 })
 
@@ -148,6 +183,9 @@ describe('createCode', () => {
             name: 'L',
             color: '#111',
             activities: [],
+            is_virtual: false,
+            real_code_id: null,
+            real_code_number: null,
           }),
           { status: 201 },
         ),
@@ -171,6 +209,43 @@ describe('createCode', () => {
       activities: [{ code: '0001', label: 'A' }],
     })
     expect(code.id).toBe('5')
+  })
+})
+
+describe('createVirtualCode', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('POSTs the real code id (as a number) + name + color, and returns a string-id code', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 9,
+            number: 'N9/1',
+            label: 'L',
+            name: 'Sub-project',
+            color: '#abcdef',
+            activities: [],
+            is_virtual: true,
+            real_code_id: 5,
+            real_code_number: 'N9/1',
+          }),
+          { status: 201 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const code = await createVirtualCode({ realCodeId: '5', name: 'Sub-project', color: '#abcdef' })
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/codes/virtual')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body as string)).toEqual({
+      real_code_id: 5,
+      name: 'Sub-project',
+      color: '#abcdef',
+    })
+    expect(code).toMatchObject({ id: '9', isVirtual: true, realCodeId: '5' })
   })
 })
 

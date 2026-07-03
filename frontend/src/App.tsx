@@ -5,6 +5,7 @@ import { AppShell, type Route } from './components/AppShell'
 import { TimerBar } from './components/TimerBar'
 import { CodePicker } from './components/CodePicker'
 import { CodeEditor } from './components/CodeEditor'
+import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
 import { CellEntriesModal } from './components/CellEntriesModal'
 import { TrackerScreen, type DayGroup } from './screens/TrackerScreen'
@@ -30,6 +31,7 @@ import {
   addCodeFromReference as apiAddCodeFromReference,
   createCode as apiCreateCode,
   createEntry as apiCreateEntry,
+  createVirtualCode as apiCreateVirtualCode,
   deleteCode as apiDeleteCode,
   deleteEntry as apiDeleteEntry,
   fetchChecklist,
@@ -142,6 +144,7 @@ export default function App() {
   const [editor, setEditor] = useState<{ code: TimesheetCode | null; initialName?: string } | null>(
     null,
   )
+  const [virtualEditorOpen, setVirtualEditorOpen] = useState(false)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
@@ -357,6 +360,11 @@ export default function App() {
   }
   const deleteCode = (code: TimesheetCode) => {
     apiDeleteCode(code.id)
+      .then(reloadCodes)
+      .catch(() => {})
+  }
+  const saveVirtualCode = (input: { realCodeId: string; name: string; color: string }) => {
+    apiCreateVirtualCode(input)
       .then(reloadCodes)
       .catch(() => {})
   }
@@ -688,6 +696,7 @@ export default function App() {
         <CodeCatalogScreen
           codes={codes}
           onNew={() => setEditor({ code: null })}
+          onNewVirtual={() => setVirtualEditorOpen(true)}
           onEdit={(code) => setEditor({ code })}
           onDelete={deleteCode}
           isCodeInUse={isCodeInUse}
@@ -766,6 +775,14 @@ export default function App() {
             editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
           }
           onClose={() => setEditor(null)}
+        />
+      )}
+
+      {virtualEditorOpen && (
+        <VirtualCodeEditor
+          realCodes={codes.filter((c) => !c.isVirtual)}
+          onSave={saveVirtualCode}
+          onClose={() => setVirtualEditorOpen(false)}
         />
       )}
 

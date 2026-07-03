@@ -109,6 +109,44 @@ def update_code(
     return code
 
 
+def create_virtual_code(
+    session: Session,
+    user_id: int,
+    *,
+    real_code_id: int,
+    name: str,
+    color: str | None,
+) -> TimesheetCode:
+    """Create a virtual code backed by a real code (ADR-0008); ``name`` is unique per user.
+
+    Borrows ``number``, ``label``, and Activities from the real code; owns ``name`` and ``color``.
+    """
+    real = _owned_code(session, user_id, real_code_id)
+    if real.is_virtual:
+        raise ValidationError("A virtual code must be backed by a real code, not another virtual code.")
+    existing = session.scalar(
+        select(TimesheetCode).where(
+            TimesheetCode.user_id == user_id,
+            TimesheetCode.name == name,
+            TimesheetCode.real_code_id.is_not(None),
+        )
+    )
+    if existing is not None:
+        raise ValidationError(f"A virtual code named {name!r} already exists.")
+    code = TimesheetCode(
+        user_id=user_id,
+        number=real.number,
+        label=real.label,
+        name=name,
+        color=color or _auto_color(_count_codes(session, user_id)),
+        real_code_id=real.id,
+    )
+    session.add(code)
+    session.commit()
+    session.refresh(code)
+    return code
+
+
 def delete_code(session: Session, user_id: int, code_id: int) -> None:
     """Delete a code, unless an Entry references it (server-side guard)."""
     code = _owned_code(session, user_id, code_id)

@@ -4,6 +4,7 @@ import type { ReferenceCode, TimesheetCode } from '../types'
 interface CodeCatalogScreenProps {
   codes: TimesheetCode[]
   onNew: () => void
+  onNewVirtual: () => void
   onEdit: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
   isCodeInUse: (id: string) => boolean
@@ -16,6 +17,7 @@ interface CodeCatalogScreenProps {
 export function CodeCatalogScreen({
   codes,
   onNew,
+  onNewVirtual,
   onEdit,
   onDelete,
   isCodeInUse,
@@ -65,6 +67,9 @@ export function CodeCatalogScreen({
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" className="wk-btn-ghost" onClick={onImport}>
             ⇪ Import reference
+          </button>
+          <button type="button" className="wk-btn-ghost" onClick={onNewVirtual}>
+            + New virtual code
           </button>
           <button
             type="button"
@@ -144,9 +149,20 @@ export function CodeCatalogScreen({
               <div className="wk-catalog-head">
                 <span className="wk-dot" style={{ width: 10, height: 10, background: c.color }} />
                 <div>
-                  <div className="wk-catalog-name">{c.name}</div>
+                  <div className="wk-catalog-name">
+                    {c.name}
+                    {c.isVirtual && (
+                      <span
+                        className="wk-act-chip"
+                        style={{ marginLeft: 8, fontSize: 11, verticalAlign: 'middle' }}
+                      >
+                        virtual
+                      </span>
+                    )}
+                  </div>
                   <div className="wk-catalog-meta">
                     {c.number} · {c.label}
+                    {c.isVirtual && c.realCodeNumber && ` · backed by ${c.realCodeNumber}`}
                   </div>
                 </div>
                 <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
