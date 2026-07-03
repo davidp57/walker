@@ -147,12 +147,57 @@ def create_virtual_code(
     return code
 
 
+def update_virtual_code(
+    session: Session,
+    user_id: int,
+    code_id: int,
+    *,
+    real_code_id: int,
+    name: str,
+    color: str | None,
+) -> TimesheetCode:
+    """Update a virtual code's name, colour, and/or backing real code (ADR-0008).
+
+    Mirrors ``create_virtual_code``'s validation: the target real code must exist, be owned, and not
+    itself be virtual; ``name`` must be unique per user, excluding this code itself.
+    """
+    virtual = _owned_code(session, user_id, code_id)
+    real = _owned_code(session, user_id, real_code_id)
+    if real.is_virtual:
+        raise ValidationError("A virtual code must be backed by a real code, not another virtual code.")
+    existing = session.scalar(
+        select(TimesheetCode).where(
+            TimesheetCode.user_id == user_id,
+            TimesheetCode.name == name,
+            TimesheetCode.real_code_id.is_not(None),
+            TimesheetCode.id != code_id,
+        )
+    )
+    if existing is not None:
+        raise ValidationError(f"A virtual code named {name!r} already exists.")
+    virtual.number = real.number
+    virtual.label = real.label
+    virtual.name = name
+    if color:
+        virtual.color = color
+    virtual.real_code_id = real.id
+    session.commit()
+    session.refresh(virtual)
+    return virtual
+
+
 def delete_code(session: Session, user_id: int, code_id: int) -> None:
-    """Delete a code, unless an Entry references it (server-side guard)."""
+    """Delete a code, unless an Entry references it or (for a real code) a virtual code points to it."""
     code = _owned_code(session, user_id, code_id)
     references = session.scalar(select(func.count()).select_from(Entry).where(Entry.timesheet_code_id == code_id))
     if references:
         raise ValidationError(f"Code {code.number} is referenced by entries and cannot be deleted.")
+    if not code.is_virtual:
+        virtual_children = session.scalar(
+            select(func.count()).select_from(TimesheetCode).where(TimesheetCode.real_code_id == code_id)
+        )
+        if virtual_children:
+            raise ValidationError(f"Code {code.number} has virtual codes pointing to it and cannot be deleted.")
     session.delete(code)
     session.commit()
 

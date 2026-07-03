@@ -208,6 +208,20 @@ export async function createVirtualCode(input: VirtualCodeWrite): Promise<Timesh
   )
 }
 
+/** Update a virtual code's name, colour, and/or backing real code (ADR-0008). */
+export async function updateVirtualCode(
+  id: string,
+  input: VirtualCodeWrite,
+): Promise<TimesheetCode> {
+  return mapCode(
+    await sendJson<ApiCode>(`/api/codes/virtual/${id}`, 'PUT', {
+      real_code_id: Number(input.realCodeId),
+      name: input.name,
+      color: input.color ?? null,
+    }),
+  )
+}
+
 /** Delete a code; the server rejects deletion of a code still referenced by an entry. */
 export async function deleteCode(id: string): Promise<void> {
   const response = await fetch(`/api/codes/${id}`, { method: 'DELETE' })

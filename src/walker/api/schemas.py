@@ -71,6 +71,14 @@ class VirtualCodeCreate(BaseModel):
     color: str | None = None
 
 
+class VirtualCodeUpdate(BaseModel):
+    """Payload to update a virtual code (same shape as create)."""
+
+    real_code_id: int
+    name: str
+    color: str | None = None
+
+
 class ImportSummary(BaseModel):
     """Result of a catalog import: how many codes were created vs updated."""
 

@@ -16,6 +16,7 @@ from walker.api.schemas import (
     CodeUpdate,
     ImportSummary,
     VirtualCodeCreate,
+    VirtualCodeUpdate,
 )
 from walker.db import get_session
 from walker.exceptions import CatalogImportError, NotFoundError, ValidationError
@@ -90,6 +91,30 @@ def create_virtual_code(
         code = catalog.create_virtual_code(
             session,
             user.id,
+            real_code_id=body.real_code_id,
+            name=body.name,
+            color=body.color,
+        )
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
+    return _code_read(code)
+
+
+@router.put("/codes/virtual/{code_id}", response_model=CodeRead)
+def update_virtual_code(
+    code_id: int,
+    body: VirtualCodeUpdate,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> CodeRead:
+    """Update a virtual code's name, colour, and/or backing real code (ADR-0008)."""
+    try:
+        code = catalog.update_virtual_code(
+            session,
+            user.id,
+            code_id,
             real_code_id=body.real_code_id,
             name=body.name,
             color=body.color,

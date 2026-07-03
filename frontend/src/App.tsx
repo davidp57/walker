@@ -50,6 +50,7 @@ import {
   toggleChecklist as apiToggleChecklist,
   updateCode as apiUpdateCode,
   updateSettings as apiUpdateSettings,
+  updateVirtualCode as apiUpdateVirtualCode,
 } from './lib/api'
 
 // ---- Today (real local date, matches the server-recorded entries) ----
@@ -144,7 +145,7 @@ export default function App() {
   const [editor, setEditor] = useState<{ code: TimesheetCode | null; initialName?: string } | null>(
     null,
   )
-  const [virtualEditorOpen, setVirtualEditorOpen] = useState(false)
+  const [virtualEditor, setVirtualEditor] = useState<{ code: TimesheetCode | null } | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
@@ -344,7 +345,9 @@ export default function App() {
       .then(setCodes)
       .catch(() => {})
   const isCodeInUse = (id: string): boolean =>
-    entries.some((e) => e.codeId === id) || Object.keys(matrix).some((k) => k.startsWith(`${id}|`))
+    entries.some((e) => e.codeId === id) ||
+    Object.keys(matrix).some((k) => k.startsWith(`${id}|`)) ||
+    codes.some((c) => c.realCodeId === id)
   const saveCode = (code: TimesheetCode) => {
     const payload = {
       number: code.number,
@@ -364,9 +367,10 @@ export default function App() {
       .catch(() => {})
   }
   const saveVirtualCode = (input: { realCodeId: string; name: string; color: string }) => {
-    apiCreateVirtualCode(input)
-      .then(reloadCodes)
-      .catch(() => {})
+    const op = virtualEditor?.code
+      ? apiUpdateVirtualCode(virtualEditor.code.id, input)
+      : apiCreateVirtualCode(input)
+    op.then(reloadCodes).catch(() => {})
   }
   const importCatalogFile = () => {
     const picker = document.createElement('input')
@@ -696,8 +700,9 @@ export default function App() {
         <CodeCatalogScreen
           codes={codes}
           onNew={() => setEditor({ code: null })}
-          onNewVirtual={() => setVirtualEditorOpen(true)}
+          onNewVirtual={() => setVirtualEditor({ code: null })}
           onEdit={(code) => setEditor({ code })}
+          onEditVirtual={(code) => setVirtualEditor({ code })}
           onDelete={deleteCode}
           isCodeInUse={isCodeInUse}
           onImport={importCatalogFile}
@@ -778,11 +783,17 @@ export default function App() {
         />
       )}
 
-      {virtualEditorOpen && (
+      {virtualEditor && (
         <VirtualCodeEditor
+          code={virtualEditor.code}
           realCodes={codes.filter((c) => !c.isVirtual)}
           onSave={saveVirtualCode}
-          onClose={() => setVirtualEditorOpen(false)}
+          onDelete={
+            virtualEditor.code && !isCodeInUse(virtualEditor.code.id)
+              ? () => deleteCode(virtualEditor.code!)
+              : undefined
+          }
+          onClose={() => setVirtualEditor(null)}
         />
       )}
 
