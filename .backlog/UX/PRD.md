@@ -108,6 +108,8 @@ The work is frontend / presentation only — no domain or API change.
     is hidden and the running-Timer cell is not tickable.
 22. As a consultant, I want my entered marks to persist per fortnight as today, so that switching
     modes, changing period, or reloading keeps my checklist state.
+23. As a consultant, I want to copy a row's T&E code number with one click in Enter in T&E, so that
+    keying it into T&E isn't a manual retype.
 
 ## Implementation Decisions
 
