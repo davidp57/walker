@@ -11,9 +11,9 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { key: 'tracker', label: 'Today', icon: <IconTracker /> },
+  { key: 'tracker', label: 'Activity', icon: <IconTracker /> },
   { key: 'fortnight', label: 'Fortnight', icon: <IconFortnight /> },
-  { key: 'checklist', label: 'Enter in T&E', icon: <IconChecklist /> },
+  { key: 'checklist', label: 'Enter into T&E', icon: <IconChecklist /> },
   { key: 'codes', label: 'Code catalog', icon: <IconCatalog /> },
   { key: 'settings', label: 'Settings', icon: <IconSettings /> },
 ]
