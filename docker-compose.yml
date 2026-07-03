@@ -1,0 +1,15 @@
+services:
+  walker:
+    build: .
+    image: walker:dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - walker-data:/data
+    environment:
+      WALKER_DATABASE_URL: sqlite:////data/walker.db
+      WALKER_FRONTEND_DIST: /app/frontend/dist
+    restart: unless-stopped
+
+volumes:
+  walker-data:

@@ -1,0 +1,88 @@
+/* Walker design tokens. Import once (e.g. in main.tsx) before walker.css. */
+:root {
+  /* ---- Surfaces (dark theme) ---- */
+  --wk-bg-0: #0e0f13; /* app background */
+  --wk-bg-1: #15171d; /* panels / cards / sidebar / timer bar */
+  --wk-bg-2: #1b1e26; /* raised (chips, headers, totals) */
+  --wk-bg-3: #232733; /* hover / active nav */
+  --wk-line: #282c36; /* borders */
+  --wk-line-soft: #20242c;
+  --wk-weekend: #101217; /* greyed weekend columns */
+
+  /* ---- Text ---- */
+  --wk-text-hi: #e9ebef;
+  --wk-text: #b7bdc8;
+  --wk-text-mid: #868d9b;
+  --wk-text-lo: #5b626f;
+
+  /* ---- Accent (brand, themeable) ---- */
+  --wk-accent: #5b9cf6;
+  --wk-accent-soft: rgba(91, 156, 246, 0.14);
+  --wk-accent-line: rgba(91, 156, 246, 0.42);
+  --wk-on-accent: #08131f; /* text on solid accent */
+
+  /* ---- Semantic ---- */
+  --wk-amber: #e8a84b; /* uncategorized / needs completing */
+  --wk-amber-soft: rgba(232, 168, 75, 0.13);
+  --wk-amber-line: rgba(232, 168, 75, 0.38);
+  --wk-green: #3fb68b; /* entered into T&E / complete */
+  --wk-green-soft: rgba(63, 182, 139, 0.14);
+  --wk-danger: #e5644e;
+
+  /* ---- Typography ---- */
+  --wk-font-ui: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  --wk-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --wk-font-display: 'Zilla Slab', Georgia, serif; /* logo / screen titles — western wink */
+
+  --wk-fs-9: 9.5px; /* micro labels (uppercase mono) */
+  --wk-fs-10: 10.5px;
+  --wk-fs-11: 11px;
+  --wk-fs-12: 12.5px;
+  --wk-fs-13: 13.5px;
+  --wk-fs-14: 14px; /* body base */
+  --wk-fs-15: 15px;
+  --wk-fs-17: 17px;
+  --wk-fs-20: 20px;
+  --wk-fs-24: 24px; /* screen title */
+  --wk-fs-27: 27px; /* stopwatch */
+
+  --wk-fw-regular: 400;
+  --wk-fw-medium: 500;
+  --wk-fw-semibold: 600;
+  --wk-fw-bold: 700;
+
+  /* ---- Spacing (4px base) ---- */
+  --wk-space-1: 4px;
+  --wk-space-2: 8px;
+  --wk-space-3: 12px;
+  --wk-space-4: 16px;
+  --wk-space-5: 20px;
+  --wk-space-6: 24px;
+  --wk-space-7: 30px;
+  --wk-space-8: 40px;
+
+  /* ---- Radii ---- */
+  --wk-radius-sm: 5px;
+  --wk-radius-md: 9px;
+  --wk-radius-lg: 13px;
+  --wk-radius-pill: 999px;
+
+  /* ---- Shadows ---- */
+  --wk-shadow-1: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --wk-shadow-2: 0 18px 44px rgba(0, 0, 0, 0.5);
+  --wk-shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+  /* ---- Z-index ---- */
+  --wk-z-sticky: 2; /* sticky grid headers */
+  --wk-z-dropdown: 60; /* comment suggestions */
+  --wk-z-modal: 100; /* code picker / entry editor */
+
+  /* ---- Density (row/cell heights) ---- */
+  --wk-row-h: 44px;
+  --wk-cell-h: 34px;
+}
+
+:root[data-density='compact'] {
+  --wk-row-h: 36px;
+  --wk-cell-h: 28px;
+}

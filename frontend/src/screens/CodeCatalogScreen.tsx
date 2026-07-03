@@ -1,0 +1,186 @@
+import { useEffect, useState } from 'react'
+import type { ReferenceCode, TimesheetCode } from '../types'
+
+interface CodeCatalogScreenProps {
+  codes: TimesheetCode[]
+  onNew: () => void
+  onEdit: (code: TimesheetCode) => void
+  onDelete: (code: TimesheetCode) => void
+  isCodeInUse: (id: string) => boolean
+  onImport?: () => void // import the reference catalog from a file
+  importStatus?: string | null // result/error of the last import
+  onSearchReference: (q: string) => Promise<ReferenceCode[]>
+  onAddCode: (number: string) => void
+}
+
+export function CodeCatalogScreen({
+  codes,
+  onNew,
+  onEdit,
+  onDelete,
+  isCodeInUse,
+  onImport,
+  importStatus,
+  onSearchReference,
+  onAddCode,
+}: CodeCatalogScreenProps) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<ReferenceCode[]>([])
+  const activeNumbers = new Set(codes.map((c) => c.number))
+
+  // Debounced autocomplete over the reference catalog.
+  useEffect(() => {
+    const q = query.trim()
+    if (!q) {
+      setResults([])
+      return
+    }
+    let cancelled = false
+    const timer = setTimeout(() => {
+      onSearchReference(q)
+        .then((r) => !cancelled && setResults(r))
+        .catch(() => !cancelled && setResults([]))
+    }, 200)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [query, onSearchReference])
+
+  const add = (number: string) => {
+    onAddCode(number)
+    setQuery('')
+    setResults([])
+  }
+
+  return (
+    <div className="wk-screen is-narrow">
+      <div className="wk-screen-head">
+        <div>
+          <div className="wk-screen-title">Code catalog</div>
+          <div className="wk-screen-sub">
+            The codes you charge to. Search your reference catalog to add more.
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" className="wk-btn-ghost" onClick={onImport}>
+            ⇪ Import reference
+          </button>
+          <button
+            type="button"
+            className="wk-btn wk-btn-primary"
+            style={{ padding: '8px 16px' }}
+            onClick={onNew}
+          >
+            + New code
+          </button>
+        </div>
+      </div>
+
+      {importStatus && (
+        <div
+          className="wk-screen-sub"
+          style={{
+            marginBottom: 12,
+            padding: '8px 12px',
+            border: '1px solid var(--wk-line)',
+            borderRadius: 'var(--wk-radius-md)',
+          }}
+        >
+          {importStatus}
+        </div>
+      )}
+
+      <div style={{ position: 'relative', marginBottom: 16 }}>
+        <input
+          className="wk-input"
+          value={query}
+          placeholder="Add a code — search your catalog by number, project, or label…"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {results.length > 0 && (
+          <div
+            className="wk-suggest"
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              right: 0,
+              zIndex: 30,
+              marginTop: 4,
+            }}
+          >
+            {results.map((r) => {
+              const already = activeNumbers.has(r.number)
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  className="wk-suggest-item"
+                  disabled={already}
+                  style={already ? { opacity: 0.5, cursor: 'default' } : undefined}
+                  onClick={() => add(r.number)}
+                >
+                  <span className="wk-suggest-body">
+                    <span className="wk-suggest-desc">{r.name}</span>
+                    <span className="wk-suggest-meta">
+                      {r.number} · {r.label}
+                      {already ? ' · already added' : ''}
+                    </span>
+                  </span>
+                  {!already && <span className="wk-suggest-key">+ add</span>}
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="wk-catalog-list">
+        {codes.map((c) => {
+          const inUse = isCodeInUse(c.id)
+          return (
+            <div key={c.id} className="wk-catalog-card">
+              <div className="wk-catalog-head">
+                <span className="wk-dot" style={{ width: 10, height: 10, background: c.color }} />
+                <div>
+                  <div className="wk-catalog-name">{c.name}</div>
+                  <div className="wk-catalog-meta">
+                    {c.number} · {c.label}
+                  </div>
+                </div>
+                <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                  <button type="button" className="wk-btn-ghost" onClick={() => onEdit(c)}>
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="wk-btn-icon"
+                    title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
+                    disabled={inUse}
+                    style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
+                    onClick={() => onDelete(c)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div className="wk-catalog-acts">
+                {c.activities.map((a) => (
+                  <span key={a.code || a.label} className="wk-act-chip">
+                    {a.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )
+        })}
+        {codes.length === 0 && (
+          <div className="wk-modal-empty">
+            No codes yet. Search above to add from your catalog, or use “New code”.
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

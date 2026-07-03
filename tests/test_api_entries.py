@@ -1,0 +1,181 @@
+"""Tests for the timer + entries endpoints (BIZ-003)."""
+
+from __future__ import annotations
+
+from datetime import date
+
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
+
+from walker.config import settings
+from walker.models import Entry, TimesheetCode, User
+
+TODAY = date.today().isoformat()
+
+
+def _seed_user_with_code(session: Session) -> TimesheetCode:
+    user = User(username=settings.default_user)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    code = TimesheetCode(user_id=user.id, number="N9/1042", label="MNT", name="Paper V4", color="#123456")
+    session.add(code)
+    session.commit()
+    session.refresh(code)
+    return code
+
+
+def test_start_creates_a_running_uncategorized_entry(client: TestClient) -> None:
+    response = client.post("/api/timer/start")
+
+    assert response.status_code == 201
+    entry = response.json()
+    assert entry["end_minute"] is None
+    assert entry["timesheet_code_id"] is None
+    assert entry["activity"] is None
+    assert entry["date"] == TODAY
+
+
+def test_second_start_is_rejected_while_one_is_running(client: TestClient) -> None:
+    client.post("/api/timer/start")
+
+    response = client.post("/api/timer/start")
+
+    assert response.status_code == 409
+
+
+def test_switch_closes_the_running_entry_and_opens_a_new_one(client: TestClient) -> None:
+    client.post("/api/timer/start")
+
+    response = client.post("/api/timer/switch", json={"description": "next task"})
+
+    assert response.status_code == 201
+    new_entry = response.json()
+    assert new_entry["end_minute"] is None
+    assert new_entry["description"] == "next task"
+
+    entries = client.get("/api/entries", params={"date": TODAY}).json()
+    running = [e for e in entries if e["end_minute"] is None]
+    closed = [e for e in entries if e["end_minute"] is not None]
+    assert len(running) == 1
+    assert len(closed) == 1
+
+
+def test_stop_closes_the_running_entry(client: TestClient) -> None:
+    client.post("/api/timer/start")
+
+    response = client.post("/api/timer/stop")
+
+    assert response.status_code == 200
+    assert response.json()["end_minute"] is not None
+    assert client.get("/api/entries", params={"date": TODAY}).json()[0]["end_minute"] is not None
+
+
+def test_stop_without_a_running_entry_is_rejected(client: TestClient) -> None:
+    response = client.post("/api/timer/stop")
+
+    assert response.status_code == 409
+
+
+def test_patch_edits_any_field(client: TestClient, session: Session) -> None:
+    code = _seed_user_with_code(session)
+    entry_id = client.post("/api/timer/start").json()["id"]
+
+    response = client.patch(
+        f"/api/entries/{entry_id}",
+        json={
+            "start_minute": 540,
+            "end_minute": 600,
+            "timesheet_code_id": code.id,
+            "activity": "Bug fixing",
+            "description": "Fixed CSV import",
+        },
+    )
+
+    assert response.status_code == 200
+    entry = response.json()
+    assert entry["start_minute"] == 540
+    assert entry["end_minute"] == 600
+    assert entry["timesheet_code_id"] == code.id
+    assert entry["activity"] == "Bug fixing"
+    assert entry["description"] == "Fixed CSV import"
+
+
+def test_delete_removes_the_entry(client: TestClient) -> None:
+    entry_id = client.post("/api/timer/start").json()["id"]
+
+    response = client.delete(f"/api/entries/{entry_id}")
+
+    assert response.status_code == 204
+    assert client.get("/api/entries", params={"date": TODAY}).json() == []
+
+
+def test_create_entry_without_timer(client: TestClient, session: Session) -> None:
+    code = _seed_user_with_code(session)
+
+    response = client.post(
+        "/api/entries",
+        json={
+            "date": "2026-06-20",
+            "start_minute": 540,
+            "end_minute": 600,
+            "timesheet_code_id": code.id,
+            "activity": "Bug fixing",
+            "description": "Past work",
+        },
+    )
+
+    assert response.status_code == 201
+    entry = response.json()
+    assert entry["date"] == "2026-06-20"
+    assert entry["start_minute"] == 540
+    assert entry["end_minute"] == 600
+    assert entry["timesheet_code_id"] == code.id
+    assert len(client.get("/api/entries", params={"date": "2026-06-20"}).json()) == 1
+
+
+def test_create_entry_defaults_to_a_completed_entry(client: TestClient) -> None:
+    response = client.post("/api/entries", json={})
+
+    assert response.status_code == 201
+    entry = response.json()
+    assert entry["end_minute"] is not None  # a real (non-running) entry, not a timer
+
+
+def test_list_entries_by_date_range(client: TestClient, session: Session) -> None:
+    user = User(username=settings.default_user)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    session.add_all(
+        [
+            Entry(user_id=user.id, date=date(2026, 7, 3), start_minute=600, end_minute=660),
+            Entry(user_id=user.id, date=date(2026, 7, 1), start_minute=540, end_minute=600),
+            Entry(user_id=user.id, date=date(2026, 7, 10), start_minute=540, end_minute=600),
+        ]
+    )
+    session.commit()
+
+    body = client.get("/api/entries", params={"from": "2026-07-01", "to": "2026-07-05"}).json()
+
+    assert [e["date"] for e in body] == ["2026-07-01", "2026-07-03"]
+
+
+def test_patch_can_move_entry_to_another_date(client: TestClient) -> None:
+    entry_id = client.post("/api/timer/start").json()["id"]
+
+    response = client.patch(f"/api/entries/{entry_id}", json={"date": "2026-06-15"})
+
+    assert response.status_code == 200
+    assert response.json()["date"] == "2026-06-15"
+
+
+def test_entries_are_scoped_to_the_current_user(client: TestClient, session: Session) -> None:
+    other = User(username="someone-else")
+    session.add(other)
+    session.commit()
+    session.refresh(other)
+    session.add(Entry(user_id=other.id, date=date.today(), start_minute=60, end_minute=120))
+    session.commit()
+
+    assert client.get("/api/entries", params={"date": TODAY}).json() == []

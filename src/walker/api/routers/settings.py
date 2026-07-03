@@ -1,0 +1,56 @@
+"""Settings + absences endpoints (BIZ-006)."""
+
+from __future__ import annotations
+
+from datetime import date
+
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from walker.api.dependencies import get_current_user
+from walker.api.schemas import AbsenceWrite, SettingsRead, SettingsUpdate
+from walker.db import get_session
+from walker.models import User
+from walker.services import settings as settings_service
+from walker.services.settings import SettingsView
+
+router = APIRouter(tags=["settings"])
+
+
+@router.get("/settings", response_model=SettingsRead)
+def get_settings(
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> SettingsView:
+    """Return the user's settings (work rhythm, density, absences)."""
+    return settings_service.get_settings(session, user.id)
+
+
+@router.put("/settings", response_model=SettingsRead)
+def update_settings(
+    body: SettingsUpdate,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> SettingsView:
+    """Update the work rhythm and density."""
+    return settings_service.update_settings(session, user.id, workdays=body.workdays, density=body.density)
+
+
+@router.post("/settings/absences", response_model=SettingsRead)
+def add_absence(
+    body: AbsenceWrite,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> SettingsView:
+    """Add (or update the reason of) an absence."""
+    return settings_service.add_absence(session, user.id, body.date, body.reason)
+
+
+@router.delete("/settings/absences/{on_date}", response_model=SettingsRead)
+def remove_absence(
+    on_date: date,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> SettingsView:
+    """Remove an absence for a date."""
+    return settings_service.remove_absence(session, user.id, on_date)

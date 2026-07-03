@@ -1,0 +1,40 @@
+# --- Python ---
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# --- Database (local SQLite POC) ---
+*.db
+*.sqlite
+*.sqlite3
+
+# --- Environment ---
+.env
+.env.*
+!.env.example
+
+# Artifactory credentials — copy from pip.conf.example, never commit
+pip.conf
+
+# --- Frontend (Node) ---
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+pnpm-debug.log*
+
+# --- IDE / OS ---
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# --- Claude Code (personal, not shared) ---
+.claude/settings.local.json

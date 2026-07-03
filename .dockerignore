@@ -1,0 +1,28 @@
+# Keep the build context small and reproducible.
+.git/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+build/
+dist/
+**/__pycache__/
+*.egg-info/
+
+# Local database & env
+*.db
+*.sqlite*
+.env
+.env.*
+
+# Frontend build artifacts (rebuilt inside the image)
+frontend/node_modules/
+frontend/dist/
+
+# Docs & dev-only files not needed at runtime
+docs/
+.backlog/
+.vscode/
+.idea/
