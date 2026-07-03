@@ -25,7 +25,7 @@ import type {
   TimesheetCode,
 } from './types'
 import { resolveChecklistRows } from './lib/checklist'
-import { formatDuration } from './lib/time'
+import { elapsedSecondsSince, formatDuration } from './lib/time'
 import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor } from './lib/tasks'
 import { ToastProvider } from './lib/toast'
@@ -130,11 +130,8 @@ interface TimerDraft {
 }
 const EMPTY_DRAFT: TimerDraft = { codeId: null, activity: null, description: '' }
 
-const startOfTodayMs = () => {
-  const d = new Date()
-  d.setHours(0, 0, 0, 0)
-  return d.getTime()
-}
+// How long an undo affordance stays available after a delete (BIZ-011).
+const UNDO_WINDOW_MS = 6000
 
 export default function App() {
   return (
@@ -179,6 +176,9 @@ function AppInner() {
     title: string
   } | null>(null)
   const [cellEntries, setCellEntries] = useState<Entry[]>([])
+  // The most recently deleted Entry, kept around so "Undo" can restore it (BIZ-011); cleared once
+  // the undo window elapses or another delete/undo replaces it.
+  const [pendingDelete, setPendingDelete] = useState<Entry | null>(null)
 
   // Settings (drive the fortnight grid + density)
   const [workdays, setWorkdays] = useState<boolean[]>([false, true, true, true, true, true, false]) // Sun..Sat
@@ -241,6 +241,10 @@ function AppInner() {
   const running = entries.find((e) => e.end === null) ?? null
   const runningId = running?.id ?? null
 
+  // Entries still lacking a Timesheet code (BIZ-010) — surfaced as a live count in the shell so
+  // nothing is left uncoded before the fortnight closes. Mirrors EntryRow's own `flagged` rule.
+  const uncategorizedCount = useMemo(() => entries.filter((e) => !e.codeId).length, [entries])
+
   // Tick the clock every second only while a timer is running.
   useEffect(() => {
     if (runningId == null) return
@@ -251,9 +255,7 @@ function AppInner() {
   const codesById = useMemo(() => Object.fromEntries(codes.map((c) => [c.id, c])), [codes])
 
   const timerCode = draft.codeId ? (codesById[draft.codeId] ?? null) : null
-  const elapsedSeconds = running
-    ? Math.max(0, (now - startOfTodayMs()) / 1000 - running.start * 60)
-    : 0
+  const elapsedSeconds = running ? elapsedSecondsSince(running.date, running.start, now) : 0
   const runningMinutes = Math.floor(elapsedSeconds / 60)
 
   // ---- Timer operations (server-backed) ----
@@ -261,6 +263,19 @@ function AppInner() {
     apiStartTimer()
       .then(reload)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not start the timer.')))
+  }
+  // Enter-to-start (BIZ-009): start a Timer, then immediately attribute the typed description to
+  // it — the one-click empty Start (capture-first — ADR-0006) is untouched, this is a distinct
+  // gesture only reachable via Enter in the description field or the start/stop shortcut.
+  const startTimerWithDescription = (description: string) => {
+    apiStartTimer()
+      .then((created) =>
+        description.trim() === ''
+          ? created
+          : apiPatchEntry(created.id, { description }).catch(() => created),
+      )
+      .then(reload)
+      .catch(() => reload())
   }
   const stopTimer = () => {
     if (!running) return
@@ -288,6 +303,32 @@ function AppInner() {
       setDraft(EMPTY_DRAFT)
     }
   }
+
+  // Global shortcuts (BIZ-009): Ctrl/Cmd+Enter toggles start/stop; Ctrl/Cmd+K opens the task
+  // switcher — so the daily loop never needs the mouse. Ignored while typing in an unrelated
+  // input/textarea/select (the description field's plain Enter is handled by TimerBar itself).
+  useEffect(() => {
+    const isTypingElsewhere = (target: EventTarget | null): boolean => {
+      if (!(target instanceof HTMLElement)) return false
+      if (target.isContentEditable) return true
+      const tag = target.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+    }
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return
+      if (isTypingElsewhere(e.target)) return
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        if (running) stopTimer()
+        else startTimer()
+      } else if (e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPicker({ target: 'timer' })
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  })
 
   // Pick a task for the running timer. Re-tag an empty capture-first stub in place (attributing the
   // elapsed time to the picked task); only split (switch) for a genuine change on real work.
@@ -324,14 +365,18 @@ function AppInner() {
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not resume this task.')))
   }
 
-  // Add a manual entry (no timer): default to today 9:00–10:00, then open the editor to adjust.
+  // Compose a manual entry (no timer): default to today 9:00–10:00. Nothing is written until Save
+  // (BIZ-011) — cancelling the editor leaves no phantom entry, matching the Fortnight add path.
   const addEntry = () => {
-    apiCreateEntry({ date: TODAY, start: 9 * 60, end: 10 * 60 })
-      .then((created) => {
-        setEditorEntry(created)
-        return reload()
-      })
-      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not create the entry.')))
+    setAddDraft({
+      id: 'new',
+      date: TODAY,
+      start: 9 * 60,
+      end: 10 * 60,
+      codeId: null,
+      activity: null,
+      description: '',
+    })
   }
 
   // Compose an entry inside the Fortnight view. Nothing is written until Save (no phantom on cancel).
@@ -363,6 +408,40 @@ function AppInner() {
       .then(reload)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
   }
+
+  // Delete an Entry, but keep it around for a short undo window instead of losing it outright
+  // (BIZ-011): a mis-click on the delete action must never silently lose tracked time. `onSettled`
+  // runs once the delete (or its fallback reload) has resolved — e.g. to refresh a cell drill-down.
+  const deleteEntryWithUndo = (entry: Entry, onSettled?: () => void) => {
+    apiDeleteEntry(entry.id)
+      .then(() => {
+        setPendingDelete(entry)
+        return reload()
+      })
+      .catch((err: unknown) => {
+        notifyError(errorMessage(err, 'Could not delete the entry.'))
+        return reload()
+      })
+      .then(onSettled)
+  }
+  // Restore the most recently deleted Entry with its fields intact. Recreates it through the
+  // existing create endpoint (no dedicated undo/restore endpoint) — the entry gets a new id, but
+  // every field the user tracked (date, times, code, activity, description) is preserved.
+  const undoDelete = () => {
+    if (!pendingDelete) return
+    const { date, start, end, codeId, activity, description } = pendingDelete
+    setPendingDelete(null)
+    apiCreateEntry({ date, start, end, codeId, activity, description })
+      .then(reload)
+      .catch(() => reload())
+  }
+
+  // Auto-dismiss the undo affordance once its window elapses.
+  useEffect(() => {
+    if (!pendingDelete) return
+    const timeout = window.setTimeout(() => setPendingDelete(null), UNDO_WINDOW_MS)
+    return () => window.clearTimeout(timeout)
+  }, [pendingDelete])
 
   // ---- Code catalog (server-backed — BIZ-001 / BIZ-002) ----
   const reloadCodes = () =>
@@ -680,6 +759,7 @@ function AppInner() {
       onStop={stopTimer}
       onCancel={cancelTimer}
       onSwitchTask={() => setPicker({ target: 'timer' })}
+      onSubmitDescription={() => startTimerWithDescription(draft.description)}
       startMinute={running?.start ?? null}
       onEditStart={(minute) => {
         if (running) {
@@ -704,7 +784,12 @@ function AppInner() {
   )
 
   return (
-    <AppShell route={route} onNavigate={setRoute} timer={timerBar}>
+    <AppShell
+      route={route}
+      onNavigate={setRoute}
+      timer={timerBar}
+      uncategorizedCount={uncategorizedCount}
+    >
       {route === 'tracker' && (
         <TrackerScreen
           groups={trackerGroups}
@@ -721,13 +806,10 @@ function AppInner() {
             if (found) setEditorEntry(found)
           }}
           onResumeEntry={resumeEntry}
-          onDeleteEntry={(id) =>
-            apiDeleteEntry(id)
-              .then(reload)
-              .catch((err: unknown) =>
-                notifyError(errorMessage(err, 'Could not delete the entry.')),
-              )
-          }
+          onDeleteEntry={(id) => {
+            const found = entries.find((e) => e.id === id)
+            if (found) deleteEntryWithUndo(found)
+          }}
           onLoadEarlier={() => setTrackerFrom((f) => addDays(f, -14))}
           onAddEntry={addEntry}
         />
@@ -899,16 +981,7 @@ function AppInner() {
             setPicker({ target: editorEntry.id })
             setEditorEntry(null)
           }}
-          onDelete={() =>
-            apiDeleteEntry(editorEntry.id)
-              .then(() => {
-                refreshCell()
-                return reload()
-              })
-              .catch((err: unknown) =>
-                notifyError(errorMessage(err, 'Could not delete the entry.')),
-              )
-          }
+          onDelete={() => deleteEntryWithUndo(editorEntry, refreshCell)}
           onClose={() => setEditorEntry(null)}
         />
       )}
@@ -932,18 +1005,21 @@ function AppInner() {
             if (found) setEditorEntry(found)
           }}
           onResumeEntry={resumeEntry}
-          onDeleteEntry={(id) =>
-            apiDeleteEntry(id)
-              .then(() => {
-                refreshCell()
-                return reload()
-              })
-              .catch((err: unknown) =>
-                notifyError(errorMessage(err, 'Could not delete the entry.')),
-              )
-          }
+          onDeleteEntry={(id) => {
+            const found = cellEntries.find((e) => e.id === id)
+            if (found) deleteEntryWithUndo(found, refreshCell)
+          }}
           onClose={() => setCellDrill(null)}
         />
+      )}
+
+      {pendingDelete && (
+        <div className="wk-undo-toast" role="status">
+          <span>Entry deleted.</span>
+          <button type="button" className="wk-undo-toast-action" onClick={undoDelete}>
+            Undo
+          </button>
+        </div>
       )}
     </AppShell>
   )

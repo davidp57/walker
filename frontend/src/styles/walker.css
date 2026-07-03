@@ -102,6 +102,23 @@
   justify-content: center;
   opacity: 0.85;
 }
+.wk-nav-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--wk-radius-pill);
+  background: var(--wk-amber-soft);
+  border: 1px solid var(--wk-amber-line);
+  color: var(--wk-amber);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-10);
+  font-weight: var(--wk-fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
 
 .wk-sidebar-foot {
   padding: 14px 20px;
@@ -445,7 +462,7 @@
 
 /* ---------- Tracker: Entry list ---------- */
 .wk-entry-cols {
-  --wk-entry-grid: 14px 118px 48px minmax(150px, 1.25fr) minmax(120px, 1.4fr) 24px 26px 24px;
+  --wk-entry-grid: 14px 118px 48px minmax(150px, 1.25fr) minmax(120px, 1.4fr) 30px 30px 30px;
 }
 .wk-entry-head,
 .wk-entry-row {
@@ -593,34 +610,28 @@
   outline: none;
 }
 
-.wk-resume {
+.wk-row-action {
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   color: var(--wk-text-mid);
-  font-size: var(--wk-fs-12);
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 4px;
+  border-radius: 7px;
+  padding: 0;
   border: 1px solid var(--wk-line);
   background: none;
 }
-.wk-resume:hover {
+.wk-row-action:hover {
   color: var(--wk-accent);
   border-color: var(--wk-accent-line);
   background: var(--wk-accent-soft);
 }
-.wk-delete {
-  cursor: pointer;
-  color: var(--wk-text-lo);
-  font-size: var(--wk-fs-14);
-  text-align: center;
-  border-radius: 6px;
-  padding: 4px;
-  background: none;
-  border: none;
-}
-.wk-delete:hover {
+.wk-row-action-danger:hover {
   color: var(--wk-danger);
-  background: var(--wk-bg-3);
+  border-color: var(--wk-danger);
+  background: rgba(229, 100, 78, 0.12);
 }
 
 .wk-tip {
@@ -703,7 +714,7 @@
   color: var(--wk-text-lo);
 }
 .wk-day-name {
-  font-size: 9px;
+  font-size: var(--wk-fs-11);
   letter-spacing: 0.5px;
 }
 .wk-day-num {
@@ -779,7 +790,7 @@
 }
 .wk-rowbadge {
   font-family: var(--wk-font-mono);
-  font-size: 10px;
+  font-size: var(--wk-fs-11);
   padding: 3px 7px;
   border-radius: 12px;
   cursor: pointer;
@@ -1295,4 +1306,34 @@
   background: var(--wk-accent-soft);
   border-color: var(--wk-accent-line);
   color: var(--wk-text-hi);
+}
+
+/* ---------- Undo toast (BIZ-011) ---------- */
+.wk-undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  box-shadow: var(--wk-shadow-2);
+  padding: 12px 16px;
+  font-size: var(--wk-fs-13);
+  color: var(--wk-text-hi);
+  z-index: 50;
+}
+.wk-undo-toast-action {
+  background: none;
+  border: none;
+  color: var(--wk-accent);
+  font-weight: var(--wk-fw-semibold);
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.wk-undo-toast-action:hover {
+  text-decoration: underline;
 }

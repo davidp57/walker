@@ -81,7 +81,9 @@ export function FortnightGrid(props: FortnightGridProps) {
                     <div className="wk-rowhead-label" title={row.code.name}>
                       {row.code.name}
                     </div>
-                    <div className="wk-rowhead-act">{row.activity}</div>
+                    {row.activity !== row.code.name && (
+                      <div className="wk-rowhead-act">{row.activity}</div>
+                    )}
                     <div className="wk-rowhead-code">{row.code.number}</div>
                   </div>
                   {mode === 'checklist' && (

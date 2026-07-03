@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatClock, formatDuration, parseDuration, parseMilitaryClock } from './time'
+import { elapsedSecondsSince, formatClock, formatDuration, parseDuration, parseMilitaryClock } from './time'
 
 describe('parseMilitaryClock', () => {
   it('accepts both "hhmm" and "hh:mm"', () => {
@@ -37,5 +37,25 @@ describe('parseDuration', () => {
 
   it('round-trips through formatDuration', () => {
     expect(formatDuration(parseDuration('2:05'))).toBe('2:05')
+  })
+})
+
+describe('elapsedSecondsSince', () => {
+  it('computes elapsed intraday, from the entry start time on the same date', () => {
+    // Started at 09:00, "now" is 09:30 the same day -> 30 minutes elapsed.
+    const now = new Date(2026, 6, 3, 9, 30, 0).getTime()
+    expect(elapsedSecondsSince('2026-07-03', 9 * 60, now)).toBe(30 * 60)
+  })
+
+  it('is correct for a timer started before midnight and still running after it', () => {
+    // Entry started 2026-07-02 at 23:30; "now" is 2026-07-03 at 00:15 -> 45 minutes elapsed,
+    // not a negative or inflated value from assuming the entry started "today".
+    const now = new Date(2026, 6, 3, 0, 15, 0).getTime()
+    expect(elapsedSecondsSince('2026-07-02', 23 * 60 + 30, now)).toBe(45 * 60)
+  })
+
+  it('never returns a negative value even if now precedes the computed start', () => {
+    const now = new Date(2026, 6, 3, 9, 0, 0).getTime()
+    expect(elapsedSecondsSince('2026-07-03', 10 * 60, now)).toBe(0)
   })
 })

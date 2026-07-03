@@ -7,6 +7,7 @@ import {
   parseMilitaryClock,
   selectOnFocus,
 } from '../lib/time'
+import { IconEdit, IconPlay, IconTrash } from './icons'
 
 interface EntryRowProps {
   entry: Entry
@@ -139,7 +140,7 @@ export function EntryRow({
             </div>
             <div className="wk-code-meta">
               {code?.number}
-              {entry.activity ? ` · ${entry.activity}` : ''}
+              {entry.activity && entry.activity !== code?.name ? ` · ${entry.activity}` : ''}
             </div>
           </div>
         )}
@@ -169,17 +170,30 @@ export function EntryRow({
 
       <button
         type="button"
-        className="wk-resume"
+        className="wk-row-action"
         title="Edit entry (date, times, duration)"
+        aria-label="Edit entry"
         onClick={onOpenEditor}
       >
-        ✎
+        <IconEdit />
       </button>
-      <button type="button" className="wk-resume" title="Resume this task" onClick={onResume}>
-        ▶
+      <button
+        type="button"
+        className="wk-row-action"
+        title="Resume this task"
+        aria-label="Resume this task"
+        onClick={onResume}
+      >
+        <IconPlay size={12} />
       </button>
-      <button type="button" className="wk-delete" title="Delete entry" onClick={onDelete}>
-        ✕
+      <button
+        type="button"
+        className="wk-row-action wk-row-action-danger"
+        title="Delete entry"
+        aria-label="Delete entry"
+        onClick={onDelete}
+      >
+        <IconTrash />
       </button>
     </div>
   )
