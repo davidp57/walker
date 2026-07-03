@@ -4,7 +4,7 @@ import type { TimesheetCode } from '../types'
 interface VirtualCodeEditorProps {
   code: TimesheetCode | null // null = create a new virtual code
   realCodes: TimesheetCode[] // real codes only — the candidates for the backing code
-  onSave: (input: { realCodeId: string; name: string; color: string }) => void
+  onSave: (input: { realCodeId: string; name: string; color: string }) => Promise<void>
   onDelete?: () => void // omitted when the code can't be deleted (new, or in use)
   onClose: () => void
 }
@@ -31,13 +31,21 @@ export function VirtualCodeEditor({
   const [realCodeId, setRealCodeId] = useState(code?.realCodeId ?? realCodes[0]?.id ?? '')
   const [name, setName] = useState(code?.name ?? '')
   const [color, setColor] = useState(code?.color ?? PALETTE[0])
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const canSave = realCodeId !== '' && name.trim().length > 0
+  const canSave = realCodeId !== '' && name.trim().length > 0 && !saving
 
   const save = () => {
     if (!canSave) return
+    setSaving(true)
+    setError(null)
     onSave({ realCodeId, name: name.trim(), color })
-    onClose()
+      .then(onClose)
+      .catch((err: unknown) => {
+        setSaving(false)
+        setError(err instanceof Error ? err.message : 'Failed to save — try again.')
+      })
   }
 
   return (
@@ -108,6 +116,12 @@ export function VirtualCodeEditor({
             </>
           )}
 
+          {error && (
+            <div className="wk-modal-empty" style={{ color: 'var(--wk-red, #e5644e)' }}>
+              {error}
+            </div>
+          )}
+
           <div
             style={{
               display: 'flex',
@@ -142,7 +156,7 @@ export function VirtualCodeEditor({
                 onClick={save}
                 disabled={!canSave}
               >
-                Save
+                {saving ? 'Saving…' : 'Save'}
               </button>
             </div>
           </div>

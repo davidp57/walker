@@ -88,7 +88,7 @@ The work is frontend / presentation only — no domain or API change.
     destination), so that I have one obvious place to prepare my fortnight.
 15. As a consultant, I want a Review / Enter in T&E toggle in the header, so that I choose what I'm
     doing rather than guessing from which screen I opened.
-16. As a consultant, I want the same grid in both modes — Review grouped by code (a virtual code its
+16. As a consultant, I want the same grid in both modes — Review grouped by code (a virtual code is its
     own row), Enter in T&E resolved to the real code — sharing day columns, durations, weekend greying,
     absence striping, the tinted read-only running-Timer cell, and the Total column, so that Enter in
     T&E stays a 1:1 mirror of T&E and totals stay visible while I tick (see ADR-0008).

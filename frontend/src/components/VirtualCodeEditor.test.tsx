@@ -47,7 +47,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={null}
         realCodes={[realCode, otherRealCode]}
-        onSave={vi.fn()}
+        onSave={vi.fn().mockResolvedValue(undefined)}
         onClose={vi.fn()}
       />,
     )
@@ -61,7 +61,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
-        onSave={vi.fn()}
+        onSave={vi.fn().mockResolvedValue(undefined)}
         onClose={vi.fn()}
       />,
     )
@@ -78,7 +78,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
-        onSave={vi.fn()}
+        onSave={vi.fn().mockResolvedValue(undefined)}
         onDelete={onDelete}
         onClose={onClose}
       />,
@@ -95,7 +95,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
-        onSave={vi.fn()}
+        onSave={vi.fn().mockResolvedValue(undefined)}
         onClose={vi.fn()}
       />,
     )
@@ -104,7 +104,7 @@ describe('VirtualCodeEditor', () => {
   })
 
   it('calls onSave with the edited fields', () => {
-    const onSave = vi.fn()
+    const onSave = vi.fn().mockResolvedValue(undefined)
     render(
       <VirtualCodeEditor
         code={virtualCode}
@@ -124,5 +124,48 @@ describe('VirtualCodeEditor', () => {
       name: 'Renamed project',
       color: '#abcdef',
     })
+  })
+
+  it('closes only after onSave resolves', async () => {
+    let resolveSave: () => void = () => {}
+    const onSave = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve
+        }),
+    )
+    const onClose = vi.fn()
+    render(
+      <VirtualCodeEditor
+        code={virtualCode}
+        realCodes={[realCode, otherRealCode]}
+        onSave={onSave}
+        onClose={onClose}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('Save'))
+    expect(onClose).not.toHaveBeenCalled()
+
+    resolveSave()
+    await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce())
+  })
+
+  it('keeps the modal open and shows an error when onSave rejects', async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error('name already exists'))
+    const onClose = vi.fn()
+    render(
+      <VirtualCodeEditor
+        code={virtualCode}
+        realCodes={[realCode, otherRealCode]}
+        onSave={onSave}
+        onClose={onClose}
+      />,
+    )
+
+    fireEvent.click(screen.getByText('Save'))
+
+    expect(await screen.findByText('name already exists')).toBeInTheDocument()
+    expect(onClose).not.toHaveBeenCalled()
   })
 })

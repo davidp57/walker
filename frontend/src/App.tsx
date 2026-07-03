@@ -377,16 +377,18 @@ export default function App() {
   // Create a virtual code (BIZ-013 "used immediately", design decision: reopen the picker rather
   // than auto-picking an activity — the newly created code is right there, one click away, with no
   // need to guess which activity the user wants).
-  const saveVirtualCode = (input: { realCodeId: string; name: string; color: string }) => {
+  const saveVirtualCode = (input: {
+    realCodeId: string
+    name: string
+    color: string
+  }): Promise<void> => {
     const reopenTarget = virtualEditor?.reopenPicker ?? null
     const op = virtualEditor?.code
       ? apiUpdateVirtualCode(virtualEditor.code.id, input)
       : apiCreateVirtualCode(input)
-    op.then(reloadCodes)
-      .then(() => {
-        if (reopenTarget !== null) setPicker({ target: reopenTarget })
-      })
-      .catch(() => {})
+    return op.then(reloadCodes).then(() => {
+      if (reopenTarget !== null) setPicker({ target: reopenTarget })
+    })
   }
   const importCatalogFile = () => {
     const picker = document.createElement('input')
