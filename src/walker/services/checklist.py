@@ -1,8 +1,10 @@
-"""Entry-checklist domain logic (BIZ-005, ADR-0005).
+"""Entry-checklist domain logic (BIZ-005, ADR-0005, ADR-0008).
 
-Web-independent. Checklist items are derived from the fortnight grid — one per non-empty
-``(code, activity, day)`` cell — and each carries an "entered into T&E" tick persisted as a
-``ChecklistMark``. Re-deriving after grid edits keeps ticks for unchanged lines.
+Web-independent. Checklist items are derived from the fortnight grid, **resolved to real codes**
+(ADR-0008: virtual codes collapse into the real code they borrow their number/label/activities
+from) — one item per non-empty ``(real code, activity, day)`` cell — and each carries an "entered
+into T&E" tick persisted as a ``ChecklistMark``. Re-deriving after grid edits keeps ticks for
+unchanged lines.
 """
 
 from __future__ import annotations
@@ -14,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.models import ChecklistMark
-from walker.services.fortnight import aggregate_fortnight, fortnight_bounds
+from walker.services.fortnight import aggregate_fortnight, fortnight_bounds, resolve_to_real_codes
 
 
 @dataclass
@@ -49,8 +51,12 @@ def _marks(session: Session, user_id: int, fortnight_start: date) -> list[Checkl
 
 
 def derive_checklist(session: Session, user_id: int, on: date) -> ChecklistResult:
-    """Build the checklist from the fortnight grid, applying persisted ticks."""
-    grid = aggregate_fortnight(session, user_id, on)
+    """Build the checklist from the fortnight grid resolved to real codes, applying persisted ticks.
+
+    Virtual codes sharing a real code collapse into one line (ADR-0008): T&E only accepts real
+    codes, so several fine-grained Walker rows become one real-code/activity/day line here.
+    """
+    grid = resolve_to_real_codes(session, aggregate_fortnight(session, user_id, on))
     ticks = {
         (mark.timesheet_code_id, mark.activity, mark.day): mark.entered for mark in _marks(session, user_id, grid.start)
     }

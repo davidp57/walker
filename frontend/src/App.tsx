@@ -24,6 +24,7 @@ import type {
   TaskSuggestion,
   TimesheetCode,
 } from './types'
+import { resolveChecklistRows } from './lib/checklist'
 import { formatDuration } from './lib/time'
 import { shouldRetagInPlace } from './lib/timer'
 import {
@@ -461,6 +462,15 @@ export default function App() {
     [matrix, codesById],
   )
 
+  // Enter-in-T&E view (ADR-0008): resolve virtual codes to their real code and collapse rows that
+  // share one — several fine-grained Walker rows become one real-code × activity line, matching
+  // both the server's `derive_checklist` and what gets keyed into T&E. `checked` (fetched from the
+  // checklist endpoint) is already real-code-keyed, so its keys must match these rows' keys.
+  const checklistRows: FortnightRow[] = useMemo(
+    () => resolveChecklistRows(rows, codesById),
+    [rows, codesById],
+  )
+
   // The running timer as a fortnight cell: shown live in its code × activity row, but only when it
   // is categorized and its day falls in the period on screen. Read-only (can't edit a live timer).
   const runningCell = useMemo(() => {
@@ -690,7 +700,7 @@ export default function App() {
       {route === 'checklist' && (
         <ChecklistScreen
           days={days}
-          rows={rows}
+          rows={checklistRows}
           checked={checked}
           onChange={applyChecklistChange}
           onReset={resetChecklistMarks}
