@@ -122,3 +122,41 @@ export const IconStop = ({ size = 13, style, className }: IconProps) => (
     <rect x="6" y="6" width="12" height="12" rx="1.5" />
   </svg>
 )
+
+/** Pencil glyph for "edit entry" row actions — clearer than the generic ✎ character. */
+export const IconEdit = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{ ...base(size), ...style }}
+    className={className}
+    aria-hidden
+  >
+    <path
+      d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7.5 18.5 3 20l1.5-4.5L16.5 3.5Z"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)
+
+/** Trash-can glyph for "delete entry" row actions — clearer than the generic ✕ character. */
+export const IconTrash = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{ ...base(size), ...style }}
+    className={className}
+    aria-hidden
+  >
+    <path
+      d="M4.5 7h15M9.5 7V5a1.5 1.5 0 0 1 1.5-1.5h2A1.5 1.5 0 0 1 14.5 5v2M7 7l1 12.5a1.5 1.5 0 0 0 1.5 1.4h5a1.5 1.5 0 0 0 1.5-1.4L18 7"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)

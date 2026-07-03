@@ -134,6 +134,9 @@ const startOfTodayMs = () => {
   return d.getTime()
 }
 
+// How long an undo affordance stays available after a delete (BIZ-011).
+const UNDO_WINDOW_MS = 6000
+
 export default function App() {
   const [route, setRoute] = useState<Route>('tracker')
   const [codes, setCodes] = useState<TimesheetCode[]>([])
@@ -166,6 +169,9 @@ export default function App() {
     title: string
   } | null>(null)
   const [cellEntries, setCellEntries] = useState<Entry[]>([])
+  // The most recently deleted Entry, kept around so "Undo" can restore it (BIZ-011); cleared once
+  // the undo window elapses or another delete/undo replaces it.
+  const [pendingDelete, setPendingDelete] = useState<Entry | null>(null)
 
   // Settings (drive the fortnight grid + density)
   const [workdays, setWorkdays] = useState<boolean[]>([false, true, true, true, true, true, false]) // Sun..Sat
@@ -307,14 +313,18 @@ export default function App() {
     apply.then(reload).catch(() => reload())
   }
 
-  // Add a manual entry (no timer): default to today 9:00–10:00, then open the editor to adjust.
+  // Compose a manual entry (no timer): default to today 9:00–10:00. Nothing is written until Save
+  // (BIZ-011) — cancelling the editor leaves no phantom entry, matching the Fortnight add path.
   const addEntry = () => {
-    apiCreateEntry({ date: TODAY, start: 9 * 60, end: 10 * 60 })
-      .then((created) => {
-        setEditorEntry(created)
-        return reload()
-      })
-      .catch(() => {})
+    setAddDraft({
+      id: 'new',
+      date: TODAY,
+      start: 9 * 60,
+      end: 10 * 60,
+      codeId: null,
+      activity: null,
+      description: '',
+    })
   }
 
   // Compose an entry inside the Fortnight view. Nothing is written until Save (no phantom on cancel).
@@ -346,6 +356,37 @@ export default function App() {
       .then(reload)
       .catch(() => reload())
   }
+
+  // Delete an Entry, but keep it around for a short undo window instead of losing it outright
+  // (BIZ-011): a mis-click on the delete action must never silently lose tracked time. `onSettled`
+  // runs once the delete (or its fallback reload) has resolved — e.g. to refresh a cell drill-down.
+  const deleteEntryWithUndo = (entry: Entry, onSettled?: () => void) => {
+    apiDeleteEntry(entry.id)
+      .then(() => {
+        setPendingDelete(entry)
+        return reload()
+      })
+      .catch(() => reload())
+      .then(onSettled)
+  }
+  // Restore the most recently deleted Entry with its fields intact. Recreates it through the
+  // existing create endpoint (no dedicated undo/restore endpoint) — the entry gets a new id, but
+  // every field the user tracked (date, times, code, activity, description) is preserved.
+  const undoDelete = () => {
+    if (!pendingDelete) return
+    const { date, start, end, codeId, activity, description } = pendingDelete
+    setPendingDelete(null)
+    apiCreateEntry({ date, start, end, codeId, activity, description })
+      .then(reload)
+      .catch(() => reload())
+  }
+
+  // Auto-dismiss the undo affordance once its window elapses.
+  useEffect(() => {
+    if (!pendingDelete) return
+    const timeout = window.setTimeout(() => setPendingDelete(null), UNDO_WINDOW_MS)
+    return () => window.clearTimeout(timeout)
+  }, [pendingDelete])
 
   // ---- Code catalog (server-backed — BIZ-001 / BIZ-002) ----
   const reloadCodes = () =>
@@ -691,11 +732,10 @@ export default function App() {
             if (found) setEditorEntry(found)
           }}
           onResumeEntry={resumeEntry}
-          onDeleteEntry={(id) =>
-            apiDeleteEntry(id)
-              .then(reload)
-              .catch(() => reload())
-          }
+          onDeleteEntry={(id) => {
+            const found = entries.find((e) => e.id === id)
+            if (found) deleteEntryWithUndo(found)
+          }}
           onLoadEarlier={() => setTrackerFrom((f) => addDays(f, -14))}
           onAddEntry={addEntry}
         />
@@ -862,14 +902,7 @@ export default function App() {
             setPicker({ target: editorEntry.id })
             setEditorEntry(null)
           }}
-          onDelete={() =>
-            apiDeleteEntry(editorEntry.id)
-              .then(() => {
-                refreshCell()
-                return reload()
-              })
-              .catch(() => reload())
-          }
+          onDelete={() => deleteEntryWithUndo(editorEntry, refreshCell)}
           onClose={() => setEditorEntry(null)}
         />
       )}
@@ -893,16 +926,21 @@ export default function App() {
             if (found) setEditorEntry(found)
           }}
           onResumeEntry={resumeEntry}
-          onDeleteEntry={(id) =>
-            apiDeleteEntry(id)
-              .then(() => {
-                refreshCell()
-                return reload()
-              })
-              .catch(() => reload())
-          }
+          onDeleteEntry={(id) => {
+            const found = cellEntries.find((e) => e.id === id)
+            if (found) deleteEntryWithUndo(found, refreshCell)
+          }}
           onClose={() => setCellDrill(null)}
         />
+      )}
+
+      {pendingDelete && (
+        <div className="wk-undo-toast" role="status">
+          <span>Entry deleted.</span>
+          <button type="button" className="wk-undo-toast-action" onClick={undoDelete}>
+            Undo
+          </button>
+        </div>
       )}
     </AppShell>
   )
