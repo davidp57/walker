@@ -555,6 +555,20 @@ function AppInner() {
       .then(reloadTasks)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the task.')))
   }
+  // Moving a Task across kanban columns (BIZ-022) updates only its status; other fields are unchanged.
+  const moveTask = (task: Task, status: Task['status']) => {
+    apiUpdateTask(task.id, {
+      title: task.title,
+      description: task.description,
+      status,
+      priority: task.priority,
+      dueDate: task.dueDate,
+      tags: task.tags,
+      codeId: task.codeId,
+    })
+      .then(reloadTasks)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not move the task.')))
+  }
 
   // Comment suggestions (scoped to the draft's code when set)
   const suggestions: TaskSuggestion[] = useMemo(() => {
@@ -897,6 +911,7 @@ function AppInner() {
           loading={tasksLoading}
           onNew={() => setTaskPanel({ task: null })}
           onOpenTask={(task) => setTaskPanel({ task })}
+          onMoveTask={moveTask}
         />
       )}
       {route === 'codes' && (

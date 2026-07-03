@@ -1,4 +1,4 @@
-"""Task endpoints: CRUD + tag autocomplete (BIZ-021)."""
+"""Task endpoints: CRUD + tag autocomplete (BIZ-021) + recurrence roll-forward (BIZ-025)."""
 
 from __future__ import annotations
 
@@ -25,6 +25,7 @@ def _task_read(task: Task) -> TaskRead:
         due_date=task.due_date,
         tags=list(task.tags),
         timesheet_code_id=task.timesheet_code_id,
+        recurrence_rule=task.recurrence_rule,
         created_at=task.created_at,
         updated_at=task.updated_at,
     )
@@ -66,6 +67,7 @@ def create_task(
             due_date=body.due_date,
             tags=body.tags,
             timesheet_code_id=body.timesheet_code_id,
+            recurrence_rule=body.recurrence_rule,
         )
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
@@ -94,11 +96,26 @@ def update_task(
             due_date=body.due_date,
             tags=body.tags,
             timesheet_code_id=body.timesheet_code_id,
+            recurrence_rule=body.recurrence_rule,
         )
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     except ValidationError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    return _task_read(task)
+
+
+@router.post("/tasks/{task_id}/complete", response_model=TaskRead)
+def complete_task(
+    task_id: int,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> TaskRead:
+    """Complete a Task: Done for a plain Task, rolled forward to To-do for a recurring one (BIZ-025)."""
+    try:
+        task = task_service.complete_task(session, user.id, task_id)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     return _task_read(task)
 
 

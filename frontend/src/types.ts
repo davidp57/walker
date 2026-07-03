@@ -98,6 +98,17 @@ export type TaskStatus = 'todo' | 'in_progress' | 'waiting' | 'test' | 'done'
 export type TaskPriority = 'low' | 'medium' | 'high'
 
 /**
+ * A recurring Task's rule (BIZ-025): completing a recurring Task rolls its due date forward and
+ * resets its status to To-do (one live instance, no history). No RRULE/iCal — four simple kinds,
+ * mirroring `services/recurrence.py`'s discriminated-union shape.
+ */
+export type RecurrenceRule =
+  | { kind: 'every_n_days'; n: number }
+  | { kind: 'weekly'; weekdays: number[] } // Monday=0 .. Sunday=6
+  | { kind: 'monthly'; day: number } // day-of-month, clamped to shorter months
+  | { kind: 'fortnight_relative'; anchor: 'start' | 'end'; offsetDays: number }
+
+/**
  * A Task: the persisted, metadata-rich form of a thing to do (see CONTEXT.md). Optionally linked to
  * a Timesheet code (real or virtual) — an orphan Task (`codeId === null`) is a normal, supported state.
  */
@@ -110,6 +121,7 @@ export interface Task {
   dueDate: string | null // ISO date "YYYY-MM-DD"
   tags: string[]
   codeId: string | null
+  recurrenceRule: RecurrenceRule | null
   createdAt: string // ISO datetime
   updatedAt: string // ISO datetime
 }

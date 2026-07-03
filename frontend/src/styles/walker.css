@@ -1513,6 +1513,105 @@
   color: var(--wk-danger);
 }
 
+/* ---------- Task view toggle + kanban board (BIZ-022) ---------- */
+.wk-task-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  overflow: hidden;
+  margin-right: var(--wk-space-2);
+}
+.wk-task-view-toggle button {
+  background: var(--wk-bg-2);
+  border: none;
+  color: var(--wk-text-lo);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.wk-task-view-toggle button:not(:last-child) {
+  border-right: 1px solid var(--wk-line);
+}
+.wk-task-view-toggle button.is-active {
+  background: var(--wk-accent-soft);
+  color: var(--wk-accent);
+}
+.wk-board {
+  display: flex;
+  gap: var(--wk-space-4);
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: var(--wk-space-2);
+}
+.wk-board-column {
+  flex: 1 1 0;
+  min-width: 220px;
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-lg);
+  display: flex;
+  flex-direction: column;
+}
+.wk-board-column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--wk-line);
+  background: var(--wk-bg-2);
+}
+.wk-board-column-count {
+  font-family: var(--wk-font-mono);
+  color: var(--wk-text-lo);
+}
+.wk-board-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wk-space-3);
+  padding: var(--wk-space-3);
+  min-height: 60px;
+}
+.wk-board-card {
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-md);
+  padding: 10px 12px;
+}
+.wk-board-card-title {
+  color: var(--wk-text-hi);
+  font-weight: var(--wk-fw-medium);
+  font-size: var(--wk-fs-13);
+  cursor: pointer;
+}
+.wk-board-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-mid);
+}
+.wk-board-card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.wk-board-move-btn {
+  font-size: var(--wk-fs-10);
+  padding: 4px 8px;
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-sm);
+}
+
 /* Side panel (Task detail): a drawer anchored right, distinct from the centered wk-modal. */
 .wk-panel-overlay {
   position: fixed;

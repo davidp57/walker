@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
+  completeTask,
   createCode,
   createTask,
   createVirtualCode,
@@ -359,6 +360,7 @@ describe('fetchTasks', () => {
         due_date: null,
         tags: [],
         timesheet_code_id: null,
+        recurrence_rule: null,
         created_at: '2026-07-01T00:00:00Z',
         updated_at: '2026-07-01T00:00:00Z',
       },
@@ -379,10 +381,39 @@ describe('fetchTasks', () => {
         dueDate: null,
         tags: [],
         codeId: null,
+        recurrenceRule: null,
         createdAt: '2026-07-01T00:00:00Z',
         updatedAt: '2026-07-01T00:00:00Z',
       },
     ])
+  })
+
+  it('maps a fortnight-relative recurrence rule, converting offset_days to offsetDays', async () => {
+    const payload = [
+      {
+        id: 2,
+        title: 'Key in T&E',
+        description: null,
+        status: 'todo',
+        priority: null,
+        due_date: '2026-07-15',
+        tags: [],
+        timesheet_code_id: null,
+        recurrence_rule: { kind: 'fortnight_relative', anchor: 'end', offset_days: -1 },
+        created_at: '2026-07-01T00:00:00Z',
+        updated_at: '2026-07-01T00:00:00Z',
+      },
+    ]
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const tasks = await fetchTasks()
+
+    expect(tasks[0].recurrenceRule).toEqual({
+      kind: 'fortnight_relative',
+      anchor: 'end',
+      offsetDays: -1,
+    })
   })
 })
 
@@ -402,6 +433,7 @@ describe('createTask', () => {
             due_date: '2026-07-15',
             tags: ['urgent'],
             timesheet_code_id: 9,
+            recurrence_rule: null,
             created_at: '2026-07-01T00:00:00Z',
             updated_at: '2026-07-01T00:00:00Z',
           }),
@@ -431,6 +463,7 @@ describe('createTask', () => {
       due_date: '2026-07-15',
       tags: ['urgent'],
       timesheet_code_id: 9,
+      recurrence_rule: null,
     })
     expect(task.id).toBe('3')
     expect(task.codeId).toBe('9')
@@ -449,6 +482,7 @@ describe('createTask', () => {
             due_date: null,
             tags: [],
             timesheet_code_id: null,
+            recurrence_rule: null,
             created_at: '2026-07-01T00:00:00Z',
             updated_at: '2026-07-01T00:00:00Z',
           }),
@@ -468,6 +502,43 @@ describe('createTask', () => {
       due_date: null,
       tags: [],
       timesheet_code_id: null,
+      recurrence_rule: null,
+    })
+  })
+
+  it('sends a fortnight-relative recurrence rule with offset_days snake_case', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 5,
+            title: 'Key in T&E',
+            description: null,
+            status: 'todo',
+            priority: null,
+            due_date: null,
+            tags: [],
+            timesheet_code_id: null,
+            recurrence_rule: { kind: 'fortnight_relative', anchor: 'start', offset_days: 1 },
+            created_at: '2026-07-01T00:00:00Z',
+            updated_at: '2026-07-01T00:00:00Z',
+          }),
+          { status: 201 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await createTask({
+      title: 'Key in T&E',
+      recurrenceRule: { kind: 'fortnight_relative', anchor: 'start', offsetDays: 1 },
+    })
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    const body = JSON.parse(init.body as string) as Record<string, unknown>
+    expect(body.recurrence_rule).toEqual({
+      kind: 'fortnight_relative',
+      anchor: 'start',
+      offset_days: 1,
     })
   })
 })
@@ -488,6 +559,7 @@ describe('updateTask', () => {
             due_date: null,
             tags: [],
             timesheet_code_id: null,
+            recurrence_rule: null,
             created_at: '2026-07-01T00:00:00Z',
             updated_at: '2026-07-02T00:00:00Z',
           }),
@@ -501,6 +573,42 @@ describe('updateTask', () => {
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toBe('/api/tasks/3')
     expect(init.method).toBe('PUT')
+  })
+})
+
+describe('completeTask', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('POSTs to /api/tasks/{id}/complete and maps the rolled-forward task back', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            id: 3,
+            title: 'Key in T&E',
+            description: null,
+            status: 'todo',
+            priority: null,
+            due_date: '2026-07-15',
+            tags: [],
+            timesheet_code_id: null,
+            recurrence_rule: { kind: 'every_n_days', n: 14 },
+            created_at: '2026-07-01T00:00:00Z',
+            updated_at: '2026-07-01T00:00:00Z',
+          }),
+          { status: 200 },
+        ),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const task = await completeTask('3')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/tasks/3/complete',
+      expect.objectContaining({ method: 'POST' }),
+    )
+    expect(task.status).toBe('todo')
+    expect(task.dueDate).toBe('2026-07-15')
   })
 })
 
