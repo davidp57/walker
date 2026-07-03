@@ -158,3 +158,60 @@ describe('App — tracking on a virtual code (BIZ-013)', () => {
     expect(await screen.findByText('Workday contact info')).toBeInTheDocument()
   })
 })
+
+describe('App — visible API errors and loading feedback (TEC-002)', () => {
+  it('surfaces a visible error when loading entries fails, instead of silently emptying the screen', async () => {
+    vi.spyOn(api, 'fetchCodes').mockResolvedValue([])
+    vi.spyOn(api, 'fetchEntriesRange').mockRejectedValue(new Error('Network error'))
+    vi.spyOn(api, 'fetchSettings').mockResolvedValue({
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      absences: [],
+    })
+    vi.spyOn(api, 'fetchFortnight').mockResolvedValue({})
+    vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
+
+    render(<App />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not load/i)
+  })
+
+  it('surfaces a visible error when categorizing an entry (save) fails', async () => {
+    mockBaseApi([realCode], [uncategorizedEntry])
+    vi.spyOn(api, 'patchEntry').mockRejectedValue(new Error('500 Internal Server Error'))
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByText('⚑ Add code & activity'))
+    fireEvent.click(await screen.findByText('Bug fixing'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not save/i)
+  })
+
+  it('shows loading feedback and not the empty state until entries first arrive', async () => {
+    let resolveEntries: (entries: Entry[]) => void = () => {}
+    vi.spyOn(api, 'fetchCodes').mockResolvedValue([])
+    vi.spyOn(api, 'fetchEntriesRange').mockReturnValue(
+      new Promise((resolve) => {
+        resolveEntries = resolve
+      }),
+    )
+    vi.spyOn(api, 'fetchSettings').mockResolvedValue({
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      absences: [],
+    })
+    vi.spyOn(api, 'fetchFortnight').mockResolvedValue({})
+    vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
+
+    render(<App />)
+
+    // While the request is in flight, the empty state must not appear.
+    expect(screen.queryByText('Adios, backlog.')).not.toBeInTheDocument()
+
+    resolveEntries([])
+
+    // Once the (empty) response resolves, the empty state is shown.
+    expect(await screen.findByText('Adios, backlog.')).toBeInTheDocument()
+  })
+})
