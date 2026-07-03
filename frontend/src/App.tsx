@@ -28,6 +28,8 @@ import { resolveChecklistRows } from './lib/checklist'
 import { elapsedSecondsSince, formatDuration } from './lib/time'
 import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor } from './lib/tasks'
+import { ToastProvider } from './lib/toast'
+import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
   addCodeFromReference as apiAddCodeFromReference,
@@ -132,9 +134,20 @@ const EMPTY_DRAFT: TimerDraft = { codeId: null, activity: null, description: '' 
 const UNDO_WINDOW_MS = 6000
 
 export default function App() {
+  return (
+    <ToastProvider>
+      <AppInner />
+    </ToastProvider>
+  )
+}
+
+function AppInner() {
+  const { notifyError } = useToast()
   const [route, setRoute] = useState<Route>('tracker')
   const [codes, setCodes] = useState<TimesheetCode[]>([])
+  const [codesLoading, setCodesLoading] = useState(true)
   const [entries, setEntries] = useState<Entry[]>([])
+  const [entriesLoading, setEntriesLoading] = useState(true)
   const [draft, setDraft] = useState<TimerDraft>(EMPTY_DRAFT)
   const [now, setNow] = useState(Date.now())
   const [anchor, setAnchor] = useState<string>(TODAY)
@@ -180,15 +193,16 @@ export default function App() {
   useEffect(() => {
     fetchCodes()
       .then(setCodes)
-      .catch(() => setCodes([]))
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your code catalog.')))
+      .finally(() => setCodesLoading(false))
     fetchSettings()
       .then((s) => {
         setWorkdays(s.workdays)
         setDensity(s.density)
         setAbsences(s.absences)
       })
-      .catch(() => {})
-  }, [])
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your settings.')))
+  }, [notifyError])
 
   // Load entries for the tracker window (BIZ-003); widening `trackerFrom` loads earlier days.
   useEffect(() => {
@@ -204,24 +218,25 @@ export default function App() {
           })
         }
       })
-      .catch(() => setEntries([]))
-  }, [trackerFrom])
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your entries.')))
+      .finally(() => setEntriesLoading(false))
+  }, [trackerFrom, notifyError])
 
   // Load the fortnight grid + checklist whenever the anchored period or entries change.
   useEffect(() => {
     const ref = fortnightStart(anchor)
     fetchFortnight(ref)
       .then(setMatrix)
-      .catch(() => setMatrix({}))
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load the fortnight grid.')))
     fetchChecklist(ref)
       .then(setChecked)
-      .catch(() => setChecked({}))
-  }, [anchor, entries])
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load the checklist.')))
+  }, [anchor, entries, notifyError])
 
   const reload = () =>
     fetchEntriesRange(trackerFrom, TODAY)
       .then(setEntries)
-      .catch(() => {})
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not refresh your entries.')))
 
   const running = entries.find((e) => e.end === null) ?? null
   const runningId = running?.id ?? null
@@ -247,7 +262,7 @@ export default function App() {
   const startTimer = () => {
     apiStartTimer()
       .then(reload)
-      .catch(() => reload())
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not start the timer.')))
   }
   // Enter-to-start (BIZ-009): start a Timer, then immediately attribute the typed description to
   // it — the one-click empty Start (capture-first — ADR-0006) is untouched, this is a distinct
@@ -274,7 +289,7 @@ export default function App() {
         setDraft(EMPTY_DRAFT)
         return reload()
       })
-      .catch(() => reload())
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not stop the timer.')))
   }
   const cancelTimer = () => {
     if (running) {
@@ -283,7 +298,7 @@ export default function App() {
           setDraft(EMPTY_DRAFT)
           return reload()
         })
-        .catch(() => reload())
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not cancel the timer.')))
     } else {
       setDraft(EMPTY_DRAFT)
     }
@@ -327,11 +342,11 @@ export default function App() {
     if (shouldRetagInPlace(running)) {
       apiPatchEntry(running.id, { codeId, activity })
         .then(reload)
-        .catch(() => reload())
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
     } else {
       apiSwitchTimer({ codeId, activity, description: draft.description })
         .then(reload)
-        .catch(() => reload())
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not switch task.')))
     }
   }
 
@@ -345,7 +360,9 @@ export default function App() {
       running && shouldRetagInPlace(running)
         ? apiPatchEntry(running.id, category)
         : apiSwitchTimer(category)
-    apply.then(reload).catch(() => reload())
+    apply
+      .then(reload)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not resume this task.')))
   }
 
   // Compose a manual entry (no timer): default to today 9:00–10:00. Nothing is written until Save
@@ -389,7 +406,7 @@ export default function App() {
       description: e.description,
     })
       .then(reload)
-      .catch(() => reload())
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
   }
 
   // Delete an Entry, but keep it around for a short undo window instead of losing it outright
@@ -401,7 +418,10 @@ export default function App() {
         setPendingDelete(entry)
         return reload()
       })
-      .catch(() => reload())
+      .catch((err: unknown) => {
+        notifyError(errorMessage(err, 'Could not delete the entry.'))
+        return reload()
+      })
       .then(onSettled)
   }
   // Restore the most recently deleted Entry with its fields intact. Recreates it through the
@@ -427,7 +447,9 @@ export default function App() {
   const reloadCodes = () =>
     fetchCodes()
       .then(setCodes)
-      .catch(() => {})
+      .catch((err: unknown) =>
+        notifyError(errorMessage(err, 'Could not refresh your code catalog.')),
+      )
   const isCodeInUse = (id: string): boolean =>
     entries.some((e) => e.codeId === id) ||
     Object.keys(matrix).some((k) => k.startsWith(`${id}|`)) ||
@@ -443,12 +465,14 @@ export default function App() {
     const op = codes.some((c) => c.id === code.id)
       ? apiUpdateCode(code.id, payload)
       : apiCreateCode(payload)
-    op.then(reloadCodes).catch(() => {})
+    op.then(reloadCodes).catch((err: unknown) =>
+      notifyError(errorMessage(err, 'Could not save the code.')),
+    )
   }
   const deleteCode = (code: TimesheetCode) => {
     apiDeleteCode(code.id)
       .then(reloadCodes)
-      .catch(() => {})
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the code.')))
   }
   // Create a virtual code (BIZ-013 "used immediately", design decision: reopen the picker rather
   // than auto-picking an activity — the newly created code is right there, one click away, with no
@@ -610,7 +634,7 @@ export default function App() {
           es.filter((e) => e.codeId === codeId && e.activity === activity && e.end !== null),
         ),
       )
-      .catch(() => setCellEntries([]))
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load these entries.')))
   const openCell = (rowKey: string, day: number) => {
     const bar = rowKey.indexOf('|')
     const codeId = rowKey.slice(0, bar)
@@ -654,35 +678,43 @@ export default function App() {
       const after = !!next[key]
       if (before === after) return
       const mark = parseChecklistKey(key)
-      if (mark) apiToggleChecklist(date, { ...mark, entered: after }).catch(() => {})
+      if (mark) {
+        apiToggleChecklist(date, { ...mark, entered: after }).catch((err: unknown) =>
+          notifyError(errorMessage(err, 'Could not save the checklist change.')),
+        )
+      }
     })
     setChecked(next)
   }
   const resetChecklistMarks = () => {
     apiResetChecklist(fortnightStart(anchor))
       .then(() => setChecked({}))
-      .catch(() => setChecked({}))
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not reset the checklist.')))
   }
 
   // ---- Settings (server-backed — BIZ-006) ----
   const toggleWorkday = (index: number) => {
     const next = workdays.map((worked, j) => (j === index ? !worked : worked))
     setWorkdays(next)
-    apiUpdateSettings(next, density).catch(() => {})
+    apiUpdateSettings(next, density).catch((err: unknown) =>
+      notifyError(errorMessage(err, 'Could not save your work rhythm.')),
+    )
   }
   const changeDensity = (value: Density) => {
     setDensity(value)
-    apiUpdateSettings(workdays, value).catch(() => {})
+    apiUpdateSettings(workdays, value).catch((err: unknown) =>
+      notifyError(errorMessage(err, 'Could not save the density setting.')),
+    )
   }
   const addAbsence = (date: string, reason: string) => {
     apiAddAbsence(date, reason)
       .then((s) => setAbsences(s.absences))
-      .catch(() => {})
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the absence.')))
   }
   const removeAbsence = (date: string) => {
     apiRemoveAbsence(date)
       .then((s) => setAbsences(s.absences))
-      .catch(() => {})
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not remove the absence.')))
   }
 
   // Group the tracker window's completed entries by day, most recent first.
@@ -733,7 +765,7 @@ export default function App() {
         if (running) {
           apiPatchEntry(running.id, { start: minute })
             .then(reload)
-            .catch(() => reload())
+            .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
         }
       }}
       onPickSuggestion={(s) => {
@@ -745,7 +777,7 @@ export default function App() {
             description: s.description,
           })
             .then(reload)
-            .catch(() => reload())
+            .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
         }
       }}
     />
@@ -762,10 +794,11 @@ export default function App() {
         <TrackerScreen
           groups={trackerGroups}
           codesById={codesById}
+          loading={entriesLoading}
           onEditEntry={(id, patch) =>
             apiPatchEntry(id, patch)
               .then(reload)
-              .catch(() => reload())
+              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
           }
           onCategorizeEntry={(id) => setPicker({ target: id })}
           onOpenEntry={(id) => {
@@ -807,6 +840,7 @@ export default function App() {
       {route === 'codes' && (
         <CodeCatalogScreen
           codes={codes}
+          loading={codesLoading}
           onNew={() => setEditor({ code: null })}
           onNewVirtual={() => setVirtualEditor({ code: null })}
           onEdit={(code) => setEditor({ code })}
@@ -819,7 +853,7 @@ export default function App() {
           onAddCode={(number) =>
             apiAddCodeFromReference(number)
               .then(reloadCodes)
-              .catch(() => {})
+              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the code.')))
           }
         />
       )}
@@ -866,7 +900,7 @@ export default function App() {
           onAddFromReference={(number) =>
             apiAddCodeFromReference(number)
               .then(reloadCodes)
-              .catch(() => {})
+              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the code.')))
           }
           onPick={(codeId, activity) => {
             // Prefill from the last comment used on this code (real or virtual) + activity, when one
@@ -879,7 +913,9 @@ export default function App() {
                 if (running) {
                   apiPatchEntry(running.id, { description: lastDescription })
                     .then(reload)
-                    .catch(() => reload())
+                    .catch((err: unknown) =>
+                      notifyError(errorMessage(err, 'Could not save the entry.')),
+                    )
                 }
               }
             } else if (picker.target === 'new') {
@@ -893,7 +929,9 @@ export default function App() {
                 ...(lastDescription !== null ? { description: lastDescription } : {}),
               })
                 .then(reload)
-                .catch(() => reload())
+                .catch((err: unknown) =>
+                  notifyError(errorMessage(err, 'Could not save the entry.')),
+                )
             }
             setPicker(null)
           }}
@@ -937,7 +975,7 @@ export default function App() {
                 refreshCell()
                 return reload()
               })
-              .catch(() => reload())
+              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
           }
           onOpenPicker={() => {
             setPicker({ target: editorEntry.id })
@@ -959,7 +997,7 @@ export default function App() {
                 refreshCell()
                 return reload()
               })
-              .catch(() => reload())
+              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
           }
           onCategorizeEntry={(id) => setPicker({ target: id })}
           onOpenEntry={(id) => {

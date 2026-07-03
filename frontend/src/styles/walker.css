@@ -1020,6 +1020,62 @@
   margin-top: 2px;
 }
 
+/* ---------- Toasts (TEC-002: visible API errors) ---------- */
+.wk-toast-stack {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: var(--wk-z-modal);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  max-width: 380px;
+}
+.wk-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--wk-radius-md);
+  box-shadow: var(--wk-shadow-2);
+  font-size: var(--wk-fs-13);
+  line-height: 1.4;
+}
+.wk-toast-error {
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-danger);
+  color: var(--wk-text-hi);
+}
+.wk-toast-msg {
+  flex: 1;
+  min-width: 0;
+}
+.wk-toast-dismiss {
+  cursor: pointer;
+  color: var(--wk-text-lo);
+  background: none;
+  border: none;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  padding: 2px;
+}
+.wk-toast-dismiss:hover {
+  color: var(--wk-danger);
+}
+
+/* Loading placeholder (TEC-002: avoid flashing the empty state before first data arrives) */
+.wk-loading {
+  text-align: center;
+  padding: 90px 20px;
+  border: 1px dashed var(--wk-line);
+  border-radius: 16px;
+  color: var(--wk-text-lo);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-12);
+  letter-spacing: 0.5px;
+}
+
 /* ---------- Modal (Code picker / Entry editor) ---------- */
 .wk-overlay {
   position: fixed;

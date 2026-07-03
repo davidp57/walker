@@ -3,6 +3,8 @@ import type { ReferenceCode, TimesheetCode } from '../types'
 
 interface CodeCatalogScreenProps {
   codes: TimesheetCode[]
+  /** True until the first codes response has arrived — avoids flashing the empty state. */
+  loading?: boolean
   onNew: () => void
   onNewVirtual: () => void
   onEdit: (code: TimesheetCode) => void
@@ -17,6 +19,7 @@ interface CodeCatalogScreenProps {
 
 export function CodeCatalogScreen({
   codes,
+  loading = false,
   onNew,
   onNewVirtual,
   onEdit,
@@ -143,66 +146,70 @@ export function CodeCatalogScreen({
         )}
       </div>
 
-      <div className="wk-catalog-list">
-        {codes.map((c) => {
-          const inUse = isCodeInUse(c.id)
-          return (
-            <div key={c.id} className="wk-catalog-card">
-              <div className="wk-catalog-head">
-                <span className="wk-dot" style={{ width: 10, height: 10, background: c.color }} />
-                <div>
-                  <div className="wk-catalog-name">
-                    {c.name}
-                    {c.isVirtual && (
-                      <span
-                        className="wk-act-chip"
-                        style={{ marginLeft: 8, fontSize: 11, verticalAlign: 'middle' }}
-                      >
-                        virtual
-                      </span>
-                    )}
+      {loading ? (
+        <div className="wk-loading">Loading…</div>
+      ) : (
+        <div className="wk-catalog-list">
+          {codes.map((c) => {
+            const inUse = isCodeInUse(c.id)
+            return (
+              <div key={c.id} className="wk-catalog-card">
+                <div className="wk-catalog-head">
+                  <span className="wk-dot" style={{ width: 10, height: 10, background: c.color }} />
+                  <div>
+                    <div className="wk-catalog-name">
+                      {c.name}
+                      {c.isVirtual && (
+                        <span
+                          className="wk-act-chip"
+                          style={{ marginLeft: 8, fontSize: 11, verticalAlign: 'middle' }}
+                        >
+                          virtual
+                        </span>
+                      )}
+                    </div>
+                    <div className="wk-catalog-meta">
+                      {c.number} · {c.label}
+                      {c.isVirtual && c.realCodeNumber && ` · backed by ${c.realCodeNumber}`}
+                    </div>
                   </div>
-                  <div className="wk-catalog-meta">
-                    {c.number} · {c.label}
-                    {c.isVirtual && c.realCodeNumber && ` · backed by ${c.realCodeNumber}`}
+                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                    <button
+                      type="button"
+                      className="wk-btn-ghost"
+                      onClick={() => (c.isVirtual ? onEditVirtual(c) : onEdit(c))}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="wk-btn-icon"
+                      title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
+                      disabled={inUse}
+                      style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
+                      onClick={() => onDelete(c)}
+                    >
+                      ✕
+                    </button>
                   </div>
                 </div>
-                <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                  <button
-                    type="button"
-                    className="wk-btn-ghost"
-                    onClick={() => (c.isVirtual ? onEditVirtual(c) : onEdit(c))}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="wk-btn-icon"
-                    title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
-                    disabled={inUse}
-                    style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
-                    onClick={() => onDelete(c)}
-                  >
-                    ✕
-                  </button>
+                <div className="wk-catalog-acts">
+                  {c.activities.map((a) => (
+                    <span key={a.code || a.label} className="wk-act-chip">
+                      {a.label}
+                    </span>
+                  ))}
                 </div>
               </div>
-              <div className="wk-catalog-acts">
-                {c.activities.map((a) => (
-                  <span key={a.code || a.label} className="wk-act-chip">
-                    {a.label}
-                  </span>
-                ))}
-              </div>
+            )
+          })}
+          {codes.length === 0 && (
+            <div className="wk-modal-empty">
+              No codes yet. Search above to add from your catalog, or use “New code”.
             </div>
-          )
-        })}
-        {codes.length === 0 && (
-          <div className="wk-modal-empty">
-            No codes yet. Search above to add from your catalog, or use “New code”.
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
