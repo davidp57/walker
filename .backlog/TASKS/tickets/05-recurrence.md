@@ -1,6 +1,6 @@
-# BIZ-020 — Recurring tasks (roll-forward)
+# BIZ-025 — Recurring tasks (roll-forward)
 
-ID: BIZ-020
+ID: BIZ-025
 Status: ⬜ ready
 Type: feature
 Priority: P3
@@ -28,4 +28,4 @@ as inputs).
 
 ## Blocked by
 
-BIZ-016.
+BIZ-021.

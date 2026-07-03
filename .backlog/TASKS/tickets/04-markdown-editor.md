@@ -1,6 +1,6 @@
-# BIZ-019 — Markdown WYSIWYG editor for Task descriptions
+# BIZ-024 — Markdown WYSIWYG editor for Task descriptions
 
-ID: BIZ-019
+ID: BIZ-024
 Status: ⬜ ready
 Type: feature
 Priority: P2
@@ -26,4 +26,4 @@ and benchmark at implementation — **TipTap** is the fallback.
 
 ## Blocked by
 
-BIZ-016.
+BIZ-021.

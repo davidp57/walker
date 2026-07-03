@@ -1,6 +1,6 @@
-# BIZ-018 — Timer integration (start-from-task, Stop | Complete)
+# BIZ-023 — Timer integration (start-from-task, Stop | Complete)
 
-ID: BIZ-018
+ID: BIZ-023
 Status: ⬜ ready
 Type: feature
 Priority: P2
@@ -26,4 +26,4 @@ Starting a Timer on a **To-do** Task moves it to **In-progress**. While a Timer 
 
 ## Blocked by
 
-BIZ-016.
+BIZ-021.

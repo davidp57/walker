@@ -1,6 +1,6 @@
-# BIZ-017 — Kanban board view
+# BIZ-022 — Kanban board view
 
-ID: BIZ-017
+ID: BIZ-022
 Status: ⬜ ready
 Type: feature
 Priority: P2
@@ -25,4 +25,4 @@ Test, so the board is never overkill.
 
 ## Blocked by
 
-BIZ-016.
+BIZ-021.
