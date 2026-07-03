@@ -1,7 +1,7 @@
 # BIZ-022 — Kanban board view
 
 ID: BIZ-022
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -18,10 +18,10 @@ Test, so the board is never overkill.
 
 ## Acceptance criteria
 
-- [ ] A toggle switches between the list and the kanban board over the same Tasks.
-- [ ] The board has fixed columns To-do / In-progress / Waiting / Test / Done; each Task appears in its status column.
-- [ ] Moving a Task to another column updates its status; a Task can move directly To-do → Done.
-- [ ] Frontend tests (toggle; moving a Task changes its column and status).
+- [x] A toggle switches between the list and the kanban board over the same Tasks.
+- [x] The board has fixed columns To-do / In-progress / Waiting / Test / Done; each Task appears in its status column.
+- [x] Moving a Task to another column updates its status; a Task can move directly To-do → Done.
+- [x] Frontend tests (toggle; moving a Task changes its column and status).
 
 ## Blocked by
 

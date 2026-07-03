@@ -1,7 +1,7 @@
 # BIZ-025 — Recurring tasks (roll-forward)
 
 ID: BIZ-025
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 
@@ -21,10 +21,10 @@ as inputs).
 
 ## Acceptance criteria
 
-- [ ] A Task can carry a recurrence rule of each kind: every N days; weekly; monthly; fortnight-relative working-day delta.
-- [ ] Completing a recurring Task advances its due date per the rule and resets its status to To-do (one live instance, no history).
-- [ ] The fortnight-relative rule snaps to working days using the work rhythm + absences (e.g. "last working day before a fortnight ends").
-- [ ] Pure service tests for the recurrence date math (deterministic, seeded work rhythm + absences) + an API test for roll-forward on completion.
+- [x] A Task can carry a recurrence rule of each kind: every N days; weekly; monthly; fortnight-relative working-day delta.
+- [x] Completing a recurring Task advances its due date per the rule and resets its status to To-do (one live instance, no history).
+- [x] The fortnight-relative rule snaps to working days using the work rhythm + absences (e.g. "last working day before a fortnight ends").
+- [x] Pure service tests for the recurrence date math (deterministic, seeded work rhythm + absences) + an API test for roll-forward on completion.
 
 ## Blocked by
 

@@ -1,6 +1,6 @@
 # Task manager — PRD
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Lot: TASKS
 Branch: feature/task-manager → PR → develop
 

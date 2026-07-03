@@ -1,7 +1,7 @@
 # BIZ-023 — Timer integration (start-from-task, Stop | Complete)
 
 ID: BIZ-023
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -19,10 +19,10 @@ Starting a Timer on a **To-do** Task moves it to **In-progress**. While a Timer 
 
 ## Acceptance criteria
 
-- [ ] Starting a Timer from a Task opens it with the Task's title as the comment and the Task's code prefilled; the Entry records the Task.
-- [ ] Starting a Timer on a To-do Task moves the Task to In-progress.
-- [ ] While the running Entry is linked to a Task, the control shows Stop and Complete; Complete stops the Timer and marks the Task Done; Stop leaves the Task's status unchanged.
-- [ ] Backend API tests (the Entry carries the Task; Complete marks it Done) + frontend tests (start-from-task sets comment + code; the Stop | Complete split).
+- [x] Starting a Timer from a Task opens it with the Task's title as the comment and the Task's code prefilled; the Entry records the Task.
+- [x] Starting a Timer on a To-do Task moves the Task to In-progress.
+- [x] While the running Entry is linked to a Task, the control shows Stop and Complete; Complete stops the Timer and marks the Task Done; Stop leaves the Task's status unchanged.
+- [x] Backend API tests (the Entry carries the Task; Complete marks it Done) + frontend tests (start-from-task sets comment + code; the Stop | Complete split).
 
 ## Blocked by
 
