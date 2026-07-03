@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Entry, TimesheetCode } from './types'
@@ -207,5 +207,100 @@ describe('App — uncategorized-Entry count in the shell (BIZ-010)', () => {
 
     await screen.findByText('Today')
     expect(screen.queryByTestId('wk-uncategorized-badge')).not.toBeInTheDocument()
+  })
+})
+
+describe('App — entry mutation safety (BIZ-011)', () => {
+  const trackedEntry: Entry = {
+    id: '42',
+    date: '2026-06-20',
+    start: 540,
+    end: 600,
+    codeId: realCode.id,
+    activity: 'Bug fixing',
+    description: 'writing spec',
+  }
+
+  it('deleting an Entry offers an undo that restores it with its fields intact', async () => {
+    mockBaseApi([realCode], [trackedEntry])
+    const deleteEntry = vi.spyOn(api, 'deleteEntry').mockResolvedValue(undefined)
+    const createEntry = vi
+      .spyOn(api, 'createEntry')
+      .mockResolvedValue({ ...trackedEntry, id: '99' })
+
+    render(<App />)
+
+    await screen.findByText('writing spec')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }))
+
+    // The Entry is removed through the existing delete endpoint straight away...
+    await waitFor(() => expect(deleteEntry).toHaveBeenCalledWith('42'))
+
+    // ...but an undo affordance is offered instead of losing it outright.
+    const undoButton = await screen.findByRole('button', { name: 'Undo' })
+    vi.spyOn(api, 'fetchEntriesRange').mockResolvedValue([])
+
+    fireEvent.click(undoButton)
+
+    // Undo restores it by recreating it (no dedicated restore endpoint) with the same fields.
+    await waitFor(() =>
+      expect(createEntry).toHaveBeenCalledWith({
+        date: trackedEntry.date,
+        start: trackedEntry.start,
+        end: trackedEntry.end,
+        codeId: trackedEntry.codeId,
+        activity: trackedEntry.activity,
+        description: trackedEntry.description,
+      }),
+    )
+  })
+
+  it('dismisses the undo affordance once the undo window elapses', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    try {
+      mockBaseApi([realCode], [trackedEntry])
+      vi.spyOn(api, 'deleteEntry').mockResolvedValue(undefined)
+
+      render(<App />)
+
+      await screen.findByText('writing spec')
+      fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }))
+      await screen.findByRole('button', { name: 'Undo' })
+
+      await act(() => vi.advanceTimersByTimeAsync(10000))
+
+      expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('"+ Add entry" persists nothing until Save', async () => {
+    mockBaseApi([realCode], [])
+    const createEntry = vi.spyOn(api, 'createEntry')
+
+    render(<App />)
+
+    await screen.findByText('Adios, backlog.')
+    fireEvent.click(screen.getByRole('button', { name: '+ Add entry' }))
+
+    await screen.findByText('New entry')
+    expect(createEntry).not.toHaveBeenCalled()
+  })
+
+  it('"+ Add entry" followed by cancel leaves no persisted Entry', async () => {
+    mockBaseApi([realCode], [])
+    const createEntry = vi.spyOn(api, 'createEntry')
+
+    render(<App />)
+
+    await screen.findByText('Adios, backlog.')
+    fireEvent.click(screen.getByRole('button', { name: '+ Add entry' }))
+
+    const dialog = (await screen.findByText('New entry')).closest('.wk-modal') as HTMLElement
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => expect(screen.queryByText('New entry')).not.toBeInTheDocument())
+    expect(createEntry).not.toHaveBeenCalled()
   })
 })
