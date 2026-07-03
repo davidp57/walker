@@ -57,14 +57,14 @@ describe('TaskPanel', () => {
     expect(screen.getByTestId('wk-task-save')).toBeDisabled()
   })
 
-  it('prefills fields when editing an existing task', () => {
+  it('prefills fields when editing an existing task', async () => {
     const task = makeTask({ title: 'Fix bug', description: 'Notes here' })
     render(
       <TaskPanel task={task} codes={[]} tagSuggestions={[]} onSave={vi.fn()} onClose={vi.fn()} />,
     )
 
     expect(screen.getByTestId('wk-task-title-input')).toHaveValue('Fix bug')
-    expect(screen.getByTestId('wk-task-description-input')).toHaveValue('Notes here')
+    expect(await screen.findByText('Notes here')).toBeInTheDocument()
     expect(screen.getByText('backend')).toBeInTheDocument()
   })
 

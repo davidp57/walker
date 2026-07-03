@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { RecurrenceRule, Task, TaskPriority, TaskStatus, TimesheetCode } from '../types'
 import { selectOnFocus } from '../lib/time'
+import { MarkdownEditor } from './MarkdownEditor'
 
 export interface TaskDraft {
   title: string
@@ -161,19 +162,16 @@ export function TaskPanel({
             />
           </label>
 
-          <label>
+          <div>
             <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
               Description
             </div>
-            <textarea
-              className="wk-input"
-              style={{ minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }}
+            <MarkdownEditor
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={setDescription}
               placeholder="Markdown notes…"
-              data-testid="wk-task-description-input"
             />
-          </label>
+          </div>
 
           <div style={{ display: 'flex', gap: 12 }}>
             <label style={{ flex: 1 }}>

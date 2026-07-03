@@ -1679,3 +1679,98 @@
 .wk-tag-chip button:hover {
   color: var(--wk-danger);
 }
+
+/* Task description WYSIWYG markdown editor (BIZ-024, Milkdown/ProseMirror). */
+.wk-markdown-editor {
+  background: var(--wk-bg-0);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  min-height: 140px;
+}
+.wk-markdown-editor .milkdown {
+  height: 100%;
+}
+.wk-markdown-editor .ProseMirror {
+  min-height: 140px;
+  padding: 10px 13px;
+  color: var(--wk-text-hi);
+  font-size: var(--wk-fs-14);
+  outline: none;
+}
+.wk-markdown-editor .ProseMirror > * + * {
+  margin-top: 0.6em;
+}
+.wk-markdown-editor .ProseMirror p.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--wk-text-lo);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.wk-markdown-editor .ProseMirror h1,
+.wk-markdown-editor .ProseMirror h2,
+.wk-markdown-editor .ProseMirror h3 {
+  color: var(--wk-text-hi);
+  font-weight: var(--wk-fw-semibold);
+  line-height: 1.3;
+}
+.wk-markdown-editor .ProseMirror h1 {
+  font-size: var(--wk-fs-20);
+}
+.wk-markdown-editor .ProseMirror h2 {
+  font-size: var(--wk-fs-17);
+}
+.wk-markdown-editor .ProseMirror h3 {
+  font-size: var(--wk-fs-15);
+}
+.wk-markdown-editor .ProseMirror a {
+  color: var(--wk-accent);
+}
+.wk-markdown-editor .ProseMirror blockquote {
+  border-left: 3px solid var(--wk-line);
+  margin: 0;
+  padding-left: 12px;
+  color: var(--wk-text);
+}
+.wk-markdown-editor .ProseMirror code {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-12);
+  background: var(--wk-bg-2);
+  border-radius: var(--wk-radius-sm);
+  padding: 1px 5px;
+}
+.wk-markdown-editor .ProseMirror pre {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-12);
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-md);
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+.wk-markdown-editor .ProseMirror pre code {
+  background: none;
+  padding: 0;
+}
+.wk-markdown-editor .ProseMirror ul,
+.wk-markdown-editor .ProseMirror ol {
+  padding-left: 1.4em;
+}
+.wk-markdown-editor .ProseMirror li[data-item-type='task'] {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-left: -1.4em;
+}
+.wk-task-item-checkbox {
+  margin-top: 5px;
+  accent-color: var(--wk-accent);
+  cursor: pointer;
+}
+.wk-task-item-content {
+  flex: 1;
+}
+.wk-markdown-editor .ProseMirror li[data-item-type='task'] > .wk-task-item-content > p {
+  margin: 0;
+}
