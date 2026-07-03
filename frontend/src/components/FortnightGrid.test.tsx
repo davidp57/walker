@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { FortnightGrid } from './FortnightGrid'
 import type { DayColumn, FortnightRow, TimesheetCode } from '../types'
 
@@ -68,5 +68,105 @@ describe('FortnightGrid — Activity dedup', () => {
 
     expect(screen.getByText('Paper V4')).toBeInTheDocument()
     expect(screen.getByText('Bug fixing')).toBeInTheDocument()
+  })
+})
+
+describe('FortnightGrid — copy T&E code', () => {
+  const row: FortnightRow = {
+    key: 'c1|Internal administration',
+    code: code({ number: 'N9/1042' }),
+    activity: 'Internal administration',
+    minutesByDay: { 1: 60 },
+  }
+
+  let writeText: ReturnType<typeof vi.fn>
+
+  beforeEach(() => {
+    writeText = vi.fn().mockResolvedValue(undefined)
+    Object.assign(navigator, { clipboard: { writeText } })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('copies the code number to the clipboard when clicked, in Enter-in-T&E (checklist) mode', async () => {
+    render(
+      <FortnightGrid
+        mode="checklist"
+        days={[day()]}
+        rows={[row]}
+        checked={{}}
+        runningCell={null}
+        onToggleCell={() => {}}
+        onToggleRow={() => {}}
+      />,
+    )
+
+    const copyButton = screen.getByRole('button', { name: /copy.*code/i })
+    fireEvent.click(copyButton)
+
+    expect(writeText).toHaveBeenCalledWith('N9/1042')
+  })
+
+  it('shows a confirmation after copying, then reverts', async () => {
+    render(
+      <FortnightGrid
+        mode="checklist"
+        days={[day()]}
+        rows={[row]}
+        checked={{}}
+        runningCell={null}
+        onToggleCell={() => {}}
+        onToggleRow={() => {}}
+      />,
+    )
+
+    const copyButton = screen.getByRole('button', { name: /copy.*code/i })
+    expect(copyButton).toHaveAttribute('title', expect.stringMatching(/copy/i))
+
+    fireEvent.click(copyButton)
+
+    // Feedback appears — the button now confirms the copy (title and/or accessible name change).
+    await screen.findByRole('button', { name: /copied/i })
+  })
+
+  it('does not trigger the row n/N badge toggle when the copy button is clicked', () => {
+    const onToggleRow = vi.fn()
+    render(
+      <FortnightGrid
+        mode="checklist"
+        days={[day()]}
+        rows={[row]}
+        checked={{}}
+        runningCell={null}
+        onToggleCell={() => {}}
+        onToggleRow={onToggleRow}
+      />,
+    )
+
+    const copyButton = screen.getByRole('button', { name: /copy.*code/i })
+    fireEvent.click(copyButton)
+
+    expect(onToggleRow).not.toHaveBeenCalled()
+  })
+
+  it('still allows the row n/N badge to toggle the row independently', () => {
+    const onToggleRow = vi.fn()
+    render(
+      <FortnightGrid
+        mode="checklist"
+        days={[day()]}
+        rows={[row]}
+        checked={{}}
+        runningCell={null}
+        onToggleCell={() => {}}
+        onToggleRow={onToggleRow}
+      />,
+    )
+
+    fireEvent.click(screen.getByTitle('Mark whole row as entered'))
+
+    expect(onToggleRow).toHaveBeenCalledWith(row.key)
   })
 })
