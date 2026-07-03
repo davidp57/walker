@@ -6,17 +6,37 @@ afterEach(() => {
   cleanup()
 })
 
+describe('AppShell — nav label consistency', () => {
+  it('labels the Tracker destination "Activity", matching its screen title', () => {
+    render(
+      <AppShell route="tracker" onNavigate={() => {}} timer={null}>
+        <div />
+      </AppShell>,
+    )
+    expect(screen.getByText('Activity')).toBeInTheDocument()
+  })
+
+  it('labels the Checklist destination "Enter into T&E", matching its screen title', () => {
+    render(
+      <AppShell route="checklist" onNavigate={() => {}} timer={null}>
+        <div />
+      </AppShell>,
+    )
+    expect(screen.getByText('Enter into T&E')).toBeInTheDocument()
+  })
+})
+
 describe('AppShell — uncategorized-Entry count (BIZ-010)', () => {
-  it('shows the count next to the Today nav item when there are uncategorized Entries', () => {
+  it('shows the count next to the Activity nav item when there are uncategorized Entries', () => {
     render(
       <AppShell route="tracker" onNavigate={() => {}} timer={null} uncategorizedCount={3}>
         <div />
       </AppShell>,
     )
 
-    const today = screen.getByText('Today').closest('button')
-    expect(today).not.toBeNull()
-    expect(today).toHaveTextContent('3')
+    const activity = screen.getByText('Activity').closest('button')
+    expect(activity).not.toBeNull()
+    expect(activity).toHaveTextContent('3')
   })
 
   it('hides the count when there are no uncategorized Entries', () => {
@@ -26,8 +46,8 @@ describe('AppShell — uncategorized-Entry count (BIZ-010)', () => {
       </AppShell>,
     )
 
-    const today = screen.getByText('Today').closest('button')
-    expect(today).not.toBeNull()
+    const activity = screen.getByText('Activity').closest('button')
+    expect(activity).not.toBeNull()
     expect(screen.queryByTestId('wk-uncategorized-badge')).not.toBeInTheDocument()
   })
 })

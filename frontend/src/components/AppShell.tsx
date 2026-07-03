@@ -11,9 +11,9 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { key: 'tracker', label: 'Today', icon: <IconTracker /> },
+  { key: 'tracker', label: 'Activity', icon: <IconTracker /> },
   { key: 'fortnight', label: 'Fortnight', icon: <IconFortnight /> },
-  { key: 'checklist', label: 'Enter in T&E', icon: <IconChecklist /> },
+  { key: 'checklist', label: 'Enter into T&E', icon: <IconChecklist /> },
   { key: 'codes', label: 'Code catalog', icon: <IconCatalog /> },
   { key: 'settings', label: 'Settings', icon: <IconSettings /> },
 ]
@@ -25,8 +25,8 @@ interface AppShellProps {
   timer: ReactNode
   children: ReactNode
   /**
-   * Count of Entries still lacking a Timesheet code (BIZ-010). Shown as a badge on the Today nav
-   * item; hidden at zero so nothing to code reads as a neutral, uncluttered nav.
+   * Count of Entries still lacking a Timesheet code (BIZ-010). Shown as a badge on the Activity
+   * nav item; hidden at zero so nothing to code reads as a neutral, uncluttered nav.
    */
   uncategorizedCount?: number
 }
