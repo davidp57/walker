@@ -38,6 +38,14 @@ All notable changes to Walker are documented here. Format loosely follows
   - **Label consistency + Activity dedup** (CHR-001): nav labels now match their screen titles; a Code's
     Activity line is hidden in grid/Entry rows when it merely repeats the project name.
   - See `.backlog/archive/UX.md` for the full ticket list and implementation notes.
+- **Virtual-code resolution contract test** (TEC-004): the backend's `resolve_to_real_codes`
+  (`services/fortnight.py`) and the frontend's `resolveChecklistRows` (`lib/checklist.ts`) both resolve
+  virtual codes to their real code (ADR-0008) but stayed independent implementations — the frontend
+  also folds in the live running-timer cell, which the server can't know about, so eliminating it in
+  favor of server-resolved data would have meant polling every second. Instead, both are now asserted
+  against a shared fixture (`tests/fixtures/virtual_code_resolution.json`) via a pytest test and a
+  Vitest test, so a change to one rule that isn't mirrored in the other fails a test. No behavior
+  change.
 - **VCODE lot shipped**: virtual codes (ADR-0008) — user-created codes backed by exactly one real T&E
   code, for finer classification than T&E offers.
   - A virtual code borrows its real code's number, technical label, and Activities, and owns its own
