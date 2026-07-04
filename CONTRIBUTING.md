@@ -9,7 +9,7 @@ git clone <repo-url>
 cd walker
 
 # Backend
-Copy-Item pip.conf.example pip.conf   # PwC only: fill in your Artifactory API key
+Copy-Item pip.conf.example pip.conf   # only if your org needs a private package index
 $env:PIP_CONFIG_FILE = ".\pip.conf"   # so pip uses it (or rely on your global pip config)
 python -m venv .venv
 .venv\Scripts\Activate.ps1

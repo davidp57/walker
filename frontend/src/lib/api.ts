@@ -411,6 +411,17 @@ export async function removeAbsence(date: string): Promise<SettingsData> {
   return mapSettings((await response.json()) as ApiSettings)
 }
 
+/** The current user (CHR-004): a username and, optionally, a display name. */
+export interface ApiUser {
+  username: string
+  name: string | null
+}
+
+/** Fetch the current user. */
+export async function fetchUser(): Promise<ApiUser> {
+  return getJson<ApiUser>('/api/user')
+}
+
 /** The recurrence rule as carried over the wire — same shapes as `services/recurrence.py`. */
 type ApiRecurrenceRule =
   | { kind: 'every_n_days'; n: number }

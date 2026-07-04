@@ -1,4 +1,4 @@
-"""The TimesheetCode model — a real PwC T&E charge code, scoped to a user."""
+"""The TimesheetCode model — a real T&E charge code, scoped to a user."""
 
 from __future__ import annotations
 

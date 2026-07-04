@@ -8,7 +8,7 @@ export interface Activity {
 }
 
 /**
- * A PwC charge code. `number` is only needed for T&E; `name` (libellé) is the primary label.
+ * A charge code. `number` is only needed for T&E; `name` (libellé) is the primary label.
  *
  * Either **real** (`isVirtual === false`, exists in T&E, imported) or **virtual** (Walker-only,
  * `realCodeId` points at exactly one real code — ADR-0008). `number`, `label`, and `activities` are

@@ -19,3 +19,5 @@ class User(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(255), unique=True)
+    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    """Optional display name shown in the UI (e.g. the shell footer); falls back to ``username``."""
