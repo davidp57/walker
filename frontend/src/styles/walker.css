@@ -1554,6 +1554,13 @@
   border-radius: var(--wk-radius-lg);
   display: flex;
   flex-direction: column;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+.wk-board-column.is-drop-target {
+  border-color: var(--wk-accent);
+  background: var(--wk-accent-soft);
 }
 .wk-board-column-head {
   display: flex;
@@ -1584,6 +1591,29 @@
   border: 1px solid var(--wk-line-soft);
   border-radius: var(--wk-radius-md);
   padding: 10px 12px;
+  touch-action: none;
+}
+.wk-board-card.is-dragging {
+  opacity: 0.5;
+}
+.wk-board-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wk-board-drag-handle {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--wk-text-lo);
+  cursor: grab;
+  padding: 0 2px;
+  font-size: var(--wk-fs-13);
+  line-height: 1;
+  touch-action: none;
+}
+.wk-board-drag-handle:active {
+  cursor: grabbing;
 }
 .wk-board-card-title {
   color: var(--wk-text-hi);
