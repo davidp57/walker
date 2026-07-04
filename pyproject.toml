@@ -16,6 +16,7 @@ dependencies = [
     "python-multipart>=0.0.20",
     "structlog>=25.0",
     "authlib>=1.3.2",
+    "httpx>=0.27.0",
     "itsdangerous>=2.2.0",
     "joserfc>=1.0.0",
 ]
@@ -24,7 +25,6 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.1.0",
-    "httpx>=0.27.0",
     "ruff>=0.6.0",
     "mypy>=1.11.0",
     "types-Authlib>=1.3.2",
