@@ -14,6 +14,7 @@ import { CodeCatalogScreen } from './screens/CodeCatalogScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { TasksScreen } from './screens/TasksScreen'
 import { TaskPanel, type TaskDraft } from './components/TaskPanel'
+import { LoginScreen } from './components/LoginScreen'
 import type {
   Absence,
   ActivityName,
@@ -36,6 +37,7 @@ import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
   addCodeFromReference as apiAddCodeFromReference,
+  ApiError,
   completeTimer as apiCompleteTimer,
   createCode as apiCreateCode,
   createEntry as apiCreateEntry,
@@ -47,6 +49,7 @@ import {
   fetchChecklist,
   fetchCodes,
   fetchEntriesRange,
+  fetchHealth,
   fetchPeriod,
   fetchSettings,
   fetchTaskTags,
@@ -65,6 +68,7 @@ import {
   updateSettings as apiUpdateSettings,
   updateTask as apiUpdateTask,
   updateVirtualCode as apiUpdateVirtualCode,
+  type SsoProvider,
 } from './lib/api'
 
 // ---- Today (real local date, matches the server-recorded entries) ----
@@ -159,7 +163,59 @@ const EMPTY_DRAFT: TimerDraft = { codeId: null, activity: null, description: '' 
 // How long an undo affordance stays available after a delete (BIZ-011).
 const UNDO_WINDOW_MS = 6000
 
+type AuthGateState =
+  | { status: 'checking' }
+  | { status: 'authenticated' }
+  | { status: 'needs-login'; providers: SsoProvider[] }
+
+/**
+ * Gates the app behind a sign-in screen when this deployment requires SSO (ADR-0010) and the
+ * visitor has no valid session yet — `/api/health` is always reachable (unlike `/auth/*`, only
+ * mounted in `sso` mode), so it's safe to check first regardless of deployment mode. Any failure
+ * other than a confirmed 401 (network hiccup, `auth_mode=none`) falls through to rendering the app
+ * as before BIZ-029, so a flaky check can never newly lock out a standalone deployment.
+ */
+function useAuthGate(): AuthGateState {
+  const [state, setState] = useState<AuthGateState>({ status: 'checking' })
+
+  useEffect(() => {
+    let cancelled = false
+    fetchHealth()
+      .then((health) => {
+        if (health.authMode === 'none') {
+          if (!cancelled) setState({ status: 'authenticated' })
+          return
+        }
+        fetchUser()
+          .then(() => {
+            if (!cancelled) setState({ status: 'authenticated' })
+          })
+          .catch((err: unknown) => {
+            if (cancelled) return
+            if (err instanceof ApiError && err.status === 401) {
+              setState({ status: 'needs-login', providers: health.ssoProviders })
+            } else {
+              setState({ status: 'authenticated' })
+            }
+          })
+      })
+      .catch(() => {
+        if (!cancelled) setState({ status: 'authenticated' })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  return state
+}
+
 export default function App() {
+  const authGate = useAuthGate()
+
+  if (authGate.status === 'checking') return null
+  if (authGate.status === 'needs-login') return <LoginScreen providers={authGate.providers} />
+
   return (
     <ToastProvider>
       <AppInner />

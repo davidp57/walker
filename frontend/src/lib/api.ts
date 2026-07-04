@@ -29,10 +29,20 @@ interface ApiCode {
   real_code_number: string | null
 }
 
+/** An API error carrying the HTTP status, so callers can distinguish e.g. 401 from other failures. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message)
+  }
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(path)
   if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText} for ${path}`)
+    throw new ApiError(`${response.status} ${response.statusText} for ${path}`, response.status)
   }
   return (await response.json()) as T
 }
@@ -88,7 +98,7 @@ async function sendJson<T>(path: string, method: string, body?: unknown): Promis
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText} for ${path}`)
+    throw new ApiError(`${response.status} ${response.statusText} for ${path}`, response.status)
   }
   return (await response.json()) as T
 }
@@ -542,4 +552,21 @@ export async function deleteTask(id: string): Promise<void> {
 /** Fetch every distinct tag used across the user's Tasks (for autocomplete). */
 export async function fetchTaskTags(): Promise<string[]> {
   return getJson<string[]>('/api/tasks/tags')
+}
+
+/** SSO provider names the SPA's sign-in screen can offer a button for. */
+export type SsoProvider = 'google' | 'apple' | 'microsoft'
+
+/** Liveness + deployment mode (ADR-0010): always reachable, unlike the conditionally-mounted `/auth/*` routes. */
+export interface Health {
+  authMode: 'none' | 'sso'
+  ssoProviders: SsoProvider[]
+}
+
+/** Fetch deployment mode, ahead of deciding whether the SPA needs to show a sign-in screen. */
+export async function fetchHealth(): Promise<Health> {
+  const health = await getJson<{ auth_mode: 'none' | 'sso'; sso_providers: SsoProvider[] }>(
+    '/api/health',
+  )
+  return { authMode: health.auth_mode, ssoProviders: health.sso_providers }
 }

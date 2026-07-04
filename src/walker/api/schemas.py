@@ -11,10 +11,17 @@ from walker.models.settings import PeriodScheme
 
 
 class HealthResponse(BaseModel):
-    """Liveness payload returned by ``GET /api/health``."""
+    """Liveness payload returned by ``GET /api/health``.
+
+    ``auth_mode``/``sso_providers`` let the SPA decide, before calling any other endpoint, whether
+    it needs to show a sign-in screen at all (ADR-0010) — this endpoint is always mounted,
+    regardless of ``auth_mode``, unlike the ``/auth/*`` routes.
+    """
 
     status: str
     version: str
+    auth_mode: str
+    sso_providers: list[str]
 
 
 class CurrentUserRead(BaseModel):
