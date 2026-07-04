@@ -23,7 +23,7 @@ def get_fortnight(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> FortnightGrid:
-    """Return the aggregated T&E grid for the fortnight containing ``on_date``."""
+    """Return the aggregated Timesheet-system grid for the fortnight containing ``on_date``."""
     return aggregate_fortnight(session, user.id, on_date)
 
 

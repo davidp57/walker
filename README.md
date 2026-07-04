@@ -1,9 +1,9 @@
 # Walker
 
-Walker is a personal time tracker whose job is to make filling the PwC **Time & Expenses** (T&E)
-timesheet painless. You track your time during the day against the real PwC charge codes; at the end
-of each fortnight Walker shows you exactly what to enter into T&E — a T&E-shaped grid plus a
-tick-as-you-go checklist.
+Walker is a personal time tracker whose job is to make filling the PwC **Timesheet system** painless.
+You track your time during the day against the real PwC charge codes; at the end of each fortnight
+Walker shows you exactly what to enter into the Timesheet system — a Timesheet-system-shaped grid plus
+a tick-as-you-go checklist.
 
 The name is a nod to *Walker, Texas Ranger* (the previous internal tool was called "Texas").
 

@@ -4,10 +4,10 @@ Guidance for AI coding agents working on this repository.
 
 ## Project
 
-Walker is a personal, single-user (for now) web app that makes filling the PwC **Time & Expenses**
-(T&E) timesheet painless. You track time during the day against the real PwC charge codes
-(**Timesheet code** + **Activity**); at fortnight-end Walker shows the T&E-shaped matrix plus an
-**entry checklist**. It **replaces Clockify** (see `docs/adr/0001-walker-replaces-clockify.md`).
+Walker is a personal, single-user (for now) web app that makes filling the PwC **Timesheet system**
+painless. You track time during the day against the real PwC charge codes (**Timesheet code** +
+**Activity**); at fortnight-end Walker shows the Timesheet-system-shaped matrix plus an **entry
+checklist**. It **replaces Clockify** (see `docs/adr/0001-walker-replaces-clockify.md`).
 
 - **Stack**: Python 3.13+ · FastAPI + Uvicorn (JSON API) · SQLAlchemy 2.0 + Alembic · SQLite (POC) ·
   pip + venv (PEP 621) · React 19 + Vite + TypeScript (SPA) · Docker.
@@ -32,8 +32,9 @@ Invariants baked into ADRs:
 
 - Data is scoped to a `user_id` **from day one**; no auth for the POC (ADR-0007).
 - Walker records **real durations to the minute** — no rounding, no targets (ADR-0005). Rounding to
-  the quarter-hour and hitting 8h/day is the user's job inside T&E.
-- Walker **does not automate T&E** (no scraping): it outputs a T&E-shaped matrix + checklist (ADR-0005).
+  the quarter-hour and hitting 8h/day is the user's job inside the Timesheet system.
+- Walker **does not automate the Timesheet system** (no scraping): it outputs a Timesheet-system-shaped
+  matrix + checklist (ADR-0005).
 - Timers are **capture-first**: start in one click with no input, categorize later; entries are
   editable (ADR-0006).
 - DB access is **engine-agnostic** (SQLAlchemy + Alembic) so SQLite → external DBMS is config, not a
@@ -107,7 +108,7 @@ Single-context — `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
 ## Language
 
 All repo artifacts — code, docs, ADRs, commit messages, and **UI copy** — are in **English**.
-Conversation with the user may be in French. T&E codes and labels keep their original wording.
+Conversation with the user may be in French. Timesheet-system codes and labels keep their original wording.
 
 ## Run
 
