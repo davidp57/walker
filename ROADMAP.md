@@ -12,12 +12,14 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 - **UX** (post-MVP UX improvements) — keyboard-first daily loop, uncategorized count, delete undo,
   WCAG-AA contrast, label consistency, visible error/loading feedback, unified Fortnight grid (Review /
   Enter in T&E). See `.backlog/archive/UX.md`.
+- **TASKS** (task manager) — Tasks (markdown, status, priority, due, tags, optional code), list + kanban
+  views (with drag-and-drop), start-timer-from-task, Stop\|Complete, recurrence. See
+  `.backlog/archive/TASKS.md`.
 
 ## Now — not yet chosen
 
 ## Forward-looking (not scheduled)
 
-- **TASKS** — task manager (list + kanban, start-timer-from-task, recurrence). See `.backlog/TASKS/PRD.md`.
 - **RELEASE** (working name) — professionalize Walker into a shareable, general-purpose app:
   - Genericize branding/domain wording — strip PwC/T&E-specific naming so the app reads as a generic
     time-and-expenses tracker (Timesheet code → configurable term, etc.).
