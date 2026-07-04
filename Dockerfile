@@ -7,6 +7,9 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./
+# The TEC-004 contract test imports a fixture shared with the backend test of the same contract,
+# outside the frontend/ tree — needed here because `npm run build` type-checks test files too.
+COPY tests/fixtures/ /app/tests/fixtures/
 RUN npm run build
 
 # --- Stage 2: Python runtime, serves API + built SPA ------------------------------
