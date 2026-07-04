@@ -25,6 +25,10 @@ dev = [
     "ruff>=0.6.0",
     "mypy>=1.11.0",
 ]
+# Only needed to produce the standalone .exe (CHR-009); not a runtime or test dependency.
+build-exe = [
+    "pyinstaller>=6.11.0",
+]
 docs = [
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.5.0",
