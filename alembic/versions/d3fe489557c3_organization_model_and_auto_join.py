@@ -44,7 +44,9 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column("organization_id", sa.Integer(), nullable=True))
         batch_op.create_unique_constraint("uq_users_email", ["email"])
         batch_op.create_index(op.f("ix_users_organization_id"), ["organization_id"], unique=False)
-        batch_op.create_foreign_key("fk_users_organization_id_organizations", "organizations", ["organization_id"], ["id"])
+        batch_op.create_foreign_key(
+            "fk_users_organization_id_organizations", "organizations", ["organization_id"], ["id"]
+        )
 
     # Backfill: every pre-existing User gets its own new Organization of one, so no existing data is
     # orphaned by the new, nullable FK. A placeholder, deterministic, non-guessable-as-real domain
@@ -52,9 +54,7 @@ def upgrade() -> None:
     # it can never collide with a real email domain resolved later by BIZ-029's SSO login.
     connection = op.get_bind()
     users_table = sa.table("users", sa.column("id", sa.Integer), sa.column("organization_id", sa.Integer))
-    organizations_table = sa.table(
-        "organizations", sa.column("id", sa.Integer), sa.column("email_domain", sa.String)
-    )
+    organizations_table = sa.table("organizations", sa.column("id", sa.Integer), sa.column("email_domain", sa.String))
     user_ids = [row[0] for row in connection.execute(sa.select(users_table.c.id))]
     for user_id in user_ids:
         org_id = connection.execute(
