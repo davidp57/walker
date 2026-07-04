@@ -18,12 +18,7 @@ describe('MarkdownEditor', () => {
   })
 
   it('renders task-list checkboxes from markdown', async () => {
-    render(
-      <MarkdownEditor
-        value={'- [ ] first\n- [x] second\n'}
-        onChange={vi.fn()}
-      />,
-    )
+    render(<MarkdownEditor value={'- [ ] first\n- [x] second\n'} onChange={vi.fn()} />)
 
     const checkboxes = await screen.findAllByRole('checkbox')
     expect(checkboxes).toHaveLength(2)

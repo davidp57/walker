@@ -445,9 +445,7 @@ describe('updateSettings', () => {
       period_scheme: 'weekly',
       absences: [],
     }
-    const fetchMock = vi.fn(
-      async () => new Response(JSON.stringify(payload), { status: 200 }),
-    )
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
     const settings = await updateSettings(
@@ -474,9 +472,7 @@ describe('updateSettings', () => {
       period_scheme: 'semi_monthly',
       absences: [],
     }
-    const fetchMock = vi.fn(
-      async () => new Response(JSON.stringify(payload), { status: 200 }),
-    )
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }))
     vi.stubGlobal('fetch', fetchMock)
 
     await updateSettings([false, true, true, true, true, true, false], 'comfortable')
