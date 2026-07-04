@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.api.dependencies import get_current_user
@@ -51,10 +50,8 @@ def list_codes(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> list[CodeRead]:
-    """Return the current user's codes (real and virtual), each with its activities."""
-    codes = session.scalars(
-        select(TimesheetCode).where(TimesheetCode.user_id == user.id).order_by(TimesheetCode.number)
-    ).all()
+    """Return the codes visible to the current user: their Organization's real codes + their own virtual codes."""
+    codes = catalog.list_codes(session, user.id)
     return [_code_read(code) for code in codes]
 
 

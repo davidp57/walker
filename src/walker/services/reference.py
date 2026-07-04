@@ -6,12 +6,13 @@ list); the user picks the handful they actually charge to, which are copied into
 
 from __future__ import annotations
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from walker.exceptions import NotFoundError
-from walker.models import Activity, ReferenceCode, TimesheetCode
-from walker.services.catalog import PALETTE, ParsedCode
+from walker.models import ReferenceCode, TimesheetCode
+from walker.services import catalog
+from walker.services.catalog import ParsedActivity, ParsedCode
 
 
 def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -> tuple[int, int]:
@@ -61,27 +62,26 @@ def search_reference(session: Session, user_id: int, query: str, limit: int = 20
 
 
 def add_from_reference(session: Session, user_id: int, number: str) -> TimesheetCode:
-    """Copy a reference code (with all its activities) into the active codes (idempotent)."""
+    """Copy a reference code (with all its activities) into the active, Organization-shared catalog.
+
+    Idempotent: if the number is already active in the user's Organization (added by any member,
+    ADR-0010), that existing real code is returned unchanged.
+    """
     ref = session.scalar(select(ReferenceCode).where(ReferenceCode.user_id == user_id, ReferenceCode.number == number))
     if ref is None:
         raise NotFoundError(f"Reference code {number} not found.")
 
-    active = session.scalar(
-        select(TimesheetCode).where(TimesheetCode.user_id == user_id, TimesheetCode.number == number)
-    )
+    real_codes = (code for code in catalog.list_codes(session, user_id) if not code.is_virtual)
+    active = next((code for code in real_codes if code.number == number), None)
     if active is not None:
         return active
 
-    count = session.scalar(select(func.count()).select_from(TimesheetCode).where(TimesheetCode.user_id == user_id)) or 0
-    code = TimesheetCode(
-        user_id=user_id,
+    return catalog.create_code(
+        session,
+        user_id,
         number=ref.number,
         label=ref.label,
         name=ref.name,
-        color=PALETTE[count % len(PALETTE)],
-        activities=[Activity(code=a["code"], label=a["label"]) for a in ref.activities],
+        color=None,
+        activities=[ParsedActivity(code=a["code"], label=a["label"]) for a in ref.activities],
     )
-    session.add(code)
-    session.commit()
-    session.refresh(code)
-    return code
