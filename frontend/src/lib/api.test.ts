@@ -497,7 +497,7 @@ describe('fetchTasks', () => {
     const payload = [
       {
         id: 2,
-        title: 'Key in T&E',
+        title: 'Key in Timesheet system',
         description: null,
         status: 'todo',
         priority: null,
@@ -617,7 +617,7 @@ describe('createTask', () => {
         new Response(
           JSON.stringify({
             id: 5,
-            title: 'Key in T&E',
+            title: 'Key in Timesheet system',
             description: null,
             status: 'todo',
             priority: null,
@@ -634,7 +634,7 @@ describe('createTask', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await createTask({
-      title: 'Key in T&E',
+      title: 'Key in Timesheet system',
       recurrenceRule: { kind: 'fortnight_relative', anchor: 'start', offsetDays: 1 },
     })
 
@@ -690,7 +690,7 @@ describe('completeTask', () => {
         new Response(
           JSON.stringify({
             id: 3,
-            title: 'Key in T&E',
+            title: 'Key in Timesheet system',
             description: null,
             status: 'todo',
             priority: null,

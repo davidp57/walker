@@ -3,7 +3,7 @@
 Web-independent. Checklist items are derived from the fortnight grid, **resolved to real codes**
 (ADR-0008: virtual codes collapse into the real code they borrow their number/label/activities
 from) — one item per non-empty ``(real code, activity, day)`` cell — and each carries an "entered
-into T&E" tick persisted as a ``ChecklistMark``. Re-deriving after grid edits keeps ticks for
+into the Timesheet system" tick persisted as a ``ChecklistMark``. Re-deriving after grid edits keeps ticks for
 unchanged lines.
 """
 
@@ -53,7 +53,7 @@ def _marks(session: Session, user_id: int, fortnight_start: date) -> list[Checkl
 def derive_checklist(session: Session, user_id: int, on: date) -> ChecklistResult:
     """Build the checklist from the fortnight grid resolved to real codes, applying persisted ticks.
 
-    Virtual codes sharing a real code collapse into one line (ADR-0008): T&E only accepts real
+    Virtual codes sharing a real code collapse into one line (ADR-0008): the Timesheet system only accepts real
     codes, so several fine-grained Walker rows become one real-code/activity/day line here.
     """
     grid = resolve_to_real_codes(session, aggregate_fortnight(session, user_id, on))
