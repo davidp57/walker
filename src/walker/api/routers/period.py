@@ -24,7 +24,7 @@ def get_period(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> PeriodGrid:
-    """Return the aggregated T&E grid for the Timesheet period containing ``on_date``."""
+    """Return the aggregated Timesheet-system grid for the Timesheet period containing ``on_date``."""
     scheme = get_settings(session, user.id).period_scheme
     return aggregate_period(session, user.id, scheme, on_date)
 

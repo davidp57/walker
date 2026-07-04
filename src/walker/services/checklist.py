@@ -3,9 +3,9 @@
 Web-independent. Checklist items are derived from the Timesheet period grid, **resolved to real
 codes** (ADR-0008: virtual codes collapse into the real code they borrow their number/label/
 activities from) — one item per non-empty ``(real code, activity, day)`` cell — and each carries an
-"entered into T&E" tick persisted as a ``ChecklistMark``. Re-deriving after grid edits keeps ticks
-for unchanged lines. The period's shape is read from the user's ``Settings.period_scheme``
-(ADR-0009).
+"entered into the Timesheet system" tick persisted as a ``ChecklistMark``. Re-deriving after grid
+edits keeps ticks for unchanged lines. The period's shape is read from the user's
+``Settings.period_scheme`` (ADR-0009).
 """
 
 from __future__ import annotations
@@ -55,9 +55,9 @@ def _marks(session: Session, user_id: int, period_start: date) -> list[Checklist
 def derive_checklist(session: Session, user_id: int, on: date) -> ChecklistResult:
     """Build the checklist from the Timesheet period grid resolved to real codes, applying ticks.
 
-    Virtual codes sharing a real code collapse into one line (ADR-0008): T&E only accepts real
-    codes, so several fine-grained Walker rows become one real-code/activity/day line here. The
-    period scheme is read from the user's ``Settings`` (ADR-0009).
+    Virtual codes sharing a real code collapse into one line (ADR-0008): the Timesheet system only
+    accepts real codes, so several fine-grained Walker rows become one real-code/activity/day line
+    here. The period scheme is read from the user's ``Settings`` (ADR-0009).
     """
     scheme = get_settings(session, user_id).period_scheme
     grid = resolve_to_real_codes(session, aggregate_period(session, user_id, scheme, on))

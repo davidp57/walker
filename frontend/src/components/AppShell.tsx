@@ -18,6 +18,12 @@ const NAV: NavItem[] = [
   { key: 'settings', label: 'Settings', icon: <IconSettings /> },
 ]
 
+/** The account identity shown in the shell footer (CHR-004): just a username and, optionally, a name. */
+export interface ShellUser {
+  username: string
+  name: string | null
+}
+
 interface AppShellProps {
   route: Route
   onNavigate: (route: Route) => void
@@ -29,6 +35,8 @@ interface AppShellProps {
    * nav item; hidden at zero so nothing to code reads as a neutral, uncluttered nav.
    */
   uncategorizedCount?: number
+  /** The current user, shown in the footer as `name` if set, else `username`. No role/employer line. */
+  user?: ShellUser
 }
 
 export function AppShell({
@@ -37,7 +45,15 @@ export function AppShell({
   timer,
   children,
   uncategorizedCount = 0,
+  user,
 }: AppShellProps) {
+  const displayName = user?.name ?? user?.username ?? ''
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join('')
   return (
     <div className="wk-app">
       <aside className="wk-sidebar">
@@ -64,14 +80,12 @@ export function AppShell({
             </button>
           ))}
         </nav>
-        <div className="wk-sidebar-foot">
-          <div className="wk-avatar">JD</div>
-          <div className="wk-foot-meta">
-            Consultant
-            <br />
-            PwC &middot; Advisory
+        {user && (
+          <div className="wk-sidebar-foot">
+            <div className="wk-avatar">{initials}</div>
+            <div className="wk-foot-meta">{displayName}</div>
           </div>
-        </div>
+        )}
       </aside>
 
       <main className="wk-main">

@@ -19,4 +19,4 @@ class ValidationError(WalkerError):
 
 
 class CatalogImportError(WalkerError):
-    """Raised when importing the T&E Code catalog fails."""
+    """Raised when importing the Timesheet-system code catalog fails."""

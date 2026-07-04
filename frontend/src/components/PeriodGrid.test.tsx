@@ -171,7 +171,7 @@ describe('PeriodGrid — Activity dedup', () => {
   })
 })
 
-describe('PeriodGrid — copy T&E code', () => {
+describe('PeriodGrid — copy Timesheet-system code', () => {
   const row: PeriodRow = {
     key: 'c1|Internal administration',
     code: code({ number: 'N9/1042' }),
@@ -190,7 +190,7 @@ describe('PeriodGrid — copy T&E code', () => {
     vi.restoreAllMocks()
   })
 
-  it('copies the code number to the clipboard when clicked, in Enter-in-T&E (checklist) mode', async () => {
+  it('copies the code number to the clipboard when clicked, in Enter-in-Timesheet-system (checklist) mode', async () => {
     render(
       <PeriodGrid
         mode="checklist"

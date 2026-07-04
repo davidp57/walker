@@ -149,7 +149,7 @@ export function SettingsScreen({
                 color: 'var(--wk-text-lo)',
               }}
             >
-              manual for now — will reflect from T&amp;E later
+              manual for now — will reflect from the Timesheet system later
             </span>
           </div>
 

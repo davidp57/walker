@@ -12,7 +12,7 @@ The catalog is two-tiered:
 The importer (`walker.services.catalog.parse_catalog_csv`) accepts two CSV layouts:
 
 - **Headered** — first row is `code_number,code_label,code_name,activity_code,activity_label`.
-- **Headerless PwC export** — four columns `code_number,code_label,activity_code,activity_label`
+- **Headerless export** — four columns `code_number,code_label,activity_code,activity_label`
   (`code_name` defaults to `code_label`). Quoted fields may contain commas; a UTF-8 BOM is tolerated.
 
 Import upserts by `code_number` (re-importing is idempotent); colors are auto-assigned from a palette.

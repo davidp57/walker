@@ -1,7 +1,7 @@
 import type { PeriodRow, TimesheetCode } from '../types'
 
 /**
- * Resolve the Timesheet period/Review rows into the Enter-in-T&E rows (ADR-0008).
+ * Resolve the Timesheet period/Review rows into the Enter-in-Timesheet-system rows (ADR-0008).
  *
  * Virtual codes collapse into the real code they borrow their number/label/activities from — a
  * `codeId → TimesheetCode` map is used to find each row's real code. Several rows that resolve to

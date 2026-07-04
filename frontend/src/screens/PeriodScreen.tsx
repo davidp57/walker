@@ -9,7 +9,7 @@ interface PeriodScreenProps {
   periodLabel: string // "1 – 15 July 2026"
   days: DayColumn[]
   reviewRows: PeriodRow[] // grouped by code — virtual codes are their own rows (Review)
-  enterRows: PeriodRow[] // resolved to the real code (ADR-0008) — Enter in T&E
+  enterRows: PeriodRow[] // resolved to the real code (ADR-0008) — Enter in Timesheet system
   runningCell: { key: string; day: number } | null // the live timer's cell (read-only, tinted) — Review
   // The running cell's key, resolved virtual→real (ADR-0008) so it matches `enterRows`' keys. Falls
   // back to `runningCell` when omitted (equivalent when the running entry is on a real code already).
@@ -21,16 +21,16 @@ interface PeriodScreenProps {
   onOpenCell: (rowKey: string, day: number) => void // Review: drill into a cell's entries
   onAddCell: (rowKey: string, day: number) => void // Review: click an empty cell → prefilled new entry
   onAddEntry: () => void // Review: add an entry directly into this period
-  onChecklistChange: (next: ChecklistState) => void // Enter in T&E: full next map (entered flags)
-  onChecklistReset: () => void // Enter in T&E: clear all marks for the period
+  onChecklistChange: (next: ChecklistState) => void // Enter in Timesheet system: full next map (entered flags)
+  onChecklistReset: () => void // Enter in Timesheet system: clear all marks for the period
 }
 
 /**
  * Unified Timesheet period screen (BIZ-007, BIZ-027): one grid, one header toggle between Review
- * (by-code mirror of T&E, `+ Add entry`, no progress bar) and Enter in T&E (resolved to the real
- * code — ADR-0008 — tick-as-you-key checklist with progress bar and Reset). The toggle is purely
- * presentational state local to this screen: switching modes never reloads data, it only changes
- * which row set and controls are rendered.
+ * (by-code mirror of the Timesheet system, `+ Add entry`, no progress bar) and Enter in Timesheet
+ * system (resolved to the real code — ADR-0008 — tick-as-you-key checklist with progress bar and
+ * Reset). The toggle is purely presentational state local to this screen: switching modes never
+ * reloads data, it only changes which row set and controls are rendered.
  */
 export function PeriodScreen({
   periodLabel,
@@ -102,12 +102,14 @@ export function PeriodScreen({
         <div>
           <div className="wk-screen-title">
             Timesheet period —{' '}
-            <span className="wk-accent">{mode === 'review' ? 'by code' : 'enter in T&E'}</span>
+            <span className="wk-accent">
+              {mode === 'review' ? 'by code' : 'enter in Timesheet system'}
+            </span>
           </div>
           <div className="wk-screen-sub">
             {mode === 'review'
-              ? 'A 1:1 mirror of Time & Expenses. Real durations — round in T&E, not here.'
-              : 'Tick each cell as you key it into T&E. Shift-click for a range, ⌘/Ctrl-click to toggle one.'}
+              ? 'A 1:1 mirror of the Timesheet system. Real durations — round in the Timesheet system, not here.'
+              : 'Tick each cell as you key it into the Timesheet system. Shift-click for a range, ⌘/Ctrl-click to toggle one.'}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -124,7 +126,7 @@ export function PeriodScreen({
               className={`wk-seg${mode === 'enter' ? ' is-active' : ''}`}
               onClick={() => setMode('enter')}
             >
-              Enter in T&E
+              Enter in Timesheet system
             </button>
           </div>
           <div className="wk-period">
@@ -220,7 +222,7 @@ export function PeriodScreen({
                   'repeating-linear-gradient(45deg,#171a20,#171a20 3px,#1b1f27 3px,#1b1f27 6px)',
               }}
             />
-            Absence (from T&amp;E)
+            Absence (from the Timesheet system)
           </span>
           <span>
             <span

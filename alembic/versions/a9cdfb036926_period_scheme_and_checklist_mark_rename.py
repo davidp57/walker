@@ -1,7 +1,7 @@
 """period scheme and checklist mark rename
 
 Revision ID: a9cdfb036926
-Revises: 2dcd1014de82
+Revises: f9ed91b40e40
 Create Date: 2026-07-04 13:19:56.643672
 """
 
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "a9cdfb036926"
-down_revision: str | None = "2dcd1014de82"
+down_revision: str | None = "f9ed91b40e40"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

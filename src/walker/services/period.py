@@ -1,4 +1,4 @@
-"""Timesheet period aggregation — real minutes into the T&E Code × Activity × Day grid
+"""Timesheet period aggregation — real minutes into the Timesheet-system Code × Activity × Day grid
 (BIZ-004, BIZ-027, ADR-0008, ADR-0009).
 
 Web-independent. No rounding and no target (ADR-0005): cells are exact summed minutes. Only
@@ -107,10 +107,11 @@ def aggregate_period(session: Session, user_id: int, scheme: PeriodScheme, on: d
 
 
 def resolve_to_real_codes(session: Session, grid: PeriodGrid) -> PeriodGrid:
-    """Collapse virtual-code rows into their real code (ADR-0008): T&E-facing aggregation only.
+    """Collapse virtual-code rows into their real code (ADR-0008): Timesheet-system-facing aggregation only.
 
     Several virtual codes sharing one real code merge into a single ``(real code, activity)`` row,
-    with per-day minutes summed exactly (no rounding, ADR-0005) — matching what is keyed into T&E.
+    with per-day minutes summed exactly (no rounding, ADR-0005) — matching what is keyed into the
+    Timesheet system.
     Real codes without virtuals pass through unchanged. Code ids are read straight off the grid, so
     no extra ``user_id`` scoping is needed here.
     """

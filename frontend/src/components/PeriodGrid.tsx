@@ -29,8 +29,8 @@ type PeriodGridProps = PeriodModeProps | ChecklistModeProps
 const COPY_FEEDBACK_MS = 1500
 
 /**
- * Small icon button that copies the T&E code number to the clipboard — keying into T&E means
- * retyping this number by hand, so a one-click copy removes a transcription step. Shows a brief
+ * Small icon button that copies the Timesheet-system code number to the clipboard — keying into the
+ * Timesheet system means retyping this number by hand, so a one-click copy removes a transcription step. Shows a brief
  * checkmark confirmation, then reverts.
  */
 function CopyCodeButton({ codeNumber }: { codeNumber: string }) {
@@ -60,7 +60,7 @@ function CopyCodeButton({ codeNumber }: { codeNumber: string }) {
 }
 
 /**
- * Shared BY-CODE grid. `period` cells edit durations; `checklist` cells toggle "entered into T&E".
+ * Shared BY-CODE grid. `period` cells edit durations; `checklist` cells toggle "entered into the Timesheet system".
  * The Total column and the running-timer's tinted/read-only cell show in both modes.
  */
 export function PeriodGrid(props: PeriodGridProps) {
@@ -158,7 +158,7 @@ export function PeriodGrid(props: PeriodGridProps) {
                 // live-timer cell is read-only in both modes (stop the timer to edit/tick it).
                 const canAdd = isPeriod && isWorkingDay && !filled && !running
                 const clickable = isWorkingDay && !running && (filled || canAdd)
-                // Enter in T&E: every filled, tickable cell shows its checkbox at rest — no hover
+                // Enter in Timesheet system: every filled, tickable cell shows its checkbox at rest — no hover
                 // needed to discover it (BIZ-008). The running-timer cell never shows one.
                 const showCheckbox = mode === 'checklist' && filled && !running
                 const cls = [

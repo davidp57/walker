@@ -1,4 +1,4 @@
-"""The ReferenceCode model — the full imported T&E catalog to pick active codes from.
+"""The ReferenceCode model — the full imported Timesheet-system catalog to pick active codes from.
 
 Separate from :class:`TimesheetCode` (the user's *active* codes): the reference table can hold the
 whole firm catalog (tens of thousands of rows) and is only searched + copied, so its activities are

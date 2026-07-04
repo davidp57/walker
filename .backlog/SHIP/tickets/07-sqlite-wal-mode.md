@@ -1,7 +1,7 @@
 # TEC-005 — Enable SQLite WAL mode for the hosted deployment
 
 ID: TEC-005
-Status: ⬜ ready
+Status: ✅ done
 Type: technical
 Priority: P2
 
@@ -30,9 +30,9 @@ sync/async nature.
 
 ## Acceptance criteria
 
-- [ ] `PRAGMA journal_mode=WAL` and `PRAGMA foreign_keys=ON` are issued on Walker's existing sync engine
+- [x] `PRAGMA journal_mode=WAL` and `PRAGMA foreign_keys=ON` are issued on Walker's existing sync engine
       at startup (or per-connection), with no change to its sync nature.
-- [ ] A test asserts the PRAGMA calls actually run and take effect (prior art for the *intent*, adapted
+- [x] A test asserts the PRAGMA calls actually run and take effect (prior art for the *intent*, adapted
       to a sync test: Solde's `tests/unit/test_database.py::test_init_db_does_not_create_tables`) — a
       regression guard, not a concurrency stress test.
 

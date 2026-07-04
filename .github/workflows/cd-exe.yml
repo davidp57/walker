@@ -1,0 +1,44 @@
+name: CD - standalone .exe
+
+# CHR-009: builds the standalone Windows .exe (PyInstaller) and attaches it to the
+# GitHub Release for the pushed tag. Mirrors exactly the steps verified locally with
+# scripts/build-exe.ps1 (frontend build -> pip install -> pyinstaller).
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install walker + PyInstaller
+        run: pip install -e ".[build-exe]"
+
+      - name: Build the .exe
+        run: pyinstaller walker.spec --noconfirm
+
+      - name: Attach walker.exe to the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/walker.exe

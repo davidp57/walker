@@ -15,6 +15,11 @@ All notable changes to Walker are documented here. Format loosely follows
   pure function with no database dependency, and changing the scheme reshapes the Timesheet period view
   immediately (no reload). Existing users on the default scheme see byte-for-byte identical boundaries
   (1st–15th / 16th–end of month). See ADR-0009.
+- **Remove PwC branding; optional User display name** (CHR-004): the shell footer no longer hardcodes
+  "Consultant" / "PwC · Advisory" — it shows the `User`'s optional `name` when set, falling back to
+  `username`, with no role/employer line at all. `User` gains a nullable `name` column, surfaced via a
+  new `GET /api/user` endpoint. Remaining standalone "PwC" mentions in docs and code comments (not part
+  of the "T&E"/"Time & Expenses" wording handled separately) are also gone.
 - **UX lot shipped**: post-MVP UX improvements surfaced by a review of the running app — frontend-only,
   no API/schema/domain change (durations still recorded and aggregated exactly as before, ADR-0005).
   - **Unified Fortnight grid** (BIZ-007): Fortnight and "Enter in T&E" merged into one screen with a
