@@ -28,20 +28,48 @@ def main() -> None:
             return
 
         codes_data = [
-            ("N9/1042", "MNT - PAP V4", "Paper V4", "#5b9cf6",
-             [("0001", "Bug fixing"), ("0002", "Change request"),
-              ("0003", "Communication & Meeting"), ("0004", "Support")]),
-            ("N9/2318", "DEV - CLIENT PORTAL", "Client Portal", "#3fb68b",
-             [("0001", "Bug fixing"), ("0002", "Change request"), ("0003", "Communication & Meeting")]),
-            ("N9/0007", "INT - INTERNAL / ADMIN", "Internal & Admin", "#c88b5b",
-             [("0003", "Communication & Meeting"), ("0004", "Support")]),
-            ("N9/5501", "MNT - DATA PLATFORM", "Data Platform", "#a879d6",
-             [("0001", "Bug fixing"), ("0002", "Change request")]),
+            (
+                "N9/1042",
+                "MNT - PAP V4",
+                "Paper V4",
+                "#5b9cf6",
+                [
+                    ("0001", "Bug fixing"),
+                    ("0002", "Change request"),
+                    ("0003", "Communication & Meeting"),
+                    ("0004", "Support"),
+                ],
+            ),
+            (
+                "N9/2318",
+                "DEV - CLIENT PORTAL",
+                "Client Portal",
+                "#3fb68b",
+                [("0001", "Bug fixing"), ("0002", "Change request"), ("0003", "Communication & Meeting")],
+            ),
+            (
+                "N9/0007",
+                "INT - INTERNAL / ADMIN",
+                "Internal & Admin",
+                "#c88b5b",
+                [("0003", "Communication & Meeting"), ("0004", "Support")],
+            ),
+            (
+                "N9/5501",
+                "MNT - DATA PLATFORM",
+                "Data Platform",
+                "#a879d6",
+                [("0001", "Bug fixing"), ("0002", "Change request")],
+            ),
         ]
         codes: dict[str, TimesheetCode] = {}
         for number, label, name, color, acts in codes_data:
             code = TimesheetCode(
-                user_id=user.id, number=number, label=label, name=name, color=color,
+                user_id=user.id,
+                number=number,
+                label=label,
+                name=name,
+                color=color,
                 activities=[Activity(code=ac, label=al) for ac, al in acts],
             )
             session.add(code)
@@ -55,18 +83,72 @@ def main() -> None:
         today = date.today()
 
         # Today's tracked entries (one still uncategorized, to show the "needs a code" flag).
-        session.add_all([
-            Entry(user_id=user.id, date=today, start_minute=542, end_minute=588, timesheet_code_id=pap, activity="Communication & Meeting", description="Daily stand-up + backlog grooming"),
-            Entry(user_id=user.id, date=today, start_minute=588, end_minute=675, timesheet_code_id=pap, activity="Bug fixing", description="PAP V4 - fix date parsing on CSV import"),
-            Entry(user_id=user.id, date=today, start_minute=680, end_minute=725, timesheet_code_id=portal, activity="Change request", description="Client portal - add CSV export button"),
-            Entry(user_id=user.id, date=today, start_minute=850, end_minute=875, timesheet_code_id=None, activity=None, description=""),
-        ])
+        session.add_all(
+            [
+                Entry(
+                    user_id=user.id,
+                    date=today,
+                    start_minute=542,
+                    end_minute=588,
+                    timesheet_code_id=pap,
+                    activity="Communication & Meeting",
+                    description="Daily stand-up + backlog grooming",
+                ),
+                Entry(
+                    user_id=user.id,
+                    date=today,
+                    start_minute=588,
+                    end_minute=675,
+                    timesheet_code_id=pap,
+                    activity="Bug fixing",
+                    description="PAP V4 - fix date parsing on CSV import",
+                ),
+                Entry(
+                    user_id=user.id,
+                    date=today,
+                    start_minute=680,
+                    end_minute=725,
+                    timesheet_code_id=portal,
+                    activity="Change request",
+                    description="Client portal - add CSV export button",
+                ),
+                Entry(
+                    user_id=user.id,
+                    date=today,
+                    start_minute=850,
+                    end_minute=875,
+                    timesheet_code_id=None,
+                    activity=None,
+                    description="",
+                ),
+            ]
+        )
 
         # Spread work across the first-half Timesheet period so the grid + checklist have content.
         for day in (1, 2, 3):
             day_date = today.replace(day=day)
-            session.add(Entry(user_id=user.id, date=day_date, start_minute=540, end_minute=660, timesheet_code_id=pap, activity="Bug fixing", description="PAP V4"))
-            session.add(Entry(user_id=user.id, date=day_date, start_minute=780, end_minute=840, timesheet_code_id=portal, activity="Change request", description="Portal"))
+            session.add(
+                Entry(
+                    user_id=user.id,
+                    date=day_date,
+                    start_minute=540,
+                    end_minute=660,
+                    timesheet_code_id=pap,
+                    activity="Bug fixing",
+                    description="PAP V4",
+                )
+            )
+            session.add(
+                Entry(
+                    user_id=user.id,
+                    date=day_date,
+                    start_minute=780,
+                    end_minute=840,
+                    timesheet_code_id=portal,
+                    activity="Change request",
+                    description="Portal",
+                )
+            )
 
         if session.query(Settings).filter_by(user_id=user.id).first() is None:
             session.add(Settings(user_id=user.id))
