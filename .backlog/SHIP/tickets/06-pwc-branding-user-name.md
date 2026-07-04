@@ -1,7 +1,7 @@
 # CHR-004 — Remove PwC branding; optional User display name
 
 ID: CHR-004
-Status: ⬜ ready
+Status: ✅ done
 Type: chore
 Priority: P3
 
@@ -18,11 +18,11 @@ line is shown at all — the account is just a username and, optionally, a perso
 
 ## Acceptance criteria
 
-- [ ] No "PwC" string remains in the app's UI, seed data, or docs.
-- [ ] `User` gains an optional `name` column (nullable, no default value required at account creation).
-- [ ] The shell footer shows `name` when set, `username` otherwise — no hardcoded role or employer text.
-- [ ] Backend tests: creating a `User` without a `name` still works; the API surfaces `name` when set.
-- [ ] Frontend tests: the footer renders the display name, and falls back to username when absent.
+- [x] No "PwC" string remains in the app's UI, seed data, or docs.
+- [x] `User` gains an optional `name` column (nullable, no default value required at account creation).
+- [x] The shell footer shows `name` when set, `username` otherwise — no hardcoded role or employer text.
+- [x] Backend tests: creating a `User` without a `name` still works; the API surfaces `name` when set.
+- [x] Frontend tests: the footer renders the display name, and falls back to username when absent.
 
 ## Blocked by
 

@@ -8,7 +8,7 @@ export interface Activity {
 }
 
 /**
- * A PwC charge code. `number` is only needed for the Timesheet system; `name` (libellé) is the primary label.
+ * A charge code. `number` is only needed for the Timesheet system; `name` (libellé) is the primary label.
  *
  * Either **real** (`isVirtual === false`, exists in the Timesheet system, imported) or **virtual** (Walker-only,
  * `realCodeId` points at exactly one real code — ADR-0008). `number`, `label`, and `activities` are
