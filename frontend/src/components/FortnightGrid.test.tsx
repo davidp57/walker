@@ -171,7 +171,7 @@ describe('FortnightGrid — Activity dedup', () => {
   })
 })
 
-describe('FortnightGrid — copy T&E code', () => {
+describe('FortnightGrid — copy Timesheet-system code', () => {
   const row: FortnightRow = {
     key: 'c1|Internal administration',
     code: code({ number: 'N9/1042' }),
@@ -190,7 +190,7 @@ describe('FortnightGrid — copy T&E code', () => {
     vi.restoreAllMocks()
   })
 
-  it('copies the code number to the clipboard when clicked, in Enter-in-T&E (checklist) mode', async () => {
+  it('copies the code number to the clipboard when clicked, in Enter-in-Timesheet-system (checklist) mode', async () => {
     render(
       <FortnightGrid
         mode="checklist"

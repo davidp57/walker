@@ -23,6 +23,15 @@ class CurrentUserRead(BaseModel):
     organization_id: int | None
 
 
+class UserRead(BaseModel):
+    """The current user, as returned by ``GET /api/user``."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    username: str
+    name: str | None
+
+
 class ActivityRead(BaseModel):
     """An activity (sub-code) nested under a code in the catalog."""
 

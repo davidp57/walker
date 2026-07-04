@@ -1,4 +1,4 @@
-"""The Activity model — a T&E activity (sub-code) belonging to one TimesheetCode."""
+"""The Activity model — a Timesheet-system activity (sub-code) belonging to one TimesheetCode."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 
 class Activity(TimestampMixin, Base):
-    """An activity under a TimesheetCode: a T&E sub-``code`` plus a human ``label``."""
+    """An activity under a TimesheetCode: a Timesheet-system sub-``code`` plus a human ``label``."""
 
     __tablename__ = "activities"
 

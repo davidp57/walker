@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.sessions import SessionMiddleware
 
 from walker import __version__
-from walker.api.routers import codes, entries, fortnight, health, reference, tasks
+from walker.api.routers import codes, entries, fortnight, health, reference, tasks, user
 from walker.api.routers import settings as settings_router
 from walker.config import settings
 from walker.logging_config import configure_logging
@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(reference.router, prefix="/api")
     app.include_router(settings_router.router, prefix="/api")
     app.include_router(tasks.router, prefix="/api")
+    app.include_router(user.router, prefix="/api")
 
     dist = _frontend_dist()
     if dist.is_dir():

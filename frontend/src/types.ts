@@ -1,16 +1,16 @@
 /** An activity label, as carried by an Entry / grid row (the label the user reads). */
 export type ActivityName = string
 
-/** A catalog activity: a T&E sub-code + its label. Belongs to one TimesheetCode (hierarchical). */
+/** A catalog activity: a Timesheet-system sub-code + its label. Belongs to one TimesheetCode (hierarchical). */
 export interface Activity {
-  code: string // T&E sub-code, e.g. "0001"
+  code: string // Timesheet-system sub-code, e.g. "0001"
   label: string // e.g. "Bug fixing"
 }
 
 /**
- * A PwC charge code. `number` is only needed for T&E; `name` (libellé) is the primary label.
+ * A charge code. `number` is only needed for the Timesheet system; `name` (libellé) is the primary label.
  *
- * Either **real** (`isVirtual === false`, exists in T&E, imported) or **virtual** (Walker-only,
+ * Either **real** (`isVirtual === false`, exists in the Timesheet system, imported) or **virtual** (Walker-only,
  * `realCodeId` points at exactly one real code — ADR-0008). `number`, `label`, and `activities` are
  * already resolved by the API: a virtual code's own for a real code, borrowed from its real code
  * otherwise — the SPA never needs to resolve them itself.
@@ -19,7 +19,7 @@ export interface TimesheetCode {
   id: string
   number: string // e.g. "N9/1042"
   name: string // human project name (libellé), e.g. "Paper V4"
-  label: string // technical T&E label, e.g. "MNT - PAP V4"
+  label: string // technical Timesheet-system label, e.g. "MNT - PAP V4"
   color: string // accent dot color (hex)
   activities: Activity[] // this code's own activities (each code has its own list)
   isVirtual: boolean
@@ -48,7 +48,7 @@ export interface Entry {
   taskId?: string | null // the Task this Entry was started from (BIZ-023), or null/absent
 }
 
-/** A non-worked day, reflected from T&E (read-only) or entered manually in the POC. */
+/** A non-worked day, reflected from the Timesheet system (read-only) or entered manually in the POC. */
 export interface Absence {
   date: string // ISO date "YYYY-MM-DD"
   reason: string // "Annual leave", "Public holiday", ...
@@ -76,7 +76,7 @@ export interface FortnightRow {
   minutesByDay: Record<number, number>
 }
 
-/** Which grid cells have been keyed into T&E. Key = `${rowKey}#${day}`. */
+/** Which grid cells have been keyed into the Timesheet system. Key = `${rowKey}#${day}`. */
 export type ChecklistState = Record<string, boolean>
 
 /** A previously-used task, surfaced as a comment-autocomplete suggestion. */
