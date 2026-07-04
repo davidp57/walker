@@ -29,7 +29,8 @@ def find_or_create_user_for_email(session: Session, email: str) -> User:
         return user
 
     organization = resolve_organization_for_email(session, normalized_email)
-    user = User(username=normalized_email, email=normalized_email, organization_id=organization.id)
+    organization_id = organization.id if organization is not None else None
+    user = User(username=normalized_email, email=normalized_email, organization_id=organization_id)
     session.add(user)
     session.commit()
     session.refresh(user)

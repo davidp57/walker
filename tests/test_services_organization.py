@@ -45,3 +45,19 @@ def test_resolve_domain_matching_is_case_insensitive(session: Session) -> None:
 def test_resolve_rejects_email_without_domain(session: Session) -> None:
     with pytest.raises(ValidationError):
         resolve_organization_for_email(session, "not-an-email")
+
+
+def test_resolve_returns_none_for_free_mail_domain(session: Session) -> None:
+    org = resolve_organization_for_email(session, "alice@gmail.com")
+
+    assert org is None
+    assert session.query(Organization).count() == 0
+
+
+def test_resolve_never_shares_organization_across_free_mail_users(session: Session) -> None:
+    alice = resolve_organization_for_email(session, "alice@gmail.com")
+    bob = resolve_organization_for_email(session, "bob@gmail.com")
+
+    assert alice is None
+    assert bob is None
+    assert session.query(Organization).count() == 0
