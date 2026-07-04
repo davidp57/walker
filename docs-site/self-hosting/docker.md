@@ -17,16 +17,22 @@ This builds the image, starts the container, and publishes the app on
 
 ## Running the image directly
 
-If you'd rather run the image without checking out the repository (once a published image is
-available), the equivalent `docker run` looks like this:
+If you'd rather run the published image without checking out the repository, the equivalent
+`docker run` looks like this:
 
 ```bash
 docker run -d \
   --name walker \
   -p 8000:8000 \
   -v walker-data:/data \
-  walker:latest
+  ghcr.io/davidp57/walker:latest
 ```
+
+Note that `ghcr.io/davidp57/walker` is a **private** package by default (a GitHub Container
+Registry setting, independent of the source repository's visibility) — `docker pull` will need
+`docker login ghcr.io` with a token that has `read:packages` scope unless the package has been made
+public. See the [Portainer guide](portainer.md#prerequisite-image-visibility) for how to check or
+change this.
 
 - `-p 8000:8000` publishes the web app on port 8000 — change the first number if you want a
   different port on the host (e.g. `-p 9000:8000`).

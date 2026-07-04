@@ -5,6 +5,26 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-07-04
+
+### Fixed
+
+- **Free-mail domains no longer auto-join a shared Organization**: `resolve_organization_for_email`
+  had no exclusion at all — two strangers signing in via SSO with personal `@gmail.com` (or
+  `outlook.com`, `icloud.com`, and other free-mail providers) accounts would land in the same
+  Organization and share a real-code catalog. Free-mail domains now resolve to no Organization,
+  matching the existing `organization_id=None` fallback (private, self-only catalog) that a
+  standalone single-user deployment already had.
+
+### Added
+
+- **Portainer self-hosting guide**: deploying the published `ghcr.io/davidp57/walker` image as a
+  Portainer stack, including the GitHub Container Registry private-by-default gotcha and optional
+  SSO env vars.
+- **SSO configuration guide**: step-by-step Google Cloud Console setup (OAuth consent screen,
+  client ID, the exact redirect URI Walker expects), the HTTPS-is-mandatory requirement for the
+  session cookie to persist, and a pointer for Apple/Microsoft following the same shape.
+
 ## [1.0.0] - 2026-07-04
 
 ### Added

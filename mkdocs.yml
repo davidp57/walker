@@ -42,5 +42,7 @@ nav:
   - Getting Started: getting-started.md
   - Self-hosting:
       - Docker: self-hosting/docker.md
+      - Portainer: self-hosting/portainer.md
       - Standalone .exe: self-hosting/standalone-exe.md
+      - Configuring SSO: self-hosting/sso.md
   - Day-to-day Guide: guide.md

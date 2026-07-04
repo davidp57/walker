@@ -25,7 +25,15 @@ from walker.models.settings import PeriodScheme
 
 @dataclass
 class PeriodRow:
-    """One Code × Activity row: minutes summed per day-of-month."""
+    """One Code × Activity row: minutes summed per day-of-month.
+
+    Keying by day-of-month (not a full date) is unambiguous for every scheme, including ``weekly``
+    even though a week can cross a month boundary: the maximum month length is 31 and the minimum is
+    28, both well above the 7-day window, so a week spans at most one boundary and splits into two
+    day-of-month runs — a tail ending at the outgoing month's last day and a head starting at 1 — whose
+    value ranges can never overlap (the tail's minimum is ``month_length - 6``, at least 22, far above
+    the head's maximum of 6). No two days in one period ever share a day-of-month value.
+    """
 
     timesheet_code_id: int
     activity: str

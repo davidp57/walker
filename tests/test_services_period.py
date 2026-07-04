@@ -167,6 +167,40 @@ def test_aggregate_respects_weekly_scheme(session: Session) -> None:
     assert grid.rows[0].minutes_by_day == {1: 60}
 
 
+def test_aggregate_weekly_crossing_month_boundary_keeps_days_distinct(session: Session) -> None:
+    """A week spanning July 27 - August 2 has day-of-month values 27-31 and 1-2: no overlap possible
+    (see `PeriodRow.minutes_by_day`'s docstring), so both sides of the boundary must stay distinct
+    entries in the same grid row."""
+    user_id, code_id = _seed(session)
+    session.add_all(
+        [
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 31),
+                start_minute=540,
+                end_minute=600,
+                timesheet_code_id=code_id,
+                activity="Bug fixing",
+            ),
+            Entry(
+                user_id=user_id,
+                date=date(2026, 8, 1),
+                start_minute=540,
+                end_minute=660,
+                timesheet_code_id=code_id,
+                activity="Bug fixing",
+            ),
+        ]
+    )
+    session.commit()
+
+    grid = aggregate_period(session, user_id, "weekly", date(2026, 7, 31))
+
+    assert (grid.start, grid.end) == (date(2026, 7, 27), date(2026, 8, 2))
+    assert len(grid.rows) == 1
+    assert grid.rows[0].minutes_by_day == {31: 60, 1: 120}
+
+
 def test_aggregate_respects_monthly_scheme(session: Session) -> None:
     user_id, code_id = _seed(session)
     session.add_all(

@@ -23,7 +23,11 @@ from walker.services.settings import get_settings
 
 @dataclass
 class ChecklistItem:
-    """One checklist line: a grid cell plus its entered state."""
+    """One checklist line: a grid cell plus its entered state.
+
+    ``day`` is day-of-month, inherited from ``PeriodRow.minutes_by_day`` — see that field's docstring
+    for why it stays unambiguous even for a ``weekly`` period crossing a month boundary.
+    """
 
     timesheet_code_id: int
     activity: str
