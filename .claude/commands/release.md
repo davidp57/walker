@@ -42,8 +42,10 @@ Iterate until approved.
 1. Move `RELEASE_NOTES.md`'s approved content into place (already written in Step 3).
 2. In `CHANGELOG.md`: rename `## [Unreleased]` to `## [x.y.z] - YYYY-MM-DD` (today's date), and add
    a fresh empty `## [Unreleased]` section above it for future work.
-3. Bump the version to `x.y.z` in **both**:
+3. Bump the version to `x.y.z` in **all three**:
    - `pyproject.toml` (`version = "x.y.z"`)
+   - `src/walker/__init__.py` (`__version__ = "x.y.z"` — not derived from `pyproject.toml`, and it's
+     what `FastAPI(version=...)` reports)
    - `frontend/package.json` — use `npm --prefix frontend version x.y.z --no-git-tag-version` so
      `package-lock.json`'s top-level version stays in sync too.
 4. Do **not** touch `ROADMAP.md` or `.backlog/` — lot completion is tracked independently of
