@@ -12,6 +12,7 @@ source of truth for **scope and status**.
 
 | Lot | Status |
 |-----|--------|
+| [SHIP](SHIP/PRD.md) — Professionalize Walker into a shareable app: generic vocabulary, configurable Timesheet period, Organization-scoped catalog + SSO, docs site, CI, Docker + `.exe` CD | ⬜ |
 | [TECH](TECH/PRD.md) — Cross-cutting technical debt (living lot; tickets added/resolved individually) | 🔄 |
 
 ## Archived lots
