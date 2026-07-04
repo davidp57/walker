@@ -15,6 +15,14 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class CurrentUserRead(BaseModel):
+    """The signed-in user, as returned by ``GET /api/auth/me`` (hosted/``sso`` deployments only)."""
+
+    id: int
+    email: str
+    organization_id: int | None
+
+
 class ActivityRead(BaseModel):
     """An activity (sub-code) nested under a code in the catalog."""
 

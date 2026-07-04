@@ -1,7 +1,7 @@
 # BIZ-029 — SSO login (Google/Apple/Microsoft) for the hosted instance
 
 ID: BIZ-029
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -25,14 +25,14 @@ ticket's scope, not something to block on.
 
 ## Acceptance criteria
 
-- [ ] A User can sign in via Google, Apple, or Microsoft on the hosted deployment; a successful login
+- [x] A User can sign in via Google, Apple, or Microsoft on the hosted deployment; a successful login
       creates or joins their Organization by email domain (BIZ-028) and creates or reuses their `User`.
-- [ ] The standalone Docker/`.exe` deployment mode is entirely unaffected — no login screen, same
+- [x] The standalone Docker/`.exe` deployment mode is entirely unaffected — no login screen, same
       implicit default user as before this ticket.
-- [ ] A deployment-mode setting/flag controls which auth path is active; it's impossible to accidentally
+- [x] A deployment-mode setting/flag controls which auth path is active; it's impossible to accidentally
       run the hosted OAuth path in a standalone build or vice versa.
-- [ ] Session handling (however implemented) keeps a signed-in User's identity across requests securely.
-- [ ] Backend tests exercise the OAuth callback flow with each provider's response **mocked** — never
+- [x] Session handling (however implemented) keeps a signed-in User's identity across requests securely.
+- [x] Backend tests exercise the OAuth callback flow with each provider's response **mocked** — never
       against real Google/Apple/Microsoft accounts.
 
 ## Blocked by

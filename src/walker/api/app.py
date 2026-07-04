@@ -13,6 +13,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
+from starlette.middleware.sessions import SessionMiddleware
 
 from walker import __version__
 from walker.api.routers import codes, entries, fortnight, health, reference, tasks
@@ -47,9 +48,23 @@ def _frontend_dist() -> Path:
 
 
 def create_app() -> FastAPI:
-    """Build and configure the FastAPI application."""
+    """Build and configure the FastAPI application.
+
+    ``settings.auth_mode`` (ADR-0010) gates the hosted SSO login flow: the auth router and its
+    ``SessionMiddleware`` (used only to hold OAuth ``state``/``nonce`` during the provider round
+    trip, not the app's own session) are mounted only when ``auth_mode == "sso"``. In the default
+    ``"none"`` mode — every standalone Docker/``.exe`` deployment — neither exists, so there is no
+    way to accidentally reach the OAuth path.
+    """
     configure_logging()
     app = FastAPI(title="Walker", version=__version__, lifespan=_lifespan)
+
+    if settings.auth_mode == "sso":
+        from walker.api.routers import auth as auth_router
+
+        app.add_middleware(SessionMiddleware, secret_key=settings.session_secret)
+        app.include_router(auth_router.router, prefix="/api")
+
     app.include_router(health.router, prefix="/api")
     app.include_router(codes.router, prefix="/api")
     app.include_router(entries.router, prefix="/api")
