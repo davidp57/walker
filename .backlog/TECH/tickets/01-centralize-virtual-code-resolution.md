@@ -17,18 +17,20 @@ real code for T&E-facing views) is implemented independently in two places:
 - Backend: `src/walker/services/fortnight.py::resolve_to_real_codes` (used by
   `services/checklist.py::derive_checklist`).
 - Frontend: `frontend/src/lib/checklist.ts::resolveChecklistRows` (used by `App.tsx` to build the
-  rows passed to `ChecklistScreen`).
+  Enter-in-T&E rows passed to the unified `FortnightScreen` — BIZ-007 later merged the standalone
+  `ChecklistScreen` into `FortnightScreen`'s Enter-in-T&E mode, but the resolution call site and the
+  duplication it describes are otherwise unchanged).
 
 If the resolution rule changes later, both places need updating in sync, and they could silently
 diverge. Flagged in code review (sourcery-ai on
 [PR #1](https://github.com/davidp57/walker/pull/1)).
 
-Investigate whether the frontend's `resolveChecklistRows` can be eliminated by having
-`ChecklistScreen` consume the already-resolved data from `GET /api/fortnight/{date}/checklist`
+Investigate whether the frontend's `resolveChecklistRows` can be eliminated by having the
+Enter-in-T&E mode consume the already-resolved data from `GET /api/fortnight/{date}/checklist`
 (`ChecklistItemRead[]`, already resolved to real codes server-side) instead of re-deriving resolved
 rows client-side from the Review-level `FortnightRow[]`. This likely means changing
 `frontend/src/lib/api.ts::fetchChecklist`'s return shape (it currently discards everything except an
-`entered` boolean map) and updating `App.tsx`/`ChecklistScreen.tsx` accordingly. Weigh this against
+`entered` boolean map) and updating `App.tsx`/`FortnightScreen.tsx` accordingly. Weigh this against
 just keeping both implementations but adding a shared test fixture/contract test that fails if they
 diverge. Pick whichever approach reduces duplication with the least blast radius.
 
