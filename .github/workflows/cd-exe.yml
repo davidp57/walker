@@ -1,12 +1,17 @@
 name: CD - standalone .exe
 
-# CHR-009: builds the standalone Windows .exe (PyInstaller) and attaches it to the
-# GitHub Release for the pushed tag. Mirrors exactly the steps verified locally with
-# scripts/build-exe.ps1 (frontend build -> pip install -> pyinstaller).
+# CHR-009: builds the standalone Windows .exe (PyInstaller). Mirrors exactly the steps verified
+# locally with scripts/build-exe.ps1 (frontend build -> pip install -> pyinstaller).
+#
+# Version tags publish walker.exe to the GitHub Release. Pushes to develop only build it and keep
+# it as a workflow artifact (retained by GitHub Actions, downloadable from the run) so the .exe can
+# be smoke-tested ahead of a release, without creating one.
 on:
   push:
     tags:
       - "v*"
+    branches:
+      - develop
 
 jobs:
   build-exe:
@@ -38,7 +43,15 @@ jobs:
       - name: Build the .exe
         run: pyinstaller walker.spec --noconfirm
 
-      - name: Attach walker.exe to the GitHub Release
+      - name: Upload walker.exe as a workflow artifact (develop)
+        if: startsWith(github.ref, 'refs/heads/')
+        uses: actions/upload-artifact@v4
+        with:
+          name: walker-exe
+          path: dist/walker.exe
+
+      - name: Attach walker.exe to the GitHub Release (version tags)
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           files: dist/walker.exe
