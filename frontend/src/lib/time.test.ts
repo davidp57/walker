@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { elapsedSecondsSince, formatClock, formatDuration, parseDuration, parseMilitaryClock } from './time'
+import {
+  elapsedSecondsSince,
+  formatClock,
+  formatDuration,
+  parseDuration,
+  parseMilitaryClock,
+} from './time'
 
 describe('parseMilitaryClock', () => {
   it('accepts both "hhmm" and "hh:mm"', () => {

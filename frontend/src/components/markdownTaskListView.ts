@@ -72,7 +72,5 @@ class TaskListItemView implements NodeView {
 
 export const taskListItemView = $view(
   extendListItemSchemaForTask.node,
-  () =>
-    (node, view, getPos) =>
-      new TaskListItemView(node, view, getPos),
+  () => (node, view, getPos) => new TaskListItemView(node, view, getPos),
 )

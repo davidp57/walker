@@ -118,7 +118,10 @@ const periodStartFor = (scheme: PeriodScheme, anchor: string): string =>
 // Move to the previous/next Timesheet period, crossing month boundaries.
 const shiftPeriod = (scheme: PeriodScheme, anchor: string, dir: -1 | 1): string => {
   const { start, end } = periodBounds(scheme, anchor)
-  const step = dir === 1 ? new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1) : new Date(start.getFullYear(), start.getMonth(), start.getDate() - 1)
+  const step =
+    dir === 1
+      ? new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1)
+      : new Date(start.getFullYear(), start.getMonth(), start.getDate() - 1)
   return isoDate(step)
 }
 

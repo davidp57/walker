@@ -308,9 +308,7 @@ interface ApiPeriod {
 }
 
 /** Fetch the aggregated Timesheet period grid as a `${codeId}|${activity}` → day → minutes matrix. */
-export async function fetchPeriod(
-  date: string,
-): Promise<Record<string, Record<number, number>>> {
+export async function fetchPeriod(date: string): Promise<Record<string, Record<number, number>>> {
   const grid = await getJson<ApiPeriod>(`/api/period/${date}`)
   const matrix: Record<string, Record<number, number>> = {}
   for (const row of grid.rows) {
@@ -359,9 +357,7 @@ export async function toggleChecklist(date: string, mark: ChecklistMarkInput): P
 export async function resetChecklist(date: string): Promise<void> {
   const response = await fetch(`/api/period/${date}/checklist`, { method: 'DELETE' })
   if (!response.ok) {
-    throw new Error(
-      `${response.status} ${response.statusText} for /api/period/${date}/checklist`,
-    )
+    throw new Error(`${response.status} ${response.statusText} for /api/period/${date}/checklist`)
   }
 }
 

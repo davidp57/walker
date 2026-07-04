@@ -40,7 +40,9 @@ function MilkdownEditorInner({ value, onChange, placeholder, readOnly }: Markdow
             // Kit API has no built-in placeholder plugin; Crepe's is Vue-only, so this stays plain.
             ctx.set(paragraphAttr.key, (node) => {
               const isSoleEmptyParagraph = node.content.size === 0 && node.nodeSize === 2
-              return isSoleEmptyParagraph ? { 'data-placeholder': placeholder, class: 'is-empty' } : {}
+              return isSoleEmptyParagraph
+                ? { 'data-placeholder': placeholder, class: 'is-empty' }
+                : {}
             })
           }
           ctx.get(listenerCtx).markdownUpdated((_ctx, markdown, prevMarkdown) => {
