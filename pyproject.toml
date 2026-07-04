@@ -1,7 +1,7 @@
 [project]
 name = "walker"
 version = "0.1.0"
-description = "Personal time tracker that makes filling the PwC Time & Expenses timesheet painless"
+description = "Personal time tracker that makes filling the PwC Timesheet system painless"
 authors = [{name = "David Pierron", email = "dpierron@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.13"
@@ -24,6 +24,10 @@ dev = [
     "httpx>=0.27.0",
     "ruff>=0.6.0",
     "mypy>=1.11.0",
+]
+docs = [
+    "mkdocs>=1.6.0",
+    "mkdocs-material>=9.5.0",
 ]
 
 [project.scripts]

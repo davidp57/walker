@@ -262,7 +262,7 @@ def test_list_task_tags_empty_when_no_tasks(client: TestClient) -> None:
 def test_create_task_with_recurrence_rule(client: TestClient) -> None:
     response = client.post(
         "/api/tasks",
-        json={"title": "Key in T&E", "recurrence_rule": {"kind": "every_n_days", "n": 14}},
+        json={"title": "Key in Timesheet system", "recurrence_rule": {"kind": "every_n_days", "n": 14}},
     )
 
     assert response.status_code == 201
@@ -302,7 +302,7 @@ def test_completing_a_recurring_task_rolls_it_forward_every_n_days(client: TestC
     created = client.post(
         "/api/tasks",
         json={
-            "title": "Key in T&E",
+            "title": "Key in Timesheet system",
             "status": "in_progress",
             "due_date": "2026-07-01",
             "recurrence_rule": {"kind": "every_n_days", "n": 14},
@@ -331,7 +331,7 @@ def test_completing_a_fortnight_relative_task_snaps_to_working_days_via_settings
     created = client.post(
         "/api/tasks",
         json={
-            "title": "Key in T&E",
+            "title": "Key in Timesheet system",
             "due_date": "2026-06-15",
             "recurrence_rule": {"kind": "fortnight_relative", "anchor": "end", "offset_days": -1},
         },

@@ -30,6 +30,9 @@ frontend/.vite/
 npm-debug.log*
 pnpm-debug.log*
 
+# --- Docs (MkDocs build output) ---
+/site/
+
 # --- IDE / OS ---
 .vscode/
 .idea/

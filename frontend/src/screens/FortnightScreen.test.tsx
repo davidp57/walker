@@ -41,7 +41,7 @@ const reviewRows: FortnightRow[] = [
   { key: '2|Bug fixing', code: virtualCode, activity: 'Bug fixing', minutesByDay: { 2: 30 } },
 ]
 
-// Enter-in-T&E rows: the virtual code above resolves to the real code, so this is what
+// Enter-in-Timesheet-system rows: the virtual code above resolves to the real code, so this is what
 // resolveChecklistRows would produce — a single merged real-code row with both days' minutes.
 const enterRows: FortnightRow[] = [
   { key: '1|Bug fixing', code, activity: 'Bug fixing', minutesByDay: { 1: 60, 2: 30 } },
@@ -84,17 +84,21 @@ describe('FortnightScreen — mode toggle', () => {
     renderScreen()
 
     expect(screen.getByRole('button', { name: 'Review' })).toHaveClass('is-active')
-    expect(screen.getByRole('button', { name: 'Enter in T&E' })).not.toHaveClass('is-active')
+    expect(screen.getByRole('button', { name: 'Enter in Timesheet system' })).not.toHaveClass(
+      'is-active',
+    )
     expect(screen.getByText('+ Add entry')).toBeInTheDocument()
     expect(screen.queryByText('lines entered')).not.toBeInTheDocument()
   })
 
-  it('switches to Enter in T&E and shows its mode-specific controls', () => {
+  it('switches to Enter in Timesheet system and shows its mode-specific controls', () => {
     renderScreen()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
 
-    expect(screen.getByRole('button', { name: 'Enter in T&E' })).toHaveClass('is-active')
+    expect(screen.getByRole('button', { name: 'Enter in Timesheet system' })).toHaveClass(
+      'is-active',
+    )
     expect(screen.queryByText('+ Add entry')).not.toBeInTheDocument()
     expect(screen.getByText('lines entered')).toBeInTheDocument()
     expect(screen.getByText('Reset')).toBeInTheDocument()
@@ -103,15 +107,15 @@ describe('FortnightScreen — mode toggle', () => {
   it('switching mode keeps the period label in place (no reload)', () => {
     renderScreen()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
 
     expect(screen.getByText('1 – 15 July 2026')).toBeInTheDocument()
   })
 
-  it('switches back to Review from Enter in T&E', () => {
+  it('switches back to Review from Enter in Timesheet system', () => {
     renderScreen()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
     fireEvent.click(screen.getByRole('button', { name: 'Review' }))
 
     expect(screen.getByText('+ Add entry')).toBeInTheDocument()
@@ -157,10 +161,10 @@ describe('FortnightScreen — Review mode', () => {
   })
 })
 
-describe('FortnightScreen — Enter in T&E mode', () => {
+describe('FortnightScreen — Enter in Timesheet system mode', () => {
   function enterMode(overrides: Partial<Parameters<typeof FortnightScreen>[0]> = {}) {
     const props = renderScreen(overrides)
-    fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
     return props
   }
 
@@ -239,10 +243,10 @@ describe('FortnightScreen — Total column', () => {
     expect(screen.getByText('Total')).toBeInTheDocument()
   })
 
-  it('shows the Total column header in Enter in T&E mode', () => {
+  it('shows the Total column header in Enter in Timesheet system mode', () => {
     renderScreen()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
 
     expect(screen.getByText('Total')).toBeInTheDocument()
   })
@@ -264,13 +268,13 @@ describe('FortnightScreen — running timer cell', () => {
     expect(runningRow).toBeTruthy()
   })
 
-  it('is not tickable in Enter in T&E mode', () => {
+  it('is not tickable in Enter in Timesheet system mode', () => {
     const onChecklistChange = vi.fn()
     renderScreen({
       runningCell: { key: '1|Bug fixing', day: 1 },
       onChecklistChange,
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
 
     // Day 1 for the merged real-code row is the running cell; clicking it must not toggle.
     const cell = screen.getByTitle('Timer running — stop it to edit')
@@ -279,16 +283,16 @@ describe('FortnightScreen — running timer cell', () => {
     expect(onChecklistChange).not.toHaveBeenCalled()
   })
 
-  it('is not tickable in Enter in T&E mode when the timer runs on a virtual code (ADR-0008)', () => {
+  it('is not tickable in Enter in Timesheet system mode when the timer runs on a virtual code (ADR-0008)', () => {
     // Review's runningCell is keyed by the virtual code; enterRunningCell resolves it to the real
-    // code so it still matches the merged Enter-in-T&E row (App.tsx wires this resolution).
+    // code so it still matches the merged Enter-in-Timesheet-system row (App.tsx wires this resolution).
     const onChecklistChange = vi.fn()
     renderScreen({
       runningCell: { key: '2|Bug fixing', day: 1 },
       enterRunningCell: { key: '1|Bug fixing', day: 1 },
       onChecklistChange,
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Enter in T&E' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
 
     const cell = screen.getByTitle('Timer running — stop it to edit')
     fireEvent.click(cell)

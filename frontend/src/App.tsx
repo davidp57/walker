@@ -683,7 +683,7 @@ function AppInner() {
   }, [running, anchor, days, codesById])
 
   // The running cell's key, resolved virtual→real (ADR-0008) so it matches `checklistRows`' keys —
-  // Enter-in-T&E must tint/exclude the running cell even when tracked on a virtual code.
+  // Enter-in-Timesheet-system must tint/exclude the running cell even when tracked on a virtual code.
   const enterRunningCell = useMemo(() => {
     if (!runningCell) return null
     const realCode = runningCell.code.realCodeId
@@ -713,9 +713,9 @@ function AppInner() {
     return [...rows, { key, code, activity, minutesByDay: { [day]: runningMinutes } }]
   }, [rows, runningCell, runningMinutes])
 
-  // Enter-in-T&E view (ADR-0008): resolve virtual codes to their real code and collapse rows that
+  // Enter-in-Timesheet-system view (ADR-0008): resolve virtual codes to their real code and collapse rows that
   // share one — several fine-grained Walker rows become one real-code × activity line, matching
-  // both the server's `derive_checklist` and what gets keyed into T&E. `checked` (fetched from the
+  // both the server's `derive_checklist` and what gets keyed into the Timesheet system. `checked` (fetched from the
   // checklist endpoint) is already real-code-keyed, so its keys must match these rows' keys. Built
   // from `gridRows` (not raw `rows`) so the running cell is present here too (BIZ-007) — it is
   // excluded from fill order/ticking via `enterRunningCell`, so its live minutes never affect the

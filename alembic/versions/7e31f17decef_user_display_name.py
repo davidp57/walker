@@ -1,7 +1,7 @@
 """user display name
 
 Revision ID: 7e31f17decef
-Revises: 2dcd1014de82
+Revises: d3fe489557c3
 Create Date: 2026-07-04 13:15:39.401703
 """
 
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "7e31f17decef"
-down_revision: str | None = "2dcd1014de82"
+down_revision: str | None = "d3fe489557c3"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -885,7 +885,7 @@
   box-shadow: 0 0 0 3px var(--wk-accent-soft);
   animation: wk-pulse 1.5s ease-in-out infinite;
 }
-/* Enter-in-T&E checkbox affordance (BIZ-008): visible at rest beside the duration, no hover needed.
+/* Enter-in-Timesheet-system checkbox affordance (BIZ-008): visible at rest beside the duration, no hover needed.
    Unticked stays neutral (hollow box) — amber is reserved for "uncategorized" elsewhere in the app.
    Ticked turns solid green with a check; the duration itself keeps its own color/legibility. */
 .wk-cell-checkbox {
