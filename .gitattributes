@@ -1,0 +1,14 @@
+# Normalize line endings to LF for all text files, regardless of the checking-out platform's
+# core.autocrlf setting. Without this, a Windows checkout with core.autocrlf=true silently
+# checks every text file out as CRLF while the git blob stays LF — invisible locally, but it
+# makes Prettier's `format:check` (LF by default) fail identically on every file, including in
+# CI on a Linux runner that clones the repo directly (no autocrlf conversion involved there).
+* text=auto eol=lf
+
+# Binary/generated assets some tools might otherwise try to normalize.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
