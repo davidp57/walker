@@ -1804,3 +1804,44 @@
 .wk-markdown-editor .ProseMirror li[data-item-type='task'] > .wk-task-item-content > p {
   margin: 0;
 }
+
+/* ---------- Login screen (ADR-0010: hosted SSO deployments only) ---------- */
+.wk-login-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--wk-bg-0);
+}
+.wk-login-card {
+  width: 320px;
+  max-width: 92vw;
+  padding: 28px 26px;
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  box-shadow: var(--wk-shadow-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+.wk-login-copy {
+  color: var(--wk-text);
+  font-size: var(--wk-fs-13);
+  margin: 0;
+}
+.wk-login-providers {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+.wk-login-provider-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  width: 100%;
+}

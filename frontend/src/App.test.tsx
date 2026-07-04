@@ -540,3 +540,61 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
     )
   })
 })
+
+describe('App — SSO sign-in gate (BIZ-029 frontend)', () => {
+  it('renders the app directly when auth_mode is none (default)', async () => {
+    mockBaseApi([realCode], [])
+    vi.spyOn(api, 'fetchHealth').mockResolvedValue({ authMode: 'none', ssoProviders: [] })
+    vi.spyOn(api, 'fetchUser').mockResolvedValue({ username: 'me', name: null })
+
+    render(<App />)
+
+    expect(await screen.findByPlaceholderText('What are you working on?')).toBeInTheDocument()
+    expect(screen.queryByText('Sign in to continue.')).not.toBeInTheDocument()
+  })
+
+  it('renders the app when auth_mode is sso and the session is already valid', async () => {
+    mockBaseApi([realCode], [])
+    vi.spyOn(api, 'fetchHealth').mockResolvedValue({ authMode: 'sso', ssoProviders: ['google'] })
+    vi.spyOn(api, 'fetchUser').mockResolvedValue({ username: 'alice@acme.com', name: null })
+
+    render(<App />)
+
+    expect(await screen.findByPlaceholderText('What are you working on?')).toBeInTheDocument()
+  })
+
+  it('shows a sign-in screen when auth_mode is sso and there is no session', async () => {
+    vi.spyOn(api, 'fetchHealth').mockResolvedValue({
+      authMode: 'sso',
+      ssoProviders: ['google', 'microsoft'],
+    })
+    vi.spyOn(api, 'fetchUser').mockRejectedValue(
+      new api.ApiError('401 Unauthorized for /api/user', 401),
+    )
+    const fetchCodes = vi.spyOn(api, 'fetchCodes')
+
+    render(<App />)
+
+    expect(await screen.findByText('Sign in to continue.')).toBeInTheDocument()
+    const google = screen.getByRole('link', { name: 'Continue with Google' })
+    expect(google).toHaveAttribute('href', '/api/auth/login/google')
+    expect(screen.getByRole('link', { name: 'Continue with Microsoft' })).toHaveAttribute(
+      'href',
+      '/api/auth/login/microsoft',
+    )
+    expect(screen.queryByRole('link', { name: 'Continue with Apple' })).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('What are you working on?')).not.toBeInTheDocument()
+    // The rest of the app never even mounts while a sign-in is required.
+    expect(fetchCodes).not.toHaveBeenCalled()
+  })
+
+  it('falls through to the app if the health check itself fails (e.g. a network hiccup)', async () => {
+    mockBaseApi([realCode], [])
+    vi.spyOn(api, 'fetchHealth').mockRejectedValue(new Error('network error'))
+    vi.spyOn(api, 'fetchUser').mockResolvedValue({ username: 'me', name: null })
+
+    render(<App />)
+
+    expect(await screen.findByPlaceholderText('What are you working on?')).toBeInTheDocument()
+  })
+})
