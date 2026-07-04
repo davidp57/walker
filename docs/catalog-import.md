@@ -6,7 +6,8 @@ The catalog is two-tiered:
   The CSV import populates *this* table. It is only searched, never shown in bulk.
 - **Active codes** (`TimesheetCode`) — the handful you actually charge to. In the **Code catalog**
   screen you search the reference catalog by number / project / label and click a result to add it
-  (with all its activities) to your active codes. Entries, fortnight, and checklist use active codes.
+  (with all its activities) to your active codes. Entries, the Timesheet period view, and checklist
+  use active codes.
 
 The importer (`walker.services.catalog.parse_catalog_csv`) accepts two CSV layouts:
 

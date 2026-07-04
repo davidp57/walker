@@ -1,4 +1,4 @@
-"""The ChecklistMark model — a per-fortnight "entered into T&E" tick (BIZ-005, ADR-0005)."""
+"""The ChecklistMark model — a per-Timesheet-period "entered into T&E" tick (BIZ-005, ADR-0005)."""
 
 from __future__ import annotations
 
@@ -11,13 +11,13 @@ from walker.models.base import Base, TimestampMixin
 
 
 class ChecklistMark(TimestampMixin, Base):
-    """Marks a single ``(code, activity, day)`` grid cell as keyed into T&E for a fortnight."""
+    """Marks a single ``(code, activity, day)`` grid cell as keyed into T&E for a Timesheet period."""
 
     __tablename__ = "checklist_marks"
     __table_args__ = (
         UniqueConstraint(
             "user_id",
-            "fortnight_start",
+            "period_start",
             "timesheet_code_id",
             "activity",
             "day",
@@ -27,7 +27,7 @@ class ChecklistMark(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    fortnight_start: Mapped[date_type] = mapped_column(Date, index=True)
+    period_start: Mapped[date_type] = mapped_column(Date, index=True)
     timesheet_code_id: Mapped[int] = mapped_column(ForeignKey("timesheet_codes.id"))
     activity: Mapped[str] = mapped_column(String(255))
     day: Mapped[int] = mapped_column()

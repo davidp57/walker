@@ -3,8 +3,8 @@
 Web-independent, pure, dependency-injected: ``next_due_date`` takes the rule, the current due
 date, the work rhythm, and absences as plain inputs (no database access), so it is deterministic
 and directly unit-testable (see lot TASKS PRD, "Recurrence math is a pure, dependency-injected
-function"). Reuses the same **Fortnight** and **work rhythm / Absence** concepts as
-``services/fortnight.py`` and ``services/settings.py`` to keep "snapped to working days"
+function"). Reuses the same **Timesheet period** and **work rhythm / Absence** concepts as
+``services/period.py`` and ``services/settings.py`` to keep "snapped to working days"
 consistent across the app.
 
 Four rule kinds, no RRULE/iCal:
@@ -12,8 +12,8 @@ Four rule kinds, no RRULE/iCal:
 - ``EveryNDaysRule``: due date + N calendar days.
 - ``WeeklyRule``: the next occurrence of one of the chosen weekdays.
 - ``MonthlyRule``: the same day-of-month next month (clamped to the month's length).
-- ``FortnightRelativeRule``: anchored on the *next* fortnight's start (1st/16th) or end
-  (15th/month-end), offset by N working days, and snapped to a working day.
+- ``PeriodRelativeRule``: anchored on the *next* semi-monthly Timesheet period's start (1st/16th)
+  or end (15th/month-end), offset by N working days, and snapped to a working day.
 """
 
 from __future__ import annotations
@@ -23,9 +23,9 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Literal
 
-from walker.services.fortnight import fortnight_bounds
+from walker.services.period import period_bounds
 
-RuleKind = Literal["every_n_days", "weekly", "monthly", "fortnight_relative"]
+RuleKind = Literal["every_n_days", "weekly", "monthly", "period_relative"]
 
 
 @dataclass(frozen=True)
@@ -67,8 +67,8 @@ class MonthlyRule:
 
 
 @dataclass(frozen=True)
-class FortnightRelativeRule:
-    """Anchor on the next fortnight's ``start`` (1st/16th) or ``end`` (15th/month-end).
+class PeriodRelativeRule:
+    """Anchor on the next semi-monthly period's ``start`` (1st/16th) or ``end`` (15th/month-end).
 
     ``offset_days`` is a signed number of **working** days applied to the anchor (negative =
     before, positive = after); the result is always snapped to a working day (skipping weekends
@@ -77,14 +77,14 @@ class FortnightRelativeRule:
 
     anchor: Literal["start", "end"]
     offset_days: int
-    kind: RuleKind = "fortnight_relative"
+    kind: RuleKind = "period_relative"
 
     def __post_init__(self) -> None:
         if self.anchor not in ("start", "end"):
             raise ValueError("anchor must be 'start' or 'end'.")
 
 
-RecurrenceRule = EveryNDaysRule | WeeklyRule | MonthlyRule | FortnightRelativeRule
+RecurrenceRule = EveryNDaysRule | WeeklyRule | MonthlyRule | PeriodRelativeRule
 
 
 def _is_working_day(on: date, workdays: list[bool], absences: set[date]) -> bool:
@@ -109,7 +109,7 @@ def _shift_working_days(start: date, offset: int, workdays: list[bool], absences
             remaining -= 1
     if offset == 0 and not _is_working_day(current, workdays, absences):
         # Snap backwards to the last working day at/before the anchor (e.g. "last working day
-        # before the fortnight ends").
+        # before the period ends").
         while not _is_working_day(current, workdays, absences):
             current -= timedelta(days=1)
     return current
@@ -142,15 +142,15 @@ def _next_monthly(rule: MonthlyRule, current_due: date) -> date:
     return date(next_month.year, next_month.month, min(rule.day, last_day))
 
 
-def _next_fortnight_relative(
-    rule: FortnightRelativeRule,
+def _next_period_relative(
+    rule: PeriodRelativeRule,
     current_due: date,
     workdays: list[bool],
     absences: set[date],
 ) -> date:
-    _, current_end = fortnight_bounds(current_due)
-    next_fortnight_anchor_day = current_end + timedelta(days=1)
-    next_start, next_end = fortnight_bounds(next_fortnight_anchor_day)
+    _, current_end = period_bounds("semi_monthly", current_due)
+    next_period_anchor_day = current_end + timedelta(days=1)
+    next_start, next_end = period_bounds("semi_monthly", next_period_anchor_day)
     anchor = next_start if rule.anchor == "start" else next_end
     return _shift_working_days(anchor, rule.offset_days, workdays, absences)
 
@@ -174,7 +174,7 @@ def next_due_date(
         return _next_weekly(rule, current_due)
     if isinstance(rule, MonthlyRule):
         return _next_monthly(rule, current_due)
-    return _next_fortnight_relative(rule, current_due, workdays, absences)
+    return _next_period_relative(rule, current_due, workdays, absences)
 
 
 def _require_int(data: dict[str, object], key: str) -> int:
@@ -196,11 +196,11 @@ def rule_from_dict(data: dict[str, object]) -> RecurrenceRule:
         return WeeklyRule(weekdays=[int(day) for day in weekdays])
     if kind == "monthly":
         return MonthlyRule(day=_require_int(data, "day"))
-    if kind == "fortnight_relative":
+    if kind == "period_relative":
         anchor = data["anchor"]
         if anchor not in ("start", "end"):
             raise ValueError("anchor must be 'start' or 'end'.")
-        return FortnightRelativeRule(anchor=anchor, offset_days=_require_int(data, "offset_days"))
+        return PeriodRelativeRule(anchor=anchor, offset_days=_require_int(data, "offset_days"))
     raise ValueError(f"Unknown recurrence rule kind: {kind!r}.")
 
 
@@ -212,4 +212,4 @@ def rule_to_dict(rule: RecurrenceRule) -> dict[str, object]:
         return {"kind": "weekly", "weekdays": list(rule.weekdays)}
     if isinstance(rule, MonthlyRule):
         return {"kind": "monthly", "day": rule.day}
-    return {"kind": "fortnight_relative", "anchor": rule.anchor, "offset_days": rule.offset_days}
+    return {"kind": "period_relative", "anchor": rule.anchor, "offset_days": rule.offset_days}

@@ -22,11 +22,11 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 - **SHIP** — professionalize Walker into a shareable, general-purpose app. Grilled in a domain session;
   decisions below, `/to-prd` + `/to-issues` still needed before this becomes real tickets.
-  - **Vocabulary**: "Fortnight" → **Timesheet period**, "T&E"/"Time & Expenses" → **Timesheet system**,
-    PwC branding removed (footer becomes `User.name`, optional, falls back to `username`). Done in
-    `CONTEXT.md`; not yet done in code/UI strings.
-  - **Timesheet period becomes a per-user setting**: weekly / semi-monthly (today's 1st–15th/16th–end,
-    still default) / monthly presets — no custom cycles. See ADR-0009.
+  - **Vocabulary**: "Fortnight" → **Timesheet period** (done — BIZ-027), "T&E"/"Time & Expenses" →
+    **Timesheet system** (not yet done — CHR-003), PwC branding removed (footer becomes `User.name`,
+    optional, falls back to `username`, not yet done). Done in `CONTEXT.md`.
+  - **Timesheet period becomes a per-user setting** (done — BIZ-027): weekly / semi-monthly (today's
+    1st–15th/16th–end, still default) / monthly presets — no custom cycles. See ADR-0009.
   - **Multi-tenant + SSO** (Google/Apple/Microsoft) for the **hosted instance only** — the standalone
     Docker/`.exe` keep ADR-0007's implicit-user, no-login behavior unchanged. New **Organization**
     entity, auto-joined by email domain (no invite flow). Real-code catalog becomes

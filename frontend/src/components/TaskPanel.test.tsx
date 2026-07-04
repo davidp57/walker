@@ -235,7 +235,7 @@ describe('TaskPanel', () => {
     )
   })
 
-  it('sets a fortnight-relative recurrence rule with anchor and offset', () => {
+  it('sets a period-relative recurrence rule with anchor and offset', () => {
     const onSave = vi.fn()
     render(
       <TaskPanel task={null} codes={[]} tagSuggestions={[]} onSave={onSave} onClose={vi.fn()} />,
@@ -243,7 +243,7 @@ describe('TaskPanel', () => {
 
     fireEvent.change(screen.getByTestId('wk-task-title-input'), { target: { value: 'Task' } })
     fireEvent.change(screen.getByTestId('wk-task-recurrence-kind-select'), {
-      target: { value: 'fortnight_relative' },
+      target: { value: 'period_relative' },
     })
     fireEvent.change(screen.getByTestId('wk-task-recurrence-anchor-select'), {
       target: { value: 'end' },
@@ -255,7 +255,7 @@ describe('TaskPanel', () => {
 
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
-        recurrenceRule: { kind: 'fortnight_relative', anchor: 'end', offsetDays: -1 },
+        recurrenceRule: { kind: 'period_relative', anchor: 'end', offsetDays: -1 },
       }),
     )
   })

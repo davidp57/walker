@@ -7,6 +7,8 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict
 
+from walker.models.settings import PeriodScheme
+
 
 class HealthResponse(BaseModel):
     """Liveness payload returned by ``GET /api/health``."""
@@ -119,8 +121,8 @@ class EntryRead(BaseModel):
     task_id: int | None
 
 
-class FortnightRowRead(BaseModel):
-    """One Code × Activity row of the fortnight grid."""
+class PeriodRowRead(BaseModel):
+    """One Code × Activity row of the Timesheet period grid."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -129,14 +131,14 @@ class FortnightRowRead(BaseModel):
     minutes_by_day: dict[int, int]
 
 
-class FortnightRead(BaseModel):
-    """The aggregated fortnight grid returned by ``GET /api/fortnight/{date}``."""
+class PeriodRead(BaseModel):
+    """The aggregated Timesheet period grid returned by ``GET /api/period/{date}``."""
 
     model_config = ConfigDict(from_attributes=True)
 
     start: date
     end: date
-    rows: list[FortnightRowRead]
+    rows: list[PeriodRowRead]
 
 
 class ChecklistItemRead(BaseModel):
@@ -152,7 +154,7 @@ class ChecklistItemRead(BaseModel):
 
 
 class ChecklistRead(BaseModel):
-    """The checklist for a fortnight, with progress counts."""
+    """The checklist for a Timesheet period, with progress counts."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -217,20 +219,22 @@ class AbsenceRead(BaseModel):
 
 
 class SettingsRead(BaseModel):
-    """The user's settings: work rhythm (Sun..Sat), density, and absences."""
+    """The user's settings: work rhythm (Sun..Sat), density, period scheme, and absences."""
 
     model_config = ConfigDict(from_attributes=True)
 
     workdays: list[bool]
     density: str
+    period_scheme: PeriodScheme
     absences: list[AbsenceRead]
 
 
 class SettingsUpdate(BaseModel):
-    """Payload to update the work rhythm and density."""
+    """Payload to update the work rhythm, density, and (optionally) the period scheme."""
 
     workdays: list[bool]
     density: str
+    period_scheme: PeriodScheme | None = None
 
 
 class AbsenceWrite(BaseModel):
@@ -264,7 +268,7 @@ class TaskCreate(BaseModel):
     ``recurrence_rule`` is one of the shapes documented in ``services/recurrence.py``, e.g.
     ``{"kind": "every_n_days", "n": 3}``, ``{"kind": "weekly", "weekdays": [0, 2, 4]}``,
     ``{"kind": "monthly", "day": 15}``, or
-    ``{"kind": "fortnight_relative", "anchor": "end", "offset_days": -1}``.
+    ``{"kind": "period_relative", "anchor": "end", "offset_days": -1}``.
     """
 
     title: str

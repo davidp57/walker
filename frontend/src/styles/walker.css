@@ -666,7 +666,7 @@
   color: var(--wk-accent);
 }
 
-/* ---------- Grid (Fortnight + Checklist) ---------- */
+/* ---------- Grid (Timesheet period + Checklist) ---------- */
 .wk-grid-wrap {
   overflow: auto;
   border: 1px solid var(--wk-line);
@@ -851,7 +851,7 @@
 .wk-cell.is-clickable {
   cursor: pointer;
 }
-/* Empty working cell in the Fortnight grid — hint that clicking adds a prefilled entry. */
+/* Empty working cell in the Timesheet period grid — hint that clicking adds a prefilled entry. */
 .wk-cell.is-addable:hover {
   background: var(--wk-accent-soft);
 }

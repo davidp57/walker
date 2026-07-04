@@ -9,13 +9,14 @@ import {
   fetchChecklist,
   fetchCodes,
   fetchEntries,
-  fetchFortnight,
+  fetchPeriod,
   fetchSettings,
   fetchTaskTags,
   fetchTasks,
   importCatalog,
   patchEntry,
   switchTimer,
+  updateSettings,
   updateTask,
 } from './api'
 
@@ -360,7 +361,7 @@ describe('createVirtualCode', () => {
   })
 })
 
-describe('fetchFortnight', () => {
+describe('fetchPeriod', () => {
   afterEach(() => vi.restoreAllMocks())
 
   it('maps the grid rows into a `${codeId}|${activity}` matrix with numeric day keys', async () => {
@@ -376,9 +377,9 @@ describe('fetchFortnight', () => {
       vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })),
     )
 
-    const matrix = await fetchFortnight('2026-07-02')
+    const matrix = await fetchPeriod('2026-07-02')
 
-    expect(fetch).toHaveBeenCalledWith('/api/fortnight/2026-07-02')
+    expect(fetch).toHaveBeenCalledWith('/api/period/2026-07-02')
     expect(matrix).toEqual({ '3|Bug fixing': { 1: 90, 2: 60 } })
   })
 })
@@ -402,7 +403,7 @@ describe('fetchChecklist', () => {
 
     const checked = await fetchChecklist('2026-07-02')
 
-    expect(fetch).toHaveBeenCalledWith('/api/fortnight/2026-07-02/checklist')
+    expect(fetch).toHaveBeenCalledWith('/api/period/2026-07-02/checklist')
     expect(checked).toEqual({ '3|Bug fixing#1': true })
   })
 })
@@ -410,10 +411,11 @@ describe('fetchChecklist', () => {
 describe('fetchSettings', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  it('maps the settings payload (work rhythm, density, absences)', async () => {
+  it('maps the settings payload (work rhythm, density, period scheme, absences)', async () => {
     const payload = {
       workdays: [false, true, true, true, true, true, false],
       density: 'compact',
+      period_scheme: 'monthly',
       absences: [{ date: '2026-07-14', reason: 'Annual leave' }],
     }
     vi.stubGlobal(
@@ -427,8 +429,61 @@ describe('fetchSettings', () => {
     expect(settings).toEqual({
       workdays: [false, true, true, true, true, true, false],
       density: 'compact',
+      periodScheme: 'monthly',
       absences: [{ date: '2026-07-14', reason: 'Annual leave' }],
     })
+  })
+})
+
+describe('updateSettings', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('sends the period scheme and maps it back from the response', async () => {
+    const payload = {
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      period_scheme: 'weekly',
+      absences: [],
+    }
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify(payload), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const settings = await updateSettings(
+      [false, true, true, true, true, true, false],
+      'comfortable',
+      'weekly',
+    )
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('/api/settings')
+    expect(init.method).toBe('PUT')
+    expect(JSON.parse(init.body as string)).toEqual({
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      period_scheme: 'weekly',
+    })
+    expect(settings.periodScheme).toBe('weekly')
+  })
+
+  it('omits period_scheme when not provided, leaving the server-side scheme unchanged', async () => {
+    const payload = {
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      period_scheme: 'semi_monthly',
+      absences: [],
+    }
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify(payload), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await updateSettings([false, true, true, true, true, true, false], 'comfortable')
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    const body = JSON.parse(init.body as string) as Record<string, unknown>
+    expect('period_scheme' in body).toBe(false)
   })
 })
 
@@ -493,7 +548,7 @@ describe('fetchTasks', () => {
     ])
   })
 
-  it('maps a fortnight-relative recurrence rule, converting offset_days to offsetDays', async () => {
+  it('maps a period-relative recurrence rule, converting offset_days to offsetDays', async () => {
     const payload = [
       {
         id: 2,
@@ -504,7 +559,7 @@ describe('fetchTasks', () => {
         due_date: '2026-07-15',
         tags: [],
         timesheet_code_id: null,
-        recurrence_rule: { kind: 'fortnight_relative', anchor: 'end', offset_days: -1 },
+        recurrence_rule: { kind: 'period_relative', anchor: 'end', offset_days: -1 },
         created_at: '2026-07-01T00:00:00Z',
         updated_at: '2026-07-01T00:00:00Z',
       },
@@ -515,7 +570,7 @@ describe('fetchTasks', () => {
     const tasks = await fetchTasks()
 
     expect(tasks[0].recurrenceRule).toEqual({
-      kind: 'fortnight_relative',
+      kind: 'period_relative',
       anchor: 'end',
       offsetDays: -1,
     })
@@ -611,7 +666,7 @@ describe('createTask', () => {
     })
   })
 
-  it('sends a fortnight-relative recurrence rule with offset_days snake_case', async () => {
+  it('sends a period-relative recurrence rule with offset_days snake_case', async () => {
     const fetchMock = vi.fn(
       async () =>
         new Response(
@@ -624,7 +679,7 @@ describe('createTask', () => {
             due_date: null,
             tags: [],
             timesheet_code_id: null,
-            recurrence_rule: { kind: 'fortnight_relative', anchor: 'start', offset_days: 1 },
+            recurrence_rule: { kind: 'period_relative', anchor: 'start', offset_days: 1 },
             created_at: '2026-07-01T00:00:00Z',
             updated_at: '2026-07-01T00:00:00Z',
           }),
@@ -635,13 +690,13 @@ describe('createTask', () => {
 
     await createTask({
       title: 'Key in T&E',
-      recurrenceRule: { kind: 'fortnight_relative', anchor: 'start', offsetDays: 1 },
+      recurrenceRule: { kind: 'period_relative', anchor: 'start', offsetDays: 1 },
     })
 
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     const body = JSON.parse(init.body as string) as Record<string, unknown>
     expect(body.recurrence_rule).toEqual({
-      kind: 'fortnight_relative',
+      kind: 'period_relative',
       anchor: 'start',
       offset_days: 1,
     })

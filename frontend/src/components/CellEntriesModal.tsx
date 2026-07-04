@@ -13,7 +13,7 @@ interface CellEntriesModalProps {
   onClose: () => void
 }
 
-/** Drill-down of the entries behind one fortnight grid cell — edit/delete each in place. */
+/** Drill-down of the entries behind one Timesheet period grid cell — edit/delete each in place. */
 export function CellEntriesModal({
   title,
   entries,

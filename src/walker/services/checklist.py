@@ -1,10 +1,11 @@
-"""Entry-checklist domain logic (BIZ-005, ADR-0005, ADR-0008).
+"""Entry-checklist domain logic (BIZ-005, ADR-0005, ADR-0008, ADR-0009).
 
-Web-independent. Checklist items are derived from the fortnight grid, **resolved to real codes**
-(ADR-0008: virtual codes collapse into the real code they borrow their number/label/activities
-from) — one item per non-empty ``(real code, activity, day)`` cell — and each carries an "entered
-into T&E" tick persisted as a ``ChecklistMark``. Re-deriving after grid edits keeps ticks for
-unchanged lines.
+Web-independent. Checklist items are derived from the Timesheet period grid, **resolved to real
+codes** (ADR-0008: virtual codes collapse into the real code they borrow their number/label/
+activities from) — one item per non-empty ``(real code, activity, day)`` cell — and each carries an
+"entered into T&E" tick persisted as a ``ChecklistMark``. Re-deriving after grid edits keeps ticks
+for unchanged lines. The period's shape is read from the user's ``Settings.period_scheme``
+(ADR-0009).
 """
 
 from __future__ import annotations
@@ -16,7 +17,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.models import ChecklistMark
-from walker.services.fortnight import aggregate_fortnight, fortnight_bounds, resolve_to_real_codes
+from walker.services.period import aggregate_period, period_bounds, resolve_to_real_codes
+from walker.services.settings import get_settings
 
 
 @dataclass
@@ -32,31 +34,33 @@ class ChecklistItem:
 
 @dataclass
 class ChecklistResult:
-    """The full checklist for a fortnight, with progress counts."""
+    """The full checklist for a Timesheet period, with progress counts."""
 
     items: list[ChecklistItem]
     entered: int
     total: int
 
 
-def _marks(session: Session, user_id: int, fortnight_start: date) -> list[ChecklistMark]:
+def _marks(session: Session, user_id: int, period_start: date) -> list[ChecklistMark]:
     return list(
         session.scalars(
             select(ChecklistMark).where(
                 ChecklistMark.user_id == user_id,
-                ChecklistMark.fortnight_start == fortnight_start,
+                ChecklistMark.period_start == period_start,
             )
         )
     )
 
 
 def derive_checklist(session: Session, user_id: int, on: date) -> ChecklistResult:
-    """Build the checklist from the fortnight grid resolved to real codes, applying persisted ticks.
+    """Build the checklist from the Timesheet period grid resolved to real codes, applying ticks.
 
     Virtual codes sharing a real code collapse into one line (ADR-0008): T&E only accepts real
-    codes, so several fine-grained Walker rows become one real-code/activity/day line here.
+    codes, so several fine-grained Walker rows become one real-code/activity/day line here. The
+    period scheme is read from the user's ``Settings`` (ADR-0009).
     """
-    grid = resolve_to_real_codes(session, aggregate_fortnight(session, user_id, on))
+    scheme = get_settings(session, user_id).period_scheme
+    grid = resolve_to_real_codes(session, aggregate_period(session, user_id, scheme, on))
     ticks = {
         (mark.timesheet_code_id, mark.activity, mark.day): mark.entered for mark in _marks(session, user_id, grid.start)
     }
@@ -89,11 +93,12 @@ def toggle_mark(
     entered: bool,
 ) -> ChecklistResult:
     """Set the entered state of one ``(code, activity, day)`` cell (idempotent)."""
-    start, _ = fortnight_bounds(on)
+    scheme = get_settings(session, user_id).period_scheme
+    start, _ = period_bounds(scheme, on)
     mark = session.scalar(
         select(ChecklistMark).where(
             ChecklistMark.user_id == user_id,
-            ChecklistMark.fortnight_start == start,
+            ChecklistMark.period_start == start,
             ChecklistMark.timesheet_code_id == timesheet_code_id,
             ChecklistMark.activity == activity,
             ChecklistMark.day == day,
@@ -102,7 +107,7 @@ def toggle_mark(
     if mark is None:
         mark = ChecklistMark(
             user_id=user_id,
-            fortnight_start=start,
+            period_start=start,
             timesheet_code_id=timesheet_code_id,
             activity=activity,
             day=day,
@@ -116,8 +121,9 @@ def toggle_mark(
 
 
 def reset_checklist(session: Session, user_id: int, on: date) -> ChecklistResult:
-    """Clear every tick for the fortnight."""
-    start, _ = fortnight_bounds(on)
+    """Clear every tick for the Timesheet period."""
+    scheme = get_settings(session, user_id).period_scheme
+    start, _ = period_bounds(scheme, on)
     for mark in _marks(session, user_id, start):
         session.delete(mark)
     session.commit()

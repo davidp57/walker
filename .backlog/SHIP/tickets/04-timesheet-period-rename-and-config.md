@@ -1,7 +1,7 @@
 # BIZ-027 — Timesheet period rename + configurable period scheme
 
 ID: BIZ-027
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -20,18 +20,18 @@ opt into something else. No custom N-day cycles (rejected in ADR-0009).
 
 ## Acceptance criteria
 
-- [ ] No "Fortnight" wording remains in code, API routes, UI strings, or docs — replaced by "Timesheet
+- [x] No "Fortnight" wording remains in code, API routes, UI strings, or docs — replaced by "Timesheet
       period" throughout.
-- [ ] A User can choose weekly / semi-monthly / monthly as their period scheme in Settings; semi-monthly
+- [x] A User can choose weekly / semi-monthly / monthly as their period scheme in Settings; semi-monthly
       is the default and matches today's exact 1st–15th/16th–end boundaries.
-- [ ] Changing the period scheme immediately reshapes the Timesheet period view and its date boundaries
+- [x] Changing the period scheme immediately reshapes the Timesheet period view and its date boundaries
       — no stale cached period, no reload required.
-- [ ] `period_bounds(scheme, on_date)` is a pure function computing `(start, end)` per scheme, with no
+- [x] `period_bounds(scheme, on_date)` is a pure function computing `(start, end)` per scheme, with no
       dependency on a database session.
-- [ ] Backend tests: exhaustive date-math coverage per scheme (prior art:
+- [x] Backend tests: exhaustive date-math coverage per scheme (prior art:
       `tests/test_services_fortnight.py`'s existing coverage style) + an API test that `period_scheme`
       round-trips through `/api/settings` (prior art: `tests/test_api_settings.py`).
-- [ ] Frontend tests: the period-scheme Settings control, and the Timesheet period view recomputing on
+- [x] Frontend tests: the period-scheme Settings control, and the Timesheet period view recomputing on
       change.
 
 ## Blocked by

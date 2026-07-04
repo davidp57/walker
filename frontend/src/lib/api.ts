@@ -3,6 +3,7 @@
 // share an origin, so relative paths work in both.
 import type {
   Entry,
+  PeriodScheme,
   ReferenceCode,
   RecurrenceRule,
   Task,
@@ -294,23 +295,23 @@ export async function importCatalog(file: File): Promise<{ created: number; upda
   return (await response.json()) as { created: number; updated: number }
 }
 
-interface ApiFortnightRow {
+interface ApiPeriodRow {
   timesheet_code_id: number
   activity: string
   minutes_by_day: Record<string, number>
 }
 
-interface ApiFortnight {
+interface ApiPeriod {
   start: string
   end: string
-  rows: ApiFortnightRow[]
+  rows: ApiPeriodRow[]
 }
 
-/** Fetch the aggregated fortnight grid as a `${codeId}|${activity}` → day → minutes matrix. */
-export async function fetchFortnight(
+/** Fetch the aggregated Timesheet period grid as a `${codeId}|${activity}` → day → minutes matrix. */
+export async function fetchPeriod(
   date: string,
 ): Promise<Record<string, Record<number, number>>> {
-  const grid = await getJson<ApiFortnight>(`/api/fortnight/${date}`)
+  const grid = await getJson<ApiPeriod>(`/api/period/${date}`)
   const matrix: Record<string, Record<number, number>> = {}
   for (const row of grid.rows) {
     const byDay: Record<number, number> = {}
@@ -339,7 +340,7 @@ export interface ChecklistMarkInput {
 
 /** Fetch the checklist as a `${codeId}|${activity}#${day}` → true map of entered cells. */
 export async function fetchChecklist(date: string): Promise<Record<string, boolean>> {
-  const data = await getJson<{ items: ApiChecklistItem[] }>(`/api/fortnight/${date}/checklist`)
+  const data = await getJson<{ items: ApiChecklistItem[] }>(`/api/period/${date}/checklist`)
   const checked: Record<string, boolean> = {}
   for (const item of data.items) {
     if (item.entered) {
@@ -351,15 +352,15 @@ export async function fetchChecklist(date: string): Promise<Record<string, boole
 
 /** Toggle a single checklist cell's entered state. */
 export async function toggleChecklist(date: string, mark: ChecklistMarkInput): Promise<void> {
-  await sendJson<unknown>(`/api/fortnight/${date}/checklist`, 'PATCH', mark)
+  await sendJson<unknown>(`/api/period/${date}/checklist`, 'PATCH', mark)
 }
 
-/** Clear every tick for the fortnight. */
+/** Clear every tick for the Timesheet period. */
 export async function resetChecklist(date: string): Promise<void> {
-  const response = await fetch(`/api/fortnight/${date}/checklist`, { method: 'DELETE' })
+  const response = await fetch(`/api/period/${date}/checklist`, { method: 'DELETE' })
   if (!response.ok) {
     throw new Error(
-      `${response.status} ${response.statusText} for /api/fortnight/${date}/checklist`,
+      `${response.status} ${response.statusText} for /api/period/${date}/checklist`,
     )
   }
 }
@@ -367,6 +368,7 @@ export async function resetChecklist(date: string): Promise<void> {
 interface ApiSettings {
   workdays: boolean[]
   density: string
+  period_scheme: PeriodScheme
   absences: { date: string; reason: string }[]
 }
 
@@ -374,6 +376,7 @@ interface ApiSettings {
 export interface SettingsData {
   workdays: boolean[]
   density: 'comfortable' | 'compact'
+  periodScheme: PeriodScheme
   absences: { date: string; reason: string }[]
 }
 
@@ -381,18 +384,29 @@ function mapSettings(settings: ApiSettings): SettingsData {
   return {
     workdays: settings.workdays,
     density: settings.density === 'compact' ? 'compact' : 'comfortable',
+    periodScheme: settings.period_scheme,
     absences: settings.absences,
   }
 }
 
-/** Fetch the user's settings (work rhythm, density, absences). */
+/** Fetch the user's settings (work rhythm, density, period scheme, absences). */
 export async function fetchSettings(): Promise<SettingsData> {
   return mapSettings(await getJson<ApiSettings>('/api/settings'))
 }
 
-/** Update the work rhythm + density. */
-export async function updateSettings(workdays: boolean[], density: string): Promise<SettingsData> {
-  return mapSettings(await sendJson<ApiSettings>('/api/settings', 'PUT', { workdays, density }))
+/** Update the work rhythm, density, and (optionally) the Timesheet period scheme. */
+export async function updateSettings(
+  workdays: boolean[],
+  density: string,
+  periodScheme?: PeriodScheme,
+): Promise<SettingsData> {
+  return mapSettings(
+    await sendJson<ApiSettings>('/api/settings', 'PUT', {
+      workdays,
+      density,
+      period_scheme: periodScheme,
+    }),
+  )
 }
 
 /** Add (or update the reason of) an absence. */
@@ -416,7 +430,7 @@ type ApiRecurrenceRule =
   | { kind: 'every_n_days'; n: number }
   | { kind: 'weekly'; weekdays: number[] }
   | { kind: 'monthly'; day: number }
-  | { kind: 'fortnight_relative'; anchor: 'start' | 'end'; offset_days: number }
+  | { kind: 'period_relative'; anchor: 'start' | 'end'; offset_days: number }
 
 interface ApiTask {
   id: number
@@ -434,16 +448,16 @@ interface ApiTask {
 
 function mapRecurrenceRuleFromApi(rule: ApiRecurrenceRule | null): RecurrenceRule | null {
   if (rule == null) return null
-  if (rule.kind === 'fortnight_relative') {
-    return { kind: 'fortnight_relative', anchor: rule.anchor, offsetDays: rule.offset_days }
+  if (rule.kind === 'period_relative') {
+    return { kind: 'period_relative', anchor: rule.anchor, offsetDays: rule.offset_days }
   }
   return rule
 }
 
 function mapRecurrenceRuleToApi(rule: RecurrenceRule | null | undefined): ApiRecurrenceRule | null {
   if (rule == null) return null
-  if (rule.kind === 'fortnight_relative') {
-    return { kind: 'fortnight_relative', anchor: rule.anchor, offset_days: rule.offsetDays }
+  if (rule.kind === 'period_relative') {
+    return { kind: 'period_relative', anchor: rule.anchor, offset_days: rule.offsetDays }
   }
   return rule
 }

@@ -49,9 +49,10 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
   vi.spyOn(api, 'fetchSettings').mockResolvedValue({
     workdays: [false, true, true, true, true, true, false],
     density: 'comfortable',
+    periodScheme: 'semi_monthly',
     absences: [],
   })
-  vi.spyOn(api, 'fetchFortnight').mockResolvedValue({})
+  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
   vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
   vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -168,9 +169,10 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
     vi.spyOn(api, 'fetchSettings').mockResolvedValue({
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
+      periodScheme: 'semi_monthly',
       absences: [],
     })
-    vi.spyOn(api, 'fetchFortnight').mockResolvedValue({})
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -203,9 +205,10 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
     vi.spyOn(api, 'fetchSettings').mockResolvedValue({
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
+      periodScheme: 'semi_monthly',
       absences: [],
     })
-    vi.spyOn(api, 'fetchFortnight').mockResolvedValue({})
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -368,13 +371,13 @@ describe('App — entry mutation safety (BIZ-011)', () => {
   })
 })
 
-describe('App — Fortnight screen (BIZ-007)', () => {
-  it('renders the unified Fortnight screen in Review mode by default, with no Enter in T&E nav item', async () => {
+describe('App — Timesheet period screen (BIZ-007)', () => {
+  it('renders the unified Timesheet period screen in Review mode by default, with no Enter in T&E nav item', async () => {
     mockBaseApi([realCode], [uncategorizedEntry])
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Fortnight'))
+    fireEvent.click(await screen.findByText('Timesheet period'))
 
     expect(await screen.findByRole('button', { name: 'Review' })).toHaveClass('is-active')
     expect(
@@ -397,7 +400,7 @@ describe('App — Fortnight screen (BIZ-007)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Fortnight'))
+    fireEvent.click(await screen.findByText('Timesheet period'))
     fireEvent.click(await screen.findByRole('button', { name: 'Enter in T&E' }))
     await screen.findByText('Paper V4')
 
@@ -481,5 +484,61 @@ describe('App — start a Timer from a Task (BIZ-023)', () => {
     fireEvent.click(completeButton)
 
     await waitFor(() => expect(completeTimer).toHaveBeenCalledTimes(1))
+  })
+})
+
+describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
+  it('changing the period scheme in Settings reshapes the Timesheet period view immediately', async () => {
+    mockBaseApi([realCode], [])
+    const fetchPeriod = vi.spyOn(api, 'fetchPeriod')
+    vi.spyOn(api, 'updateSettings').mockResolvedValue({
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      periodScheme: 'monthly',
+      absences: [],
+    })
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByText('Settings'))
+    await waitFor(() => expect(fetchPeriod).toHaveBeenCalled())
+    const callsBeforeChange = fetchPeriod.mock.calls.length
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Monthly' }))
+
+    // The period view recomputes with no reload: a fresh grid fetch fires for the new scheme.
+    await waitFor(() =>
+      expect(fetchPeriod.mock.calls.length).toBeGreaterThan(callsBeforeChange),
+    )
+
+    fireEvent.click(await screen.findByText('Timesheet period'))
+
+    // A full calendar month's worth of columns now render (semi-monthly would cap at 15/16).
+    const dayHeaders = document.querySelectorAll('.wk-day-num')
+    expect(dayHeaders.length).toBeGreaterThan(16)
+  })
+
+  it('persists the chosen period scheme via updateSettings', async () => {
+    mockBaseApi([realCode], [])
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+    const updateSettings = vi.spyOn(api, 'updateSettings').mockResolvedValue({
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      periodScheme: 'weekly',
+      absences: [],
+    })
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByText('Settings'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Weekly' }))
+
+    await waitFor(() =>
+      expect(updateSettings).toHaveBeenCalledWith(
+        [false, true, true, true, true, true, false],
+        'comfortable',
+        'weekly',
+      ),
+    )
   })
 })

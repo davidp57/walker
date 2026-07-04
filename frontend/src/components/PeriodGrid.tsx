@@ -1,16 +1,16 @@
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
-import type { DayColumn, FortnightRow } from '../types'
+import type { DayColumn, PeriodRow } from '../types'
 import { checklistKey } from '../types'
 import { formatDuration } from '../lib/time'
 
 interface BaseProps {
   days: DayColumn[]
-  rows: FortnightRow[]
+  rows: PeriodRow[]
 }
 
-interface FortnightModeProps extends BaseProps {
-  mode: 'fortnight'
+interface PeriodModeProps extends BaseProps {
+  mode: 'period'
   runningCell: { key: string; day: number } | null // the live timer's cell — tinted, read-only
   onOpenCell: (rowKey: string, day: number) => void
   onAddCell: (rowKey: string, day: number) => void // click an empty working cell → new entry, prefilled
@@ -24,7 +24,7 @@ interface ChecklistModeProps extends BaseProps {
   onToggleRow: (rowKey: string) => void
 }
 
-type FortnightGridProps = FortnightModeProps | ChecklistModeProps
+type PeriodGridProps = PeriodModeProps | ChecklistModeProps
 
 const COPY_FEEDBACK_MS = 1500
 
@@ -60,14 +60,14 @@ function CopyCodeButton({ codeNumber }: { codeNumber: string }) {
 }
 
 /**
- * Shared BY-CODE grid. `fortnight` cells edit durations; `checklist` cells toggle "entered into T&E".
+ * Shared BY-CODE grid. `period` cells edit durations; `checklist` cells toggle "entered into T&E".
  * The Total column and the running-timer's tinted/read-only cell show in both modes.
  */
-export function FortnightGrid(props: FortnightGridProps) {
+export function PeriodGrid(props: PeriodGridProps) {
   const { days, rows, mode } = props
-  const isFortnight = mode === 'fortnight'
+  const isPeriod = mode === 'period'
 
-  // Column (daily) totals + grand total for the fortnight footer.
+  // Column (daily) totals + grand total for the Timesheet period footer.
   const colTotal = (day: number) => rows.reduce((sum, r) => sum + (r.minutesByDay[day] || 0), 0)
   const grandTotal = days.reduce(
     (sum, d) => (d.isWeekend || d.isAbsence ? sum : sum + colTotal(d.day)),
@@ -154,9 +154,9 @@ export function FortnightGrid(props: FortnightGridProps) {
                 const isWorkingDay = !d.isWeekend && !d.isAbsence
                 const running =
                   props.runningCell?.key === row.key && props.runningCell?.day === d.day
-                // Fortnight: filled cells drill in; empty working cells add a prefilled entry. The
+                // Period: filled cells drill in; empty working cells add a prefilled entry. The
                 // live-timer cell is read-only in both modes (stop the timer to edit/tick it).
-                const canAdd = isFortnight && isWorkingDay && !filled && !running
+                const canAdd = isPeriod && isWorkingDay && !filled && !running
                 const clickable = isWorkingDay && !running && (filled || canAdd)
                 // Enter in T&E: every filled, tickable cell shows its checkbox at rest — no hover
                 // needed to discover it (BIZ-008). The running-timer cell never shows one.
@@ -176,11 +176,11 @@ export function FortnightGrid(props: FortnightGridProps) {
 
                 const onClick = (e: MouseEvent) => {
                   if (!clickable) return
-                  if (isFortnight) {
+                  if (isPeriod) {
                     if (filled) {
-                      ;(props as FortnightModeProps).onOpenCell(row.key, d.day)
+                      ;(props as PeriodModeProps).onOpenCell(row.key, d.day)
                     } else {
-                      ;(props as FortnightModeProps).onAddCell(row.key, d.day)
+                      ;(props as PeriodModeProps).onAddCell(row.key, d.day)
                     }
                   } else {
                     ;(props as ChecklistModeProps).onToggleCell(row.key, d.day, {

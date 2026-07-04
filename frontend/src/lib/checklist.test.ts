@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveChecklistRows } from './checklist'
-import type { FortnightRow, TimesheetCode } from '../types'
+import type { PeriodRow, TimesheetCode } from '../types'
 
 const realCode: TimesheetCode = {
   id: '1',
@@ -46,7 +46,7 @@ const codesById: Record<string, TimesheetCode> = {
 
 describe('resolveChecklistRows', () => {
   it('collapses virtual codes sharing a real code into one row, summing minutes exactly', () => {
-    const rows: FortnightRow[] = [
+    const rows: PeriodRow[] = [
       { key: '2|Bug fixing', code: virtualA, activity: 'Bug fixing', minutesByDay: { 1: 60 } },
       {
         key: '3|Bug fixing',
@@ -65,7 +65,7 @@ describe('resolveChecklistRows', () => {
   })
 
   it('passes a real code with no virtual through unchanged', () => {
-    const rows: FortnightRow[] = [
+    const rows: PeriodRow[] = [
       { key: '1|Bug fixing', code: realCode, activity: 'Bug fixing', minutesByDay: { 1: 45 } },
     ]
 
@@ -77,7 +77,7 @@ describe('resolveChecklistRows', () => {
   it('keeps virtual codes on different real codes as separate rows', () => {
     const otherReal: TimesheetCode = { ...realCode, id: '9' }
     const virtualC: TimesheetCode = { ...virtualA, id: '4', realCodeId: '9' }
-    const rows: FortnightRow[] = [
+    const rows: PeriodRow[] = [
       { key: '2|Bug fixing', code: virtualA, activity: 'Bug fixing', minutesByDay: { 1: 60 } },
       { key: '4|Bug fixing', code: virtualC, activity: 'Bug fixing', minutesByDay: { 1: 20 } },
     ]

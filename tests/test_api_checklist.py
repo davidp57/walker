@@ -1,4 +1,4 @@
-"""Tests for the checklist endpoints (BIZ-005)."""
+"""Tests for the checklist endpoints (BIZ-005, BIZ-027)."""
 
 from __future__ import annotations
 
@@ -87,10 +87,10 @@ def _seed_virtual_codes(session: Session) -> tuple[int, int, int]:
     return real.id, virtual_a.id, virtual_b.id
 
 
-def test_fortnight_shows_one_row_per_virtual_code(client: TestClient, session: Session) -> None:
+def test_period_shows_one_row_per_virtual_code(client: TestClient, session: Session) -> None:
     _, virtual_a_id, virtual_b_id = _seed_virtual_codes(session)
 
-    body = client.get("/api/fortnight/2026-07-02").json()
+    body = client.get("/api/period/2026-07-02").json()
 
     assert len(body["rows"]) == 2
     row_code_ids = {row["timesheet_code_id"] for row in body["rows"]}
@@ -100,7 +100,7 @@ def test_fortnight_shows_one_row_per_virtual_code(client: TestClient, session: S
 def test_checklist_collapses_virtual_codes_into_real_code(client: TestClient, session: Session) -> None:
     real_id, _, _ = _seed_virtual_codes(session)
 
-    body = client.get("/api/fortnight/2026-07-02/checklist").json()
+    body = client.get("/api/period/2026-07-02/checklist").json()
 
     assert body["total"] == 1
     item = body["items"][0]
@@ -113,7 +113,7 @@ def test_checklist_collapses_virtual_codes_into_real_code(client: TestClient, se
 def test_checklist_items_match_nonempty_grid_cells(client: TestClient, session: Session) -> None:
     code_id = _seed(session)
 
-    body = client.get("/api/fortnight/2026-07-02/checklist").json()
+    body = client.get("/api/period/2026-07-02/checklist").json()
 
     assert body["total"] == 2
     assert body["entered"] == 0
@@ -125,7 +125,7 @@ def test_toggle_persists_and_updates_progress(client: TestClient, session: Sessi
     code_id = _seed(session)
 
     response = client.patch(
-        "/api/fortnight/2026-07-02/checklist",
+        "/api/period/2026-07-02/checklist",
         json={"timesheet_code_id": code_id, "activity": "Bug fixing", "day": 1, "entered": True},
     )
 
@@ -135,7 +135,7 @@ def test_toggle_persists_and_updates_progress(client: TestClient, session: Sessi
     assert next(item for item in body["items"] if item["day"] == 1)["entered"] is True
 
     again = client.patch(
-        "/api/fortnight/2026-07-02/checklist",
+        "/api/period/2026-07-02/checklist",
         json={"timesheet_code_id": code_id, "activity": "Bug fixing", "day": 1, "entered": True},
     )
     assert again.json()["entered"] == 1
@@ -144,11 +144,11 @@ def test_toggle_persists_and_updates_progress(client: TestClient, session: Sessi
 def test_reset_clears_all_marks(client: TestClient, session: Session) -> None:
     code_id = _seed(session)
     client.patch(
-        "/api/fortnight/2026-07-02/checklist",
+        "/api/period/2026-07-02/checklist",
         json={"timesheet_code_id": code_id, "activity": "Bug fixing", "day": 1, "entered": True},
     )
 
-    response = client.delete("/api/fortnight/2026-07-02/checklist")
+    response = client.delete("/api/period/2026-07-02/checklist")
 
     assert response.status_code == 200
     assert response.json()["entered"] == 0
