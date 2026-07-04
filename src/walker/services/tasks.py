@@ -13,7 +13,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.exceptions import NotFoundError, ValidationError
-from walker.models import Task, TaskPriority, TaskStatus, TimesheetCode
+from walker.models import Task, TaskPriority, TaskStatus
+from walker.services import catalog
 from walker.services import settings as settings_service
 from walker.services.recurrence import RecurrenceRule, next_due_date, rule_from_dict, rule_to_dict
 
@@ -36,12 +37,14 @@ def _validate_priority(priority: str | None) -> TaskPriority | None:
 
 
 def _validate_code(session: Session, user_id: int, timesheet_code_id: int | None) -> None:
-    """Ensure ``timesheet_code_id`` (real or virtual) is owned by ``user_id`` when provided."""
+    """Ensure ``timesheet_code_id`` (real or virtual) is visible to ``user_id`` when provided.
+
+    A real code is visible to every member of the user's Organization (ADR-0010, BIZ-030); a virtual
+    code stays visible to its owning user only (ADR-0008).
+    """
     if timesheet_code_id is None:
         return
-    code = session.get(TimesheetCode, timesheet_code_id)
-    if code is None or code.user_id != user_id:
-        raise NotFoundError(f"Code {timesheet_code_id} not found.")
+    catalog.get_visible_code(session, user_id, timesheet_code_id)
 
 
 def _validate_recurrence_rule(recurrence_rule: dict[str, object] | None) -> dict[str, object] | None:

@@ -1,4 +1,4 @@
-"""The TimesheetCode model — a real Timesheet-system charge code, scoped to a user."""
+"""The TimesheetCode model — a real Timesheet-system charge code, scoped to an Organization."""
 
 from __future__ import annotations
 
@@ -16,16 +16,20 @@ if TYPE_CHECKING:
 class TimesheetCode(TimestampMixin, Base):
     """A Timesheet-system Timesheet code (e.g. ``N9/1042``) with its per-code activities.
 
-    Scoped to a ``user_id`` from day one (see ADR-0007). A code is either **real** (``real_code_id``
-    is ``None`` — exists in the Timesheet system, imported) or **virtual** (Walker-only, ``real_code_id`` points at
-    exactly one real code — see ADR-0008). ``number`` uniqueness applies to real codes only, enforced
-    in the service layer (``services/catalog.py``); a virtual code is identified by its ``name``.
+    A code is either **real** (``real_code_id`` is ``None`` — exists in the Timesheet system,
+    imported) or **virtual** (Walker-only, ``real_code_id`` points at exactly one real code — see
+    ADR-0008). A real code is scoped by ``organization_id``: every member of the Organization sees
+    and imputes against the same catalog (ADR-0010, BIZ-030). A virtual code stays scoped by
+    ``user_id`` — personal classification, never shared; its ``organization_id`` is always ``None``.
+    ``number`` uniqueness applies to real codes only, scoped per Organization and enforced in the
+    service layer (``services/catalog.py``); a virtual code is identified by its ``name``.
     """
 
     __tablename__ = "timesheet_codes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    organization_id: Mapped[int | None] = mapped_column(ForeignKey("organizations.id"), default=None, index=True)
     number: Mapped[str] = mapped_column(String(50))
     label: Mapped[str] = mapped_column(String(255))
     name: Mapped[str] = mapped_column(String(255))
