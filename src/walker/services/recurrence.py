@@ -21,7 +21,7 @@ from __future__ import annotations
 import calendar
 from dataclasses import dataclass
 from datetime import date, timedelta
-from typing import Literal, cast
+from typing import Literal
 
 from walker.services.period import period_bounds
 
@@ -198,11 +198,12 @@ def rule_from_dict(data: dict[str, object]) -> RecurrenceRule:
         return MonthlyRule(day=_require_int(data, "day"))
     if kind == "period_relative":
         anchor = data["anchor"]
-        if anchor not in ("start", "end"):
-            raise ValueError("anchor must be 'start' or 'end'.")
-        return PeriodRelativeRule(
-            anchor=cast(Literal["start", "end"], anchor), offset_days=_require_int(data, "offset_days")
-        )
+        offset_days = _require_int(data, "offset_days")
+        if anchor == "start":
+            return PeriodRelativeRule(anchor="start", offset_days=offset_days)
+        if anchor == "end":
+            return PeriodRelativeRule(anchor="end", offset_days=offset_days)
+        raise ValueError("anchor must be 'start' or 'end'.")
     raise ValueError(f"Unknown recurrence rule kind: {kind!r}.")
 
 
