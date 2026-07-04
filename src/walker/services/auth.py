@@ -9,6 +9,7 @@ sign-up step, no invite flow.
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from walker.models import User
@@ -30,8 +31,19 @@ def find_or_create_user_for_email(session: Session, email: str) -> User:
 
     organization = resolve_organization_for_email(session, normalized_email)
     organization_id = organization.id if organization is not None else None
+
+    # Two requests can both see no User yet for this email (e.g. a double-submitted callback) and
+    # both try to create one — the loser hits email's unique constraint. Roll back and re-fetch the
+    # winner's row instead of 500ing.
     user = User(username=normalized_email, email=normalized_email, organization_id=organization_id)
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        user = session.scalar(select(User).where(User.email == normalized_email))
+        if user is None:
+            raise
+    else:
+        session.refresh(user)
     return user

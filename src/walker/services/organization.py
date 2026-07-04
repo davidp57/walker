@@ -10,6 +10,7 @@ share a mail provider, so they resolve to no Organization at all (``None``) inst
 from __future__ import annotations
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from walker.exceptions import ValidationError
@@ -68,8 +69,18 @@ def resolve_organization_for_email(session: Session, email: str) -> Organization
     if org is not None:
         return org
 
+    # Two requests can both see no Organization yet for a brand-new domain (e.g. two teammates
+    # signing in within the same instant) and both try to create one — the loser hits
+    # email_domain's unique constraint. Roll back and re-fetch the winner's row instead of 500ing.
     org = Organization(email_domain=domain)
     session.add(org)
-    session.commit()
-    session.refresh(org)
+    try:
+        session.commit()
+    except IntegrityError:
+        session.rollback()
+        org = session.scalar(select(Organization).where(Organization.email_domain == domain))
+        if org is None:
+            raise
+    else:
+        session.refresh(org)
     return org
