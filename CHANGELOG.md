@@ -5,8 +5,116 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-04
+
 ### Added
 
+- **Timesheet period rename + configurable period scheme** (BIZ-027): "Fortnight" is retired in favor
+  of **Timesheet period** across the backend (`services/period.py`'s `period_bounds`/`aggregate_period`,
+  `/api/period/*` routes), frontend (`PeriodGrid`/`PeriodScreen` components, UI strings), and docs. A
+  new `period_scheme` field on `Settings` (`weekly | semi_monthly | monthly`, default `semi_monthly`)
+  lets a User pick their Timesheet period's shape in Settings; `period_bounds(scheme, on_date)` is a
+  pure function with no database dependency, and changing the scheme reshapes the Timesheet period view
+  immediately (no reload). Existing users on the default scheme see byte-for-byte identical boundaries
+  (1st–15th / 16th–end of month). See ADR-0009.
+- **Remove PwC branding; optional User display name** (CHR-004): the shell footer no longer hardcodes
+  "Consultant" / "PwC · Advisory" — it shows the `User`'s optional `name` when set, falling back to
+  `username`, with no role/employer line at all. `User` gains a nullable `name` column, surfaced via a
+  new `GET /api/user` endpoint. Remaining standalone "PwC" mentions in docs and code comments (not part
+  of the "T&E"/"Time & Expenses" wording handled separately) are also gone.
+- **"T&E"/"Time & Expenses" → "Timesheet system" rename** (CHR-003): mechanical rename across code,
+  API strings/labels, UI copy, and docs, completing the vocabulary shift started by BIZ-027. No
+  behavior change.
+- **Organization model + domain-based auto-join** (BIZ-028): a new `Organization` entity groups Users
+  who will share one real-code catalog. A User is auto-joined to the Organization matching their
+  email's domain on first login (creating it if none exists yet); free-mail domains (gmail.com,
+  outlook.com, etc.) never auto-join or auto-create an Organization, keeping today's implicit
+  single-user behavior for anyone not on a shared company domain. See ADR-0010.
+- **SSO login (Google/Apple/Microsoft) for the hosted instance** (BIZ-029): OAuth2/OIDC sign-in via
+  `authlib`, session cookies via `joserfc`. Gated by a new `auth_mode` setting (`sso` / `none`,
+  default `none`) so standalone Docker/`.exe` deployments keep ADR-0007's no-login implicit-user
+  behavior unchanged — SSO only activates for the hosted deployment.
+- **Real-code catalog becomes Organization-scoped** (BIZ-030): real Timesheet codes move from
+  `user_id` to `organization_id` scoping (BIZ-028), so every member of an Organization sees and
+  imputes against the same catalog. Virtual codes, Entries, and Tasks stay `user_id`-scoped. Users
+  with no Organization keep a catalog visible only to themselves. See ADR-0010.
+- **SQLite WAL mode for the hosted deployment** (TEC-005): enables Write-Ahead Logging and foreign-key
+  enforcement at startup (same PRAGMAs already proven by the author's Solde app), improving
+  concurrent-access behavior now that a hosted instance can have several Organization members reading
+  and writing at once. Fully sync, no change to `db.py`'s engine model.
+- **Docs site (MkDocs + Material) on GitHub Pages** (CHR-005): a public, user-facing documentation site
+  under `docs-site/`, mirroring the shape of VMCT v6's `mkdocs.yml` (theme, nav, built-in search),
+  separate from the internal `docs/adr/`. Deploys from `main` to
+  <https://davidp57.github.io/walker/>.
+- **CI: backend + frontend quality gates on every PR** (CHR-006): a GitHub Actions workflow
+  (`ci.yml`) running on every pull request — backend (`ruff check`, `ruff format --check`, `mypy`,
+  `pytest` with the ≥80% coverage gate) and frontend (`eslint`, `prettier --check`, `vitest`,
+  `vite build`).
+- **Branch protection requires CI to pass before merge** (CHR-007): `develop` and `main` both require
+  CHR-006's `Backend quality gate`/`Frontend quality gate` checks to pass, with `enforce_admins`
+  enabled, before a pull request can merge.
+- **CD: publish the Docker image to GHCR on version tags** (CHR-008): a `v*`-tag-triggered workflow
+  builds and pushes the existing self-migrating `Dockerfile` image to `ghcr.io/davidp57/walker`.
+- **Standalone `.exe` (PyInstaller) + CD to GitHub Releases** (CHR-009): packages the FastAPI backend,
+  the built frontend, and the Alembic migration chain into one Windows `.exe`
+  (`src/walker/standalone.py`, `walker.spec`) — no Python/Node install required. Resolves its SQLite
+  file under `%APPDATA%\Walker`, runs migrations on boot, and opens the default browser. A `v*`-tag
+  CD workflow attaches `walker.exe` to the GitHub Release.
+- **Kanban drag-and-drop** (BIZ-026): Tasks board columns support a real keyboard-and-mouse
+  drag-and-drop move (via `@dnd-kit`), persisted through the existing `PUT /api/tasks/{id}`, replacing
+  click-to-move as the primary way to change a Task's status.
+- **UX lot shipped**: post-MVP UX improvements surfaced by a review of the running app — frontend-only,
+  no API/schema/domain change (durations still recorded and aggregated exactly as before, ADR-0005).
+  - **Unified Fortnight grid** (BIZ-007): Fortnight and "Enter in T&E" merged into one screen with a
+    Review / Enter in T&E header toggle (default Review); the standalone "Enter in T&E" nav item and
+    route are gone (nav 5 → 4). Same grid — Review groups by code (virtual codes as their own rows),
+    Enter in T&E resolves to the real code (ADR-0008) — sharing day columns, the Total column
+    (row/daily/grand), weekend/absence styling, and the tinted read-only running-Timer cell; switching
+    modes keeps period and data in place.
+  - **Enter-in-T&E checkbox affordance** (BIZ-008): each filled working cell shows a checkbox beside its
+    duration at rest; ticked turns green with a check, matching the existing tick/shift-click/⌘-click/
+    row-badge interactions.
+  - **Keyboard-driven timer loop** (BIZ-009): Enter in the description field starts a Timer with that
+    description; Ctrl/Cmd+Enter toggles start/stop, Ctrl/Cmd+K opens the task switcher — ignored while
+    typing elsewhere. The capture-first empty Start is unchanged.
+  - **Uncategorized-Entry count** (BIZ-010): a live, client-derived badge on the Activity nav item shows
+    how many Entries still lack a Timesheet code; hidden at zero.
+  - **Entry mutation safety** (BIZ-011): deleting an Entry is now undoable (6s window, recreates via the
+    existing create endpoint); "+ Add entry" persists nothing until Save; row actions (edit/resume/
+    delete) have clearer icons and larger click targets.
+  - **Copy the T&E code** (BIZ-016): a copy icon beside the row header's T&E code number in the Fortnight
+    grid copies it to the clipboard with visible confirmation.
+  - **Timer midnight fix** (TEC-001): the running Timer's elapsed time is derived from the Entry's real
+    start instead of local midnight, so it stays correct across a midnight boundary.
+  - **Visible API errors + loading feedback** (TEC-002): a toast surfaces failed saves/loads instead of
+    swallowing them silently; screens show loading feedback so the empty state no longer flashes before
+    first data.
+  - **WCAG-AA contrast + minimum text sizes** (TEC-003): the secondary-text token went from ~3.2:1 to
+    4.68–5.38:1 against dark-theme surfaces; functional text (headers, totals, meta) floored at 11px.
+  - **Label consistency + Activity dedup** (CHR-001): nav labels now match their screen titles; a Code's
+    Activity line is hidden in grid/Entry rows when it merely repeats the project name.
+  - See `.backlog/archive/UX.md` for the full ticket list and implementation notes.
+- **Virtual-code resolution contract test** (TEC-004): the backend's `resolve_to_real_codes`
+  (`services/fortnight.py`) and the frontend's `resolveChecklistRows` (`lib/checklist.ts`) both resolve
+  virtual codes to their real code (ADR-0008) but stayed independent implementations — the frontend
+  also folds in the live running-timer cell, which the server can't know about, so eliminating it in
+  favor of server-resolved data would have meant polling every second. Instead, both are now asserted
+  against a shared fixture (`tests/fixtures/virtual_code_resolution.json`) via a pytest test and a
+  Vitest test, so a change to one rule that isn't mirrored in the other fails a test. No behavior
+  change.
+- **VCODE lot shipped**: virtual codes (ADR-0008) — user-created codes backed by exactly one real T&E
+  code, for finer classification than T&E offers.
+  - A virtual code borrows its real code's number, technical label, and Activities, and owns its own
+    name and colour; `POST/PUT /api/codes/virtual` (create/edit), reusing `DELETE /api/codes/{id}`.
+  - Two-level aggregation: the Fortnight/Review grid shows a virtual code as its own row; the
+    Enter-in-T&E checklist resolves virtual codes to their real code, collapsing several virtual codes
+    sharing one real code into a single T&E line.
+  - Code catalog: virtual codes listed among real ones with a "virtual" badge and backing real code;
+    "New virtual code" and per-card edit/delete (delete guard when an Entry or a virtual code depends
+    on it).
+  - Code picker: lists virtual codes, supports creating one on the fly (picks the real code + name,
+    reopens the picker to use it immediately), and prefills the description from the last comment used
+    on that code + activity.
 - **CORE lot shipped**: the SPA now runs entirely off the real `/api`, mock store removed.
   - Code catalog: `GET/POST/PUT/DELETE /api/codes`, `POST /api/codes/from-reference`, CSV import
     (`POST /api/catalog/import`, upsert by `code_number`); delete blocked while a code is in use.

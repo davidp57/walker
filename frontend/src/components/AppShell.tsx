@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import { Logo } from './Logo'
-import { IconTracker, IconFortnight, IconChecklist, IconCatalog, IconSettings } from './icons'
+import { IconTracker, IconPeriod, IconCatalog, IconTasks, IconSettings } from './icons'
 
-export type Route = 'tracker' | 'fortnight' | 'checklist' | 'codes' | 'settings'
+export type Route = 'tracker' | 'period' | 'tasks' | 'codes' | 'settings'
 
 interface NavItem {
   key: Route
@@ -11,12 +11,18 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { key: 'tracker', label: 'Today', icon: <IconTracker /> },
-  { key: 'fortnight', label: 'Fortnight', icon: <IconFortnight /> },
-  { key: 'checklist', label: 'Enter in T&E', icon: <IconChecklist /> },
+  { key: 'tracker', label: 'Activity', icon: <IconTracker /> },
+  { key: 'period', label: 'Timesheet period', icon: <IconPeriod /> },
+  { key: 'tasks', label: 'Tasks', icon: <IconTasks /> },
   { key: 'codes', label: 'Code catalog', icon: <IconCatalog /> },
   { key: 'settings', label: 'Settings', icon: <IconSettings /> },
 ]
+
+/** The account identity shown in the shell footer (CHR-004): just a username and, optionally, a name. */
+export interface ShellUser {
+  username: string
+  name: string | null
+}
 
 interface AppShellProps {
   route: Route
@@ -24,9 +30,30 @@ interface AppShellProps {
   /** The persistent Timer bar, rendered above every screen. */
   timer: ReactNode
   children: ReactNode
+  /**
+   * Count of Entries still lacking a Timesheet code (BIZ-010). Shown as a badge on the Activity
+   * nav item; hidden at zero so nothing to code reads as a neutral, uncluttered nav.
+   */
+  uncategorizedCount?: number
+  /** The current user, shown in the footer as `name` if set, else `username`. No role/employer line. */
+  user?: ShellUser
 }
 
-export function AppShell({ route, onNavigate, timer, children }: AppShellProps) {
+export function AppShell({
+  route,
+  onNavigate,
+  timer,
+  children,
+  uncategorizedCount = 0,
+  user,
+}: AppShellProps) {
+  const displayName = user?.name ?? user?.username ?? ''
+  const initials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]!.toUpperCase())
+    .join('')
   return (
     <div className="wk-app">
       <aside className="wk-sidebar">
@@ -41,17 +68,24 @@ export function AppShell({ route, onNavigate, timer, children }: AppShellProps) 
             >
               <span className="wk-nav-ico">{item.icon}</span>
               <span>{item.label}</span>
+              {item.key === 'tracker' && uncategorizedCount > 0 && (
+                <span
+                  className="wk-nav-badge"
+                  data-testid="wk-uncategorized-badge"
+                  title={`${uncategorizedCount} entr${uncategorizedCount === 1 ? 'y' : 'ies'} without a Timesheet code`}
+                >
+                  {uncategorizedCount}
+                </span>
+              )}
             </button>
           ))}
         </nav>
-        <div className="wk-sidebar-foot">
-          <div className="wk-avatar">JD</div>
-          <div className="wk-foot-meta">
-            Consultant
-            <br />
-            PwC &middot; Advisory
+        {user && (
+          <div className="wk-sidebar-foot">
+            <div className="wk-avatar">{initials}</div>
+            <div className="wk-foot-meta">{displayName}</div>
           </div>
-        </div>
+        )}
       </aside>
 
       <main className="wk-main">

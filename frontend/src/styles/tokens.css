@@ -13,7 +13,7 @@
   --wk-text-hi: #e9ebef;
   --wk-text: #b7bdc8;
   --wk-text-mid: #868d9b;
-  --wk-text-lo: #5b626f;
+  --wk-text-lo: #818897; /* WCAG AA (>=4.5:1) on every surface it's used on — see contrast.test.ts */
 
   /* ---- Accent (brand, themeable) ---- */
   --wk-accent: #5b9cf6;
@@ -25,7 +25,7 @@
   --wk-amber: #e8a84b; /* uncategorized / needs completing */
   --wk-amber-soft: rgba(232, 168, 75, 0.13);
   --wk-amber-line: rgba(232, 168, 75, 0.38);
-  --wk-green: #3fb68b; /* entered into T&E / complete */
+  --wk-green: #3fb68b; /* entered into Timesheet system / complete */
   --wk-green-soft: rgba(63, 182, 139, 0.14);
   --wk-danger: #e5644e;
 
@@ -34,8 +34,8 @@
   --wk-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --wk-font-display: 'Zilla Slab', Georgia, serif; /* logo / screen titles — western wink */
 
-  --wk-fs-9: 9.5px; /* micro labels (uppercase mono) */
-  --wk-fs-10: 10.5px;
+  --wk-fs-9: 11px; /* functional micro labels (column headers, totals, meta) — floored for legibility */
+  --wk-fs-10: 11px; /* functional meta text — floored for legibility */
   --wk-fs-11: 11px;
   --wk-fs-12: 12.5px;
   --wk-fs-13: 13.5px;

@@ -12,6 +12,8 @@ export interface DayGroup {
 interface TrackerScreenProps {
   groups: DayGroup[]
   codesById: Record<string, TimesheetCode>
+  /** True until the first entries response has arrived — avoids flashing the empty state. */
+  loading?: boolean
   onEditEntry: (id: string, patch: Partial<Entry>) => void
   onCategorizeEntry: (id: string) => void
   onOpenEntry: (id: string) => void
@@ -24,6 +26,7 @@ interface TrackerScreenProps {
 export function TrackerScreen({
   groups,
   codesById,
+  loading = false,
   onEditEntry,
   onCategorizeEntry,
   onOpenEntry,
@@ -51,7 +54,9 @@ export function TrackerScreen({
         </button>
       </div>
 
-      {groups.length === 0 ? (
+      {loading ? (
+        <div className="wk-loading">Loading…</div>
+      ) : groups.length === 0 ? (
         <div className="wk-empty">
           <div className="wk-empty-title">Adios, backlog.</div>
           <div className="wk-empty-sub">

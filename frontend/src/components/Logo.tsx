@@ -13,7 +13,7 @@ export function Logo({ wink = true }: LogoProps) {
       </div>
       <div>
         <div className="wk-brand-name">Walker</div>
-        <div className="wk-brand-sub">time &rarr; T&amp;E</div>
+        <div className="wk-brand-sub">time &rarr; Timesheet system</div>
       </div>
     </div>
   )

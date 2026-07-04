@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.exceptions import NotFoundError, ValidationError
-from walker.models import Entry
+from walker.models import Entry, Task, TaskStatus
 
 
 def running_entry(session: Session, user_id: int) -> Entry | None:
@@ -40,6 +40,21 @@ def list_entries_range(session: Session, user_id: int, start: date, end: date) -
     )
 
 
+def _start_task_if_todo(session: Session, user_id: int, task_id: int | None) -> None:
+    """Move a Task from To-do to In-progress when a Timer starts tracking it (BIZ-023).
+
+    All other statuses are left untouched — only the automatic To-do -> In-progress transition is
+    triggered by starting a Timer (see lot TASKS PRD, Implementation Decisions).
+    """
+    if task_id is None:
+        return
+    task = session.get(Task, task_id)
+    if task is None or task.user_id != user_id:
+        raise NotFoundError(f"Task {task_id} not found.")
+    if task.status == TaskStatus.TODO:
+        task.status = TaskStatus.IN_PROGRESS
+
+
 def create_entry(
     session: Session,
     user_id: int,
@@ -50,6 +65,7 @@ def create_entry(
     timesheet_code_id: int | None = None,
     activity: str | None = None,
     description: str | None = None,
+    task_id: int | None = None,
 ) -> Entry:
     """Create an Entry directly (no timer) — e.g. a past or future manual entry."""
     entry = Entry(
@@ -60,6 +76,7 @@ def create_entry(
         timesheet_code_id=timesheet_code_id,
         activity=activity,
         description=description,
+        task_id=task_id,
     )
     session.add(entry)
     session.commit()
@@ -87,8 +104,14 @@ def switch_timer(
     timesheet_code_id: int | None = None,
     activity: str | None = None,
     description: str | None = None,
+    task_id: int | None = None,
 ) -> Entry:
-    """Close the running Entry (if any) and open a new one, atomically in one commit."""
+    """Close the running Entry (if any) and open a new one, atomically in one commit.
+
+    When ``task_id`` is given and the Task is currently To-do, it moves to In-progress (BIZ-023) —
+    the start-from-Task action for a fresh Task.
+    """
+    _start_task_if_todo(session, user_id, task_id)
     current = running_entry(session, user_id)
     if current is not None:
         current.end_minute = at_minute
@@ -99,6 +122,7 @@ def switch_timer(
         timesheet_code_id=timesheet_code_id,
         activity=activity,
         description=description,
+        task_id=task_id,
     )
     session.add(entry)
     session.commit()
@@ -107,11 +131,32 @@ def switch_timer(
 
 
 def stop_timer(session: Session, user_id: int, at_minute: int) -> Entry:
-    """Close the running Entry. Rejects when nothing is running."""
+    """Close the running Entry. Rejects when nothing is running. The linked Task's status, if any,
+    is left unchanged (see ``complete_timer`` for the Stop | Complete split — BIZ-023)."""
     current = running_entry(session, user_id)
     if current is None:
         raise ValidationError("No timer is running.")
     current.end_minute = at_minute
+    session.commit()
+    session.refresh(current)
+    return current
+
+
+def complete_timer(session: Session, user_id: int, at_minute: int) -> Entry:
+    """Close the running Entry and, when it is linked to a Task, mark that Task Done (BIZ-023).
+
+    One call, one commit: stopping the Timer and completing its Task happen atomically, so there is
+    no window where the Timer is stopped but the Task is not yet Done (or vice versa). A no-op on
+    the Task when the running Entry carries none.
+    """
+    current = running_entry(session, user_id)
+    if current is None:
+        raise ValidationError("No timer is running.")
+    current.end_minute = at_minute
+    if current.task_id is not None:
+        task = session.get(Task, current.task_id)
+        if task is not None and task.user_id == user_id:
+            task.status = TaskStatus.DONE
     session.commit()
     session.refresh(current)
     return current

@@ -1,7 +1,16 @@
 // Typed client for the Walker JSON API (served under /api — see ADR-0003).
 // The dev server proxies /api to the FastAPI backend; in production the SPA and API
 // share an origin, so relative paths work in both.
-import type { Entry, ReferenceCode, TimesheetCode } from '../types'
+import type {
+  Entry,
+  PeriodScheme,
+  ReferenceCode,
+  RecurrenceRule,
+  Task,
+  TaskPriority,
+  TaskStatus,
+  TimesheetCode,
+} from '../types'
 
 interface ApiActivity {
   code: string
@@ -15,6 +24,9 @@ interface ApiCode {
   name: string
   color: string
   activities: ApiActivity[]
+  is_virtual: boolean
+  real_code_id: number | null
+  real_code_number: string | null
 }
 
 async function getJson<T>(path: string): Promise<T> {
@@ -25,10 +37,24 @@ async function getJson<T>(path: string): Promise<T> {
   return (await response.json()) as T
 }
 
-/** Fetch the current user's code catalog. Backend ids are numeric; the SPA uses string ids. */
+function mapCode(code: ApiCode): TimesheetCode {
+  return {
+    id: String(code.id),
+    number: code.number,
+    label: code.label,
+    name: code.name,
+    color: code.color,
+    activities: code.activities,
+    isVirtual: code.is_virtual,
+    realCodeId: code.real_code_id == null ? null : String(code.real_code_id),
+    realCodeNumber: code.real_code_number,
+  }
+}
+
+/** Fetch the current user's code catalog (real and virtual). Backend ids are numeric; the SPA uses string ids. */
 export async function fetchCodes(): Promise<TimesheetCode[]> {
   const codes = await getJson<ApiCode[]>('/api/codes')
-  return codes.map((code) => ({ ...code, id: String(code.id) }))
+  return codes.map(mapCode)
 }
 
 interface ApiEntry {
@@ -39,6 +65,7 @@ interface ApiEntry {
   timesheet_code_id: number | null
   activity: string | null
   description: string | null
+  task_id: number | null
 }
 
 function mapEntry(entry: ApiEntry): Entry {
@@ -50,6 +77,7 @@ function mapEntry(entry: ApiEntry): Entry {
     codeId: entry.timesheet_code_id == null ? null : String(entry.timesheet_code_id),
     activity: entry.activity,
     description: entry.description ?? '',
+    taskId: entry.task_id == null ? null : String(entry.task_id),
   }
 }
 
@@ -70,14 +98,19 @@ export interface TimerCategory {
   codeId?: string | null
   activity?: string | null
   description?: string | null
+  taskId?: string | null
 }
 
 function categoryBody(category: TimerCategory): Record<string, unknown> {
-  return {
+  const body: Record<string, unknown> = {
     timesheet_code_id: category.codeId == null ? null : Number(category.codeId),
     activity: category.activity ?? null,
     description: category.description ?? null,
   }
+  if (category.taskId !== undefined) {
+    body.task_id = category.taskId == null ? null : Number(category.taskId)
+  }
+  return body
 }
 
 /** List the current user's entries for a day (ISO "YYYY-MM-DD"). */
@@ -103,9 +136,14 @@ export async function switchTimer(category: TimerCategory = {}): Promise<Entry> 
   return mapEntry(await sendJson<ApiEntry>('/api/timer/switch', 'POST', categoryBody(category)))
 }
 
-/** Close the running entry. */
+/** Close the running entry. Leaves a linked Task's status unchanged (see `completeTimer`). */
 export async function stopTimer(): Promise<Entry> {
   return mapEntry(await sendJson<ApiEntry>('/api/timer/stop', 'POST'))
+}
+
+/** Close the running entry and mark its linked Task Done, in one call (BIZ-023). */
+export async function completeTimer(): Promise<Entry> {
+  return mapEntry(await sendJson<ApiEntry>('/api/timer/complete', 'POST'))
 }
 
 /** Edit any field of an entry; only provided keys are sent. */
@@ -119,6 +157,9 @@ export async function patchEntry(id: string, patch: Partial<Entry>): Promise<Ent
   }
   if (patch.activity !== undefined) body.activity = patch.activity
   if (patch.description !== undefined) body.description = patch.description
+  if (patch.taskId !== undefined) {
+    body.task_id = patch.taskId == null ? null : Number(patch.taskId)
+  }
   return mapEntry(await sendJson<ApiEntry>(`/api/entries/${id}`, 'PATCH', body))
 }
 
@@ -133,6 +174,9 @@ export async function createEntry(fields: Partial<Entry> = {}): Promise<Entry> {
   }
   if (fields.activity !== undefined) body.activity = fields.activity
   if (fields.description !== undefined) body.description = fields.description
+  if (fields.taskId !== undefined) {
+    body.task_id = fields.taskId == null ? null : Number(fields.taskId)
+  }
   return mapEntry(await sendJson<ApiEntry>('/api/entries', 'POST', body))
 }
 
@@ -165,14 +209,44 @@ function codeBody(input: CodeWrite): Record<string, unknown> {
 
 /** Create a code (+ activities). */
 export async function createCode(input: CodeWrite): Promise<TimesheetCode> {
-  const code = await sendJson<ApiCode>('/api/codes', 'POST', codeBody(input))
-  return { ...code, id: String(code.id) }
+  return mapCode(await sendJson<ApiCode>('/api/codes', 'POST', codeBody(input)))
 }
 
 /** Update a code (replaces its activities). */
 export async function updateCode(id: string, input: CodeWrite): Promise<TimesheetCode> {
-  const code = await sendJson<ApiCode>(`/api/codes/${id}`, 'PUT', codeBody(input))
-  return { ...code, id: String(code.id) }
+  return mapCode(await sendJson<ApiCode>(`/api/codes/${id}`, 'PUT', codeBody(input)))
+}
+
+/** Fields sent when creating a virtual code (ADR-0008): backed by exactly one real code. */
+export interface VirtualCodeWrite {
+  realCodeId: string
+  name: string
+  color?: string | null
+}
+
+/** Create a virtual code linked to a real code; borrows the real code's number/label/activities. */
+export async function createVirtualCode(input: VirtualCodeWrite): Promise<TimesheetCode> {
+  return mapCode(
+    await sendJson<ApiCode>('/api/codes/virtual', 'POST', {
+      real_code_id: Number(input.realCodeId),
+      name: input.name,
+      color: input.color ?? null,
+    }),
+  )
+}
+
+/** Update a virtual code's name, colour, and/or backing real code (ADR-0008). */
+export async function updateVirtualCode(
+  id: string,
+  input: VirtualCodeWrite,
+): Promise<TimesheetCode> {
+  return mapCode(
+    await sendJson<ApiCode>(`/api/codes/virtual/${id}`, 'PUT', {
+      real_code_id: Number(input.realCodeId),
+      name: input.name,
+      color: input.color ?? null,
+    }),
+  )
 }
 
 /** Delete a code; the server rejects deletion of a code still referenced by an entry. */
@@ -200,8 +274,7 @@ export async function searchReference(q: string, limit = 20): Promise<ReferenceC
 
 /** Copy a reference code (by number) into the user's active codes. */
 export async function addCodeFromReference(number: string): Promise<TimesheetCode> {
-  const code = await sendJson<ApiCode>('/api/codes/from-reference', 'POST', { number })
-  return { ...code, id: String(code.id) }
+  return mapCode(await sendJson<ApiCode>('/api/codes/from-reference', 'POST', { number }))
 }
 
 /** Import a catalog CSV into the reference catalog; upserts by number. Returns created/updated. */
@@ -222,23 +295,21 @@ export async function importCatalog(file: File): Promise<{ created: number; upda
   return (await response.json()) as { created: number; updated: number }
 }
 
-interface ApiFortnightRow {
+interface ApiPeriodRow {
   timesheet_code_id: number
   activity: string
   minutes_by_day: Record<string, number>
 }
 
-interface ApiFortnight {
+interface ApiPeriod {
   start: string
   end: string
-  rows: ApiFortnightRow[]
+  rows: ApiPeriodRow[]
 }
 
-/** Fetch the aggregated fortnight grid as a `${codeId}|${activity}` → day → minutes matrix. */
-export async function fetchFortnight(
-  date: string,
-): Promise<Record<string, Record<number, number>>> {
-  const grid = await getJson<ApiFortnight>(`/api/fortnight/${date}`)
+/** Fetch the aggregated Timesheet period grid as a `${codeId}|${activity}` → day → minutes matrix. */
+export async function fetchPeriod(date: string): Promise<Record<string, Record<number, number>>> {
+  const grid = await getJson<ApiPeriod>(`/api/period/${date}`)
   const matrix: Record<string, Record<number, number>> = {}
   for (const row of grid.rows) {
     const byDay: Record<number, number> = {}
@@ -267,7 +338,7 @@ export interface ChecklistMarkInput {
 
 /** Fetch the checklist as a `${codeId}|${activity}#${day}` → true map of entered cells. */
 export async function fetchChecklist(date: string): Promise<Record<string, boolean>> {
-  const data = await getJson<{ items: ApiChecklistItem[] }>(`/api/fortnight/${date}/checklist`)
+  const data = await getJson<{ items: ApiChecklistItem[] }>(`/api/period/${date}/checklist`)
   const checked: Record<string, boolean> = {}
   for (const item of data.items) {
     if (item.entered) {
@@ -279,22 +350,21 @@ export async function fetchChecklist(date: string): Promise<Record<string, boole
 
 /** Toggle a single checklist cell's entered state. */
 export async function toggleChecklist(date: string, mark: ChecklistMarkInput): Promise<void> {
-  await sendJson<unknown>(`/api/fortnight/${date}/checklist`, 'PATCH', mark)
+  await sendJson<unknown>(`/api/period/${date}/checklist`, 'PATCH', mark)
 }
 
-/** Clear every tick for the fortnight. */
+/** Clear every tick for the Timesheet period. */
 export async function resetChecklist(date: string): Promise<void> {
-  const response = await fetch(`/api/fortnight/${date}/checklist`, { method: 'DELETE' })
+  const response = await fetch(`/api/period/${date}/checklist`, { method: 'DELETE' })
   if (!response.ok) {
-    throw new Error(
-      `${response.status} ${response.statusText} for /api/fortnight/${date}/checklist`,
-    )
+    throw new Error(`${response.status} ${response.statusText} for /api/period/${date}/checklist`)
   }
 }
 
 interface ApiSettings {
   workdays: boolean[]
   density: string
+  period_scheme: PeriodScheme
   absences: { date: string; reason: string }[]
 }
 
@@ -302,6 +372,7 @@ interface ApiSettings {
 export interface SettingsData {
   workdays: boolean[]
   density: 'comfortable' | 'compact'
+  periodScheme: PeriodScheme
   absences: { date: string; reason: string }[]
 }
 
@@ -309,18 +380,29 @@ function mapSettings(settings: ApiSettings): SettingsData {
   return {
     workdays: settings.workdays,
     density: settings.density === 'compact' ? 'compact' : 'comfortable',
+    periodScheme: settings.period_scheme,
     absences: settings.absences,
   }
 }
 
-/** Fetch the user's settings (work rhythm, density, absences). */
+/** Fetch the user's settings (work rhythm, density, period scheme, absences). */
 export async function fetchSettings(): Promise<SettingsData> {
   return mapSettings(await getJson<ApiSettings>('/api/settings'))
 }
 
-/** Update the work rhythm + density. */
-export async function updateSettings(workdays: boolean[], density: string): Promise<SettingsData> {
-  return mapSettings(await sendJson<ApiSettings>('/api/settings', 'PUT', { workdays, density }))
+/** Update the work rhythm, density, and (optionally) the Timesheet period scheme. */
+export async function updateSettings(
+  workdays: boolean[],
+  density: string,
+  periodScheme?: PeriodScheme,
+): Promise<SettingsData> {
+  return mapSettings(
+    await sendJson<ApiSettings>('/api/settings', 'PUT', {
+      workdays,
+      density,
+      period_scheme: periodScheme,
+    }),
+  )
 }
 
 /** Add (or update the reason of) an absence. */
@@ -337,4 +419,127 @@ export async function removeAbsence(date: string): Promise<SettingsData> {
     throw new Error(`${response.status} ${response.statusText} for /api/settings/absences/${date}`)
   }
   return mapSettings((await response.json()) as ApiSettings)
+}
+
+/** The current user (CHR-004): a username and, optionally, a display name. */
+export interface ApiUser {
+  username: string
+  name: string | null
+}
+
+/** Fetch the current user. */
+export async function fetchUser(): Promise<ApiUser> {
+  return getJson<ApiUser>('/api/user')
+}
+
+/** The recurrence rule as carried over the wire — same shapes as `services/recurrence.py`. */
+type ApiRecurrenceRule =
+  | { kind: 'every_n_days'; n: number }
+  | { kind: 'weekly'; weekdays: number[] }
+  | { kind: 'monthly'; day: number }
+  | { kind: 'period_relative'; anchor: 'start' | 'end'; offset_days: number }
+
+interface ApiTask {
+  id: number
+  title: string
+  description: string | null
+  status: string
+  priority: string | null
+  due_date: string | null
+  tags: string[]
+  timesheet_code_id: number | null
+  recurrence_rule: ApiRecurrenceRule | null
+  created_at: string
+  updated_at: string
+}
+
+function mapRecurrenceRuleFromApi(rule: ApiRecurrenceRule | null): RecurrenceRule | null {
+  if (rule == null) return null
+  if (rule.kind === 'period_relative') {
+    return { kind: 'period_relative', anchor: rule.anchor, offsetDays: rule.offset_days }
+  }
+  return rule
+}
+
+function mapRecurrenceRuleToApi(rule: RecurrenceRule | null | undefined): ApiRecurrenceRule | null {
+  if (rule == null) return null
+  if (rule.kind === 'period_relative') {
+    return { kind: 'period_relative', anchor: rule.anchor, offset_days: rule.offsetDays }
+  }
+  return rule
+}
+
+function mapTask(task: ApiTask): Task {
+  return {
+    id: String(task.id),
+    title: task.title,
+    description: task.description ?? '',
+    status: task.status as TaskStatus,
+    priority: (task.priority as TaskPriority | null) ?? null,
+    dueDate: task.due_date,
+    tags: task.tags,
+    codeId: task.timesheet_code_id == null ? null : String(task.timesheet_code_id),
+    recurrenceRule: mapRecurrenceRuleFromApi(task.recurrence_rule),
+    createdAt: task.created_at,
+    updatedAt: task.updated_at,
+  }
+}
+
+/** Fields sent when creating or updating a Task. */
+export interface TaskWrite {
+  title: string
+  description?: string | null
+  status?: TaskStatus
+  priority?: TaskPriority | null
+  dueDate?: string | null
+  tags?: string[]
+  codeId?: string | null
+  recurrenceRule?: RecurrenceRule | null
+}
+
+function taskBody(input: TaskWrite): Record<string, unknown> {
+  return {
+    title: input.title,
+    description: input.description ?? null,
+    status: input.status ?? 'todo',
+    priority: input.priority ?? null,
+    due_date: input.dueDate ?? null,
+    tags: input.tags ?? [],
+    timesheet_code_id: input.codeId == null ? null : Number(input.codeId),
+    recurrence_rule: mapRecurrenceRuleToApi(input.recurrenceRule),
+  }
+}
+
+/** Fetch the current user's Tasks. */
+export async function fetchTasks(): Promise<Task[]> {
+  const tasks = await getJson<ApiTask[]>('/api/tasks')
+  return tasks.map(mapTask)
+}
+
+/** Create a Task. Orphan Tasks (no code) are allowed. */
+export async function createTask(input: TaskWrite): Promise<Task> {
+  return mapTask(await sendJson<ApiTask>('/api/tasks', 'POST', taskBody(input)))
+}
+
+/** Update every field of a Task. */
+export async function updateTask(id: string, input: TaskWrite): Promise<Task> {
+  return mapTask(await sendJson<ApiTask>(`/api/tasks/${id}`, 'PUT', taskBody(input)))
+}
+
+/** Complete a Task: Done for a plain Task, rolled forward to To-do for a recurring one (BIZ-025). */
+export async function completeTask(id: string): Promise<Task> {
+  return mapTask(await sendJson<ApiTask>(`/api/tasks/${id}/complete`, 'POST'))
+}
+
+/** Delete a Task. */
+export async function deleteTask(id: string): Promise<void> {
+  const response = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText} for /api/tasks/${id}`)
+  }
+}
+
+/** Fetch every distinct tag used across the user's Tasks (for autocomplete). */
+export async function fetchTaskTags(): Promise<string[]> {
+  return getJson<string[]>('/api/tasks/tags')
 }

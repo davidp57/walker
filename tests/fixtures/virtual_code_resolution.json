@@ -1,0 +1,21 @@
+{
+  "$comment": "Contract fixture for TEC-004 — asserts the backend (walker.services.period.resolve_to_real_codes) and the frontend (frontend/src/lib/checklist.ts::resolveChecklistRows) resolve virtual codes to their real code identically (ADR-0008). Update both consumers' tests together if this scenario changes.",
+  "codes": [
+    { "id": 1, "real_code_id": null },
+    { "id": 2, "real_code_id": 1 },
+    { "id": 3, "real_code_id": 1 },
+    { "id": 9, "real_code_id": null },
+    { "id": 4, "real_code_id": 9 }
+  ],
+  "rows": [
+    { "timesheet_code_id": 2, "activity": "Bug fixing", "minutes_by_day": { "1": 60 } },
+    { "timesheet_code_id": 3, "activity": "Bug fixing", "minutes_by_day": { "1": 30, "2": 15 } },
+    { "timesheet_code_id": 1, "activity": "Documentation", "minutes_by_day": { "1": 45 } },
+    { "timesheet_code_id": 4, "activity": "Bug fixing", "minutes_by_day": { "1": 20 } }
+  ],
+  "expected_resolved_rows": [
+    { "timesheet_code_id": 1, "activity": "Bug fixing", "minutes_by_day": { "1": 90, "2": 15 } },
+    { "timesheet_code_id": 1, "activity": "Documentation", "minutes_by_day": { "1": 45 } },
+    { "timesheet_code_id": 9, "activity": "Bug fixing", "minutes_by_day": { "1": 20 } }
+  ]
+}

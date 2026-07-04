@@ -102,6 +102,23 @@
   justify-content: center;
   opacity: 0.85;
 }
+.wk-nav-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--wk-radius-pill);
+  background: var(--wk-amber-soft);
+  border: 1px solid var(--wk-amber-line);
+  color: var(--wk-amber);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-10);
+  font-weight: var(--wk-fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
 
 .wk-sidebar-foot {
   padding: 14px 20px;
@@ -445,7 +462,7 @@
 
 /* ---------- Tracker: Entry list ---------- */
 .wk-entry-cols {
-  --wk-entry-grid: 14px 118px 48px minmax(150px, 1.25fr) minmax(120px, 1.4fr) 24px 26px 24px;
+  --wk-entry-grid: 14px 118px 48px minmax(150px, 1.25fr) minmax(120px, 1.4fr) 30px 30px 30px;
 }
 .wk-entry-head,
 .wk-entry-row {
@@ -593,34 +610,28 @@
   outline: none;
 }
 
-.wk-resume {
+.wk-row-action {
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   color: var(--wk-text-mid);
-  font-size: var(--wk-fs-12);
-  text-align: center;
-  border-radius: 6px;
-  padding: 5px 4px;
+  border-radius: 7px;
+  padding: 0;
   border: 1px solid var(--wk-line);
   background: none;
 }
-.wk-resume:hover {
+.wk-row-action:hover {
   color: var(--wk-accent);
   border-color: var(--wk-accent-line);
   background: var(--wk-accent-soft);
 }
-.wk-delete {
-  cursor: pointer;
-  color: var(--wk-text-lo);
-  font-size: var(--wk-fs-14);
-  text-align: center;
-  border-radius: 6px;
-  padding: 4px;
-  background: none;
-  border: none;
-}
-.wk-delete:hover {
+.wk-row-action-danger:hover {
   color: var(--wk-danger);
-  background: var(--wk-bg-3);
+  border-color: var(--wk-danger);
+  background: rgba(229, 100, 78, 0.12);
 }
 
 .wk-tip {
@@ -655,7 +666,7 @@
   color: var(--wk-accent);
 }
 
-/* ---------- Grid (Fortnight + Checklist) ---------- */
+/* ---------- Grid (Timesheet period + Checklist) ---------- */
 .wk-grid-wrap {
   overflow: auto;
   border: 1px solid var(--wk-line);
@@ -703,7 +714,7 @@
   color: var(--wk-text-lo);
 }
 .wk-day-name {
-  font-size: 9px;
+  font-size: var(--wk-fs-11);
   letter-spacing: 0.5px;
 }
 .wk-day-num {
@@ -771,15 +782,30 @@
   text-overflow: ellipsis;
   margin-top: 1px;
 }
+.wk-rowhead-code-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
 .wk-rowhead-code {
   font-family: var(--wk-font-mono);
   font-size: var(--wk-fs-10);
   color: var(--wk-text-lo);
-  margin-top: 2px;
+}
+.wk-copy-code {
+  padding: 1px 4px;
+  font-size: var(--wk-fs-10);
+  border-color: transparent;
+  line-height: 1.4;
+}
+.wk-copy-code:hover {
+  color: var(--wk-green);
+  border-color: var(--wk-green);
 }
 .wk-rowbadge {
   font-family: var(--wk-font-mono);
-  font-size: 10px;
+  font-size: var(--wk-fs-11);
   padding: 3px 7px;
   border-radius: 12px;
   cursor: pointer;
@@ -825,7 +851,7 @@
 .wk-cell.is-clickable {
   cursor: pointer;
 }
-/* Empty working cell in the Fortnight grid — hint that clicking adds a prefilled entry. */
+/* Empty working cell in the Timesheet period grid — hint that clicking adds a prefilled entry. */
 .wk-cell.is-addable:hover {
   background: var(--wk-accent-soft);
 }
@@ -859,12 +885,37 @@
   box-shadow: 0 0 0 3px var(--wk-accent-soft);
   animation: wk-pulse 1.5s ease-in-out infinite;
 }
-.wk-cell-check {
+/* Enter-in-Timesheet-system checkbox affordance (BIZ-008): visible at rest beside the duration, no hover needed.
+   Unticked stays neutral (hollow box) — amber is reserved for "uncategorized" elsewhere in the app.
+   Ticked turns solid green with a check; the duration itself keeps its own color/legibility. */
+.wk-cell-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  margin: 0 5px 0 0;
+  vertical-align: middle;
+  border: 1.5px solid var(--wk-text-lo);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+}
+.wk-cell-checkbox:checked {
+  background: var(--wk-green);
+  border-color: var(--wk-green);
+}
+.wk-cell-checkbox:checked::after {
+  content: '';
   position: absolute;
-  top: 3px;
-  right: 4px;
-  font-size: 9px;
-  color: var(--wk-green);
+  left: 3px;
+  top: 0px;
+  width: 3px;
+  height: 7px;
+  border: solid var(--wk-bg-0);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
 .wk-cell-input {
   width: 100%;
@@ -1007,6 +1058,62 @@
   text-transform: uppercase;
   color: var(--wk-text-lo);
   margin-top: 2px;
+}
+
+/* ---------- Toasts (TEC-002: visible API errors) ---------- */
+.wk-toast-stack {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: var(--wk-z-modal);
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 10px;
+  max-width: 380px;
+}
+.wk-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--wk-radius-md);
+  box-shadow: var(--wk-shadow-2);
+  font-size: var(--wk-fs-13);
+  line-height: 1.4;
+}
+.wk-toast-error {
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-danger);
+  color: var(--wk-text-hi);
+}
+.wk-toast-msg {
+  flex: 1;
+  min-width: 0;
+}
+.wk-toast-dismiss {
+  cursor: pointer;
+  color: var(--wk-text-lo);
+  background: none;
+  border: none;
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  padding: 2px;
+}
+.wk-toast-dismiss:hover {
+  color: var(--wk-danger);
+}
+
+/* Loading placeholder (TEC-002: avoid flashing the empty state before first data arrives) */
+.wk-loading {
+  text-align: center;
+  padding: 90px 20px;
+  border: 1px dashed var(--wk-line);
+  border-radius: 16px;
+  color: var(--wk-text-lo);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-12);
+  letter-spacing: 0.5px;
 }
 
 /* ---------- Modal (Code picker / Entry editor) ---------- */
@@ -1239,4 +1346,461 @@
   background: var(--wk-accent-soft);
   border-color: var(--wk-accent-line);
   color: var(--wk-text-hi);
+}
+
+/* ---------- Undo toast (BIZ-011) ---------- */
+.wk-undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  box-shadow: var(--wk-shadow-2);
+  padding: 12px 16px;
+  font-size: var(--wk-fs-13);
+  color: var(--wk-text-hi);
+  z-index: 50;
+}
+.wk-undo-toast-action {
+  background: none;
+  border: none;
+  color: var(--wk-accent);
+  font-weight: var(--wk-fw-semibold);
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.wk-undo-toast-action:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Tasks (BIZ-021) ---------- */
+.wk-tasks-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--wk-space-3);
+  margin-bottom: var(--wk-space-4);
+  flex-wrap: wrap;
+}
+.wk-tasks-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.wk-tasks-toolbar select {
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  color: var(--wk-text-hi);
+  font-size: var(--wk-fs-12);
+  padding: 5px 8px;
+}
+.wk-task-group {
+  margin-bottom: var(--wk-space-5);
+}
+.wk-task-group-title {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  padding: 6px 4px;
+}
+.wk-task-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-lg);
+  overflow: hidden;
+}
+.wk-task-table th {
+  text-align: left;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--wk-line);
+  background: var(--wk-bg-2);
+  cursor: pointer;
+  user-select: none;
+}
+.wk-task-table th.is-sorted {
+  color: var(--wk-text-hi);
+}
+.wk-task-row {
+  cursor: pointer;
+}
+.wk-task-row:not(:last-child) td {
+  border-bottom: 1px solid var(--wk-line-soft);
+}
+.wk-task-row:hover {
+  background: var(--wk-bg-2);
+}
+.wk-task-table td {
+  padding: 10px 14px;
+  font-size: var(--wk-fs-13);
+  color: var(--wk-text);
+  vertical-align: middle;
+}
+.wk-task-title {
+  color: var(--wk-text-hi);
+  font-weight: var(--wk-fw-medium);
+}
+.wk-task-tags {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+.wk-task-tag {
+  font-family: var(--wk-font-mono);
+  font-size: 10px;
+  color: var(--wk-text-mid);
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-pill);
+  padding: 2px 8px;
+}
+.wk-task-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  padding: 3px 9px;
+  border-radius: var(--wk-radius-pill);
+  border: 1px solid var(--wk-line-soft);
+  color: var(--wk-text-mid);
+  white-space: nowrap;
+}
+.wk-task-status.is-done {
+  color: var(--wk-green);
+  border-color: var(--wk-green-soft);
+  background: var(--wk-green-soft);
+}
+.wk-task-status.is-in_progress {
+  color: var(--wk-accent);
+  border-color: var(--wk-accent-line);
+  background: var(--wk-accent-soft);
+}
+.wk-task-priority {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  text-transform: capitalize;
+}
+.wk-task-priority.is-high {
+  color: var(--wk-danger);
+}
+.wk-task-priority.is-medium {
+  color: var(--wk-amber);
+}
+.wk-task-priority.is-low {
+  color: var(--wk-text-lo);
+}
+.wk-task-due.is-overdue {
+  color: var(--wk-danger);
+}
+
+/* ---------- Task view toggle + kanban board (BIZ-022) ---------- */
+.wk-task-view-toggle {
+  display: inline-flex;
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  overflow: hidden;
+  margin-right: var(--wk-space-2);
+}
+.wk-task-view-toggle button {
+  background: var(--wk-bg-2);
+  border: none;
+  color: var(--wk-text-lo);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.wk-task-view-toggle button:not(:last-child) {
+  border-right: 1px solid var(--wk-line);
+}
+.wk-task-view-toggle button.is-active {
+  background: var(--wk-accent-soft);
+  color: var(--wk-accent);
+}
+.wk-board {
+  display: flex;
+  gap: var(--wk-space-4);
+  align-items: flex-start;
+  overflow-x: auto;
+  padding-bottom: var(--wk-space-2);
+}
+.wk-board-column {
+  flex: 1 1 0;
+  min-width: 220px;
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-lg);
+  display: flex;
+  flex-direction: column;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+.wk-board-column.is-drop-target {
+  border-color: var(--wk-accent);
+  background: var(--wk-accent-soft);
+}
+.wk-board-column-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--wk-line);
+  background: var(--wk-bg-2);
+}
+.wk-board-column-count {
+  font-family: var(--wk-font-mono);
+  color: var(--wk-text-lo);
+}
+.wk-board-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wk-space-3);
+  padding: var(--wk-space-3);
+  min-height: 60px;
+}
+.wk-board-card {
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-md);
+  padding: 10px 12px;
+  touch-action: none;
+}
+.wk-board-card.is-dragging {
+  opacity: 0.5;
+}
+.wk-board-card-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.wk-board-drag-handle {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  color: var(--wk-text-lo);
+  cursor: grab;
+  padding: 0 2px;
+  font-size: var(--wk-fs-13);
+  line-height: 1;
+  touch-action: none;
+}
+.wk-board-drag-handle:active {
+  cursor: grabbing;
+}
+.wk-board-card-title {
+  color: var(--wk-text-hi);
+  font-weight: var(--wk-fw-medium);
+  font-size: var(--wk-fs-13);
+  cursor: pointer;
+}
+.wk-board-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-mid);
+}
+.wk-board-card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.wk-board-move-btn {
+  font-size: var(--wk-fs-10);
+  padding: 4px 8px;
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-sm);
+}
+
+/* Side panel (Task detail): a drawer anchored right, distinct from the centered wk-modal. */
+.wk-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 8, 12, 0.5);
+  display: flex;
+  justify-content: flex-end;
+  z-index: var(--wk-z-modal);
+}
+.wk-panel {
+  width: 420px;
+  max-width: 92vw;
+  height: 100%;
+  background: var(--wk-bg-1);
+  border-left: 1px solid var(--wk-line);
+  box-shadow: var(--wk-shadow-modal);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.wk-panel-body {
+  padding: 16px 20px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.wk-panel-foot {
+  padding: 14px 20px;
+  border-top: 1px solid var(--wk-line-soft);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.wk-tag-input-wrap {
+  position: relative;
+}
+.wk-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.wk-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text);
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-pill);
+  padding: 3px 6px 3px 10px;
+}
+.wk-tag-chip button {
+  background: none;
+  border: none;
+  color: var(--wk-text-lo);
+  cursor: pointer;
+  padding: 0 2px;
+  font-size: 11px;
+}
+.wk-tag-chip button:hover {
+  color: var(--wk-danger);
+}
+
+/* Task description WYSIWYG markdown editor (BIZ-024, Milkdown/ProseMirror). */
+.wk-markdown-editor {
+  background: var(--wk-bg-0);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  min-height: 140px;
+}
+.wk-markdown-editor .milkdown {
+  height: 100%;
+}
+.wk-markdown-editor .ProseMirror {
+  min-height: 140px;
+  padding: 10px 13px;
+  color: var(--wk-text-hi);
+  font-size: var(--wk-fs-14);
+  outline: none;
+}
+.wk-markdown-editor .ProseMirror > * + * {
+  margin-top: 0.6em;
+}
+.wk-markdown-editor .ProseMirror p.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--wk-text-lo);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+.wk-markdown-editor .ProseMirror h1,
+.wk-markdown-editor .ProseMirror h2,
+.wk-markdown-editor .ProseMirror h3 {
+  color: var(--wk-text-hi);
+  font-weight: var(--wk-fw-semibold);
+  line-height: 1.3;
+}
+.wk-markdown-editor .ProseMirror h1 {
+  font-size: var(--wk-fs-20);
+}
+.wk-markdown-editor .ProseMirror h2 {
+  font-size: var(--wk-fs-17);
+}
+.wk-markdown-editor .ProseMirror h3 {
+  font-size: var(--wk-fs-15);
+}
+.wk-markdown-editor .ProseMirror a {
+  color: var(--wk-accent);
+}
+.wk-markdown-editor .ProseMirror blockquote {
+  border-left: 3px solid var(--wk-line);
+  margin: 0;
+  padding-left: 12px;
+  color: var(--wk-text);
+}
+.wk-markdown-editor .ProseMirror code {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-12);
+  background: var(--wk-bg-2);
+  border-radius: var(--wk-radius-sm);
+  padding: 1px 5px;
+}
+.wk-markdown-editor .ProseMirror pre {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-12);
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-md);
+  padding: 10px 12px;
+  overflow-x: auto;
+}
+.wk-markdown-editor .ProseMirror pre code {
+  background: none;
+  padding: 0;
+}
+.wk-markdown-editor .ProseMirror ul,
+.wk-markdown-editor .ProseMirror ol {
+  padding-left: 1.4em;
+}
+.wk-markdown-editor .ProseMirror li[data-item-type='task'] {
+  list-style: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-left: -1.4em;
+}
+.wk-task-item-checkbox {
+  margin-top: 5px;
+  accent-color: var(--wk-accent);
+  cursor: pointer;
+}
+.wk-task-item-content {
+  flex: 1;
+}
+.wk-markdown-editor .ProseMirror li[data-item-type='task'] > .wk-task-item-content > p {
+  margin: 0;
 }

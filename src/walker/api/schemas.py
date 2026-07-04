@@ -7,12 +7,31 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict
 
+from walker.models.settings import PeriodScheme
+
 
 class HealthResponse(BaseModel):
     """Liveness payload returned by ``GET /api/health``."""
 
     status: str
     version: str
+
+
+class CurrentUserRead(BaseModel):
+    """The signed-in user, as returned by ``GET /api/auth/me`` (hosted/``sso`` deployments only)."""
+
+    id: int
+    email: str
+    organization_id: int | None
+
+
+class UserRead(BaseModel):
+    """The current user, as returned by ``GET /api/user``."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    username: str
+    name: str | None
 
 
 class ActivityRead(BaseModel):
@@ -25,9 +44,11 @@ class ActivityRead(BaseModel):
 
 
 class CodeRead(BaseModel):
-    """A Timesheet code with its activities, as returned by ``GET /api/codes``."""
+    """A Timesheet code with its activities, as returned by ``GET /api/codes``.
 
-    model_config = ConfigDict(from_attributes=True)
+    ``number``, ``label``, and ``activities`` are the *resolved* values: a virtual code's own for a
+    real code, borrowed from its real code otherwise (ADR-0008).
+    """
 
     id: int
     number: str
@@ -35,6 +56,9 @@ class CodeRead(BaseModel):
     name: str
     color: str
     activities: list[ActivityRead]
+    is_virtual: bool = False
+    real_code_id: int | None = None
+    real_code_number: str | None = None
 
 
 class ActivityWrite(BaseModel):
@@ -56,6 +80,22 @@ class CodeCreate(BaseModel):
 
 class CodeUpdate(CodeCreate):
     """Payload to update a code (same shape as create; activities are replaced)."""
+
+
+class VirtualCodeCreate(BaseModel):
+    """Payload to create a virtual code: name + colour + the real code it resolves to (ADR-0008)."""
+
+    real_code_id: int
+    name: str
+    color: str | None = None
+
+
+class VirtualCodeUpdate(BaseModel):
+    """Payload to update a virtual code (same shape as create)."""
+
+    real_code_id: int
+    name: str
+    color: str | None = None
 
 
 class ImportSummary(BaseModel):
@@ -95,10 +135,11 @@ class EntryRead(BaseModel):
     timesheet_code_id: int | None
     activity: str | None
     description: str | None
+    task_id: int | None
 
 
-class FortnightRowRead(BaseModel):
-    """One Code × Activity row of the fortnight grid."""
+class PeriodRowRead(BaseModel):
+    """One Code × Activity row of the Timesheet period grid."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -107,14 +148,14 @@ class FortnightRowRead(BaseModel):
     minutes_by_day: dict[int, int]
 
 
-class FortnightRead(BaseModel):
-    """The aggregated fortnight grid returned by ``GET /api/fortnight/{date}``."""
+class PeriodRead(BaseModel):
+    """The aggregated Timesheet period grid returned by ``GET /api/period/{date}``."""
 
     model_config = ConfigDict(from_attributes=True)
 
     start: date
     end: date
-    rows: list[FortnightRowRead]
+    rows: list[PeriodRowRead]
 
 
 class ChecklistItemRead(BaseModel):
@@ -130,7 +171,7 @@ class ChecklistItemRead(BaseModel):
 
 
 class ChecklistRead(BaseModel):
-    """The checklist for a fortnight, with progress counts."""
+    """The checklist for a Timesheet period, with progress counts."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -149,11 +190,16 @@ class ChecklistToggle(BaseModel):
 
 
 class TimerSwitch(BaseModel):
-    """Optional categorization applied to the new Entry opened by a timer switch."""
+    """Optional categorization applied to the new Entry opened by a timer switch.
+
+    ``task_id`` links the new Entry to the Task it was started from (BIZ-023) — set by the
+    start-from-Task action; omitted (``None``) for a plain switch.
+    """
 
     timesheet_code_id: int | None = None
     activity: str | None = None
     description: str | None = None
+    task_id: int | None = None
 
 
 class EntryCreate(BaseModel):
@@ -165,6 +211,7 @@ class EntryCreate(BaseModel):
     timesheet_code_id: int | None = None
     activity: str | None = None
     description: str | None = None
+    task_id: int | None = None
 
 
 class EntryPatch(BaseModel):
@@ -176,6 +223,7 @@ class EntryPatch(BaseModel):
     timesheet_code_id: int | None = None
     activity: str | None = None
     description: str | None = None
+    task_id: int | None = None
 
 
 class AbsenceRead(BaseModel):
@@ -188,20 +236,22 @@ class AbsenceRead(BaseModel):
 
 
 class SettingsRead(BaseModel):
-    """The user's settings: work rhythm (Sun..Sat), density, and absences."""
+    """The user's settings: work rhythm (Sun..Sat), density, period scheme, and absences."""
 
     model_config = ConfigDict(from_attributes=True)
 
     workdays: list[bool]
     density: str
+    period_scheme: PeriodScheme
     absences: list[AbsenceRead]
 
 
 class SettingsUpdate(BaseModel):
-    """Payload to update the work rhythm and density."""
+    """Payload to update the work rhythm, density, and (optionally) the period scheme."""
 
     workdays: list[bool]
     density: str
+    period_scheme: PeriodScheme | None = None
 
 
 class AbsenceWrite(BaseModel):
@@ -209,3 +259,53 @@ class AbsenceWrite(BaseModel):
 
     date: date
     reason: str
+
+
+class TaskRead(BaseModel):
+    """A Task, as returned by the ``/api/tasks`` endpoints."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    title: str
+    description: str | None
+    status: str
+    priority: str | None
+    due_date: date | None
+    tags: list[str]
+    timesheet_code_id: int | None
+    recurrence_rule: dict[str, object] | None
+    created_at: datetime.datetime
+    updated_at: datetime.datetime
+
+
+class TaskCreate(BaseModel):
+    """Payload to create a Task. Only ``title`` is required; an orphan Task has no code.
+
+    ``recurrence_rule`` is one of the shapes documented in ``services/recurrence.py``, e.g.
+    ``{"kind": "every_n_days", "n": 3}``, ``{"kind": "weekly", "weekdays": [0, 2, 4]}``,
+    ``{"kind": "monthly", "day": 15}``, or
+    ``{"kind": "period_relative", "anchor": "end", "offset_days": -1}``.
+    """
+
+    title: str
+    description: str | None = None
+    status: str = "todo"
+    priority: str | None = None
+    due_date: date | None = None
+    tags: list[str] = []
+    timesheet_code_id: int | None = None
+    recurrence_rule: dict[str, object] | None = None
+
+
+class TaskUpdate(BaseModel):
+    """Payload to update a Task (same shape as create — all fields are replaced)."""
+
+    title: str
+    description: str | None = None
+    status: str = "todo"
+    priority: str | None = None
+    due_date: date | None = None
+    tags: list[str] = []
+    timesheet_code_id: int | None = None
+    recurrence_rule: dict[str, object] | None = None
