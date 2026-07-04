@@ -127,6 +127,14 @@ one) — this lot is explicitly the "later layer" that ADR anticipated, for the 
   active.
 - Existing single-user deployments migrate each user into an Organization of one, so upgrading a
   standalone instance doesn't strand its data if it's later pointed at hosted mode.
+- The hosted deployment enables SQLite's **WAL** (Write-Ahead Logging) journal mode and foreign-key
+  enforcement at startup (`PRAGMA journal_mode=WAL`, `PRAGMA foreign_keys=ON`), using an async
+  SQLAlchemy engine — the same pattern already proven in production by the author's Solde app
+  (`backend/database.py`'s `init_db()`). WAL lets concurrent readers proceed without blocking on a
+  writer (SQLite still allows only one writer at a time — WAL doesn't change that — but removes the
+  whole-file lock that makes the default rollback-journal mode painful with more than one active user).
+  Sized for this lot's actual scale (a handful of Organization members); it is not a substitute for an
+  external DBMS if the hosted instance later needs real concurrent-write throughput.
 
 **Docs site**
 
@@ -179,6 +187,10 @@ Test external behavior through the highest seam; never internals. Coverage gate 
   - Re-scoping the real-code catalog gets a migration test plus an API test asserting two `User`s in
     the same `Organization` see and can impute against the same codes, and that one member's virtual
     codes/Entries/Tasks are invisible to another.
+  - Enabling WAL mode gets a narrow test asserting `init_db()`'s startup `PRAGMA` calls actually run
+    (prior art: Solde's `tests/unit/test_database.py::test_init_db_does_not_create_tables`, which
+    verifies the `PRAGMA journal_mode` call executes and returns a mode) — not a concurrency stress
+    test, just a regression guard that the PRAGMA doesn't silently stop being issued.
 - **Docs, CI, CD (Docker + `.exe`)**: no automated test seam — this is infrastructure/tooling, verified
   manually (a deliberately failing PR is blocked by the required CI check; a version tag produces a
   pulled image on GHCR and a downloadable, runnable `.exe` on the Release page). Stated explicitly here
@@ -195,10 +207,11 @@ Test external behavior through the highest seam; never internals. Coverage gate 
   permissions over the shared catalog.
 - SSO/login for the standalone Docker image or `.exe` — they keep ADR-0007's implicit-user behavior.
 - Any change to how durations are recorded, rounded, or targeted (ADR-0005 stands).
-- Switching off SQLite (ADR-0004) for the hosted, multi-tenant target. Concurrent multi-user writes on
-  a shared hosted instance are a real known risk with SQLite's single-writer model; this PRD doesn't
-  address it. Tracked separately in `ROADMAP.md`'s existing "switch to an external DBMS when hosted"
-  forward-looking item — revisit before the hosted instance carries real concurrent load.
+- Switching off SQLite (ADR-0004) for the hosted, multi-tenant target. WAL mode (see Implementation
+  Decisions) mitigates the read/write contention this lot's actual scale would hit, but SQLite is still
+  single-writer — an external DBMS remains a separate, later concern if the hosted instance ever needs
+  real concurrent-write throughput beyond a handful of Organization members. Tracked separately in
+  `ROADMAP.md`'s existing "switch to an external DBMS when hosted" forward-looking item.
 - Multi-currency, billing, or any monetization concern.
 
 ## Further Notes
