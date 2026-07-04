@@ -55,21 +55,15 @@ account (Google, Apple, or Microsoft), add these to the stack's `environment` se
     environment:
       WALKER_DATABASE_URL: sqlite:////data/walker.db
       WALKER_AUTH_MODE: sso
-      WALKER_SESSION_SECRET: "<generate one, see below>"
+      WALKER_SESSION_SECRET: "<generate one>"
       WALKER_GOOGLE_CLIENT_ID: "<from Google Cloud Console>"
       WALKER_GOOGLE_CLIENT_SECRET: "<from Google Cloud Console>"
       # ...and/or WALKER_APPLE_CLIENT_ID/SECRET, WALKER_MICROSOFT_CLIENT_ID/SECRET
 ```
 
-- `WALKER_SESSION_SECRET` signs the session cookie — generate a real one per deployment, e.g.
-  `python -c "import secrets; print(secrets.token_urlsafe(32))"`, and keep it out of anything you
-  share (in Portainer, consider using an **Environment variable** stack field or a secret instead
-  of hardcoding it in the compose text if others can view the stack).
-- Each provider's client ID/secret comes from registering an OAuth app with that provider — a
-  one-time, per-deployment setup step, not something Walker can do for you.
-- You only need to set the providers you actually want to offer; leave the others blank.
-- Teammates on the same email domain are automatically grouped into one shared code catalog on
-  first login — no invite step.
+See the [SSO configuration guide](sso.md) for the full per-provider setup (including Google's
+Cloud Console steps), why HTTPS is mandatory for this to work at all, and how teammates end up
+sharing — or not sharing — a code catalog based on their email domain.
 
 ## Upgrading
 
