@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-07-04
+
 ### Added
 
 - **Timesheet period rename + configurable period scheme** (BIZ-027): "Fortnight" is retired in favor
