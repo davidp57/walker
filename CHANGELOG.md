@@ -20,6 +20,47 @@ All notable changes to Walker are documented here. Format loosely follows
   `username`, with no role/employer line at all. `User` gains a nullable `name` column, surfaced via a
   new `GET /api/user` endpoint. Remaining standalone "PwC" mentions in docs and code comments (not part
   of the "T&E"/"Time & Expenses" wording handled separately) are also gone.
+- **"T&E"/"Time & Expenses" → "Timesheet system" rename** (CHR-003): mechanical rename across code,
+  API strings/labels, UI copy, and docs, completing the vocabulary shift started by BIZ-027. No
+  behavior change.
+- **Organization model + domain-based auto-join** (BIZ-028): a new `Organization` entity groups Users
+  who will share one real-code catalog. A User is auto-joined to the Organization matching their
+  email's domain on first login (creating it if none exists yet); free-mail domains (gmail.com,
+  outlook.com, etc.) never auto-join or auto-create an Organization, keeping today's implicit
+  single-user behavior for anyone not on a shared company domain. See ADR-0010.
+- **SSO login (Google/Apple/Microsoft) for the hosted instance** (BIZ-029): OAuth2/OIDC sign-in via
+  `authlib`, session cookies via `joserfc`. Gated by a new `auth_mode` setting (`sso` / `none`,
+  default `none`) so standalone Docker/`.exe` deployments keep ADR-0007's no-login implicit-user
+  behavior unchanged — SSO only activates for the hosted deployment.
+- **Real-code catalog becomes Organization-scoped** (BIZ-030): real Timesheet codes move from
+  `user_id` to `organization_id` scoping (BIZ-028), so every member of an Organization sees and
+  imputes against the same catalog. Virtual codes, Entries, and Tasks stay `user_id`-scoped. Users
+  with no Organization keep a catalog visible only to themselves. See ADR-0010.
+- **SQLite WAL mode for the hosted deployment** (TEC-005): enables Write-Ahead Logging and foreign-key
+  enforcement at startup (same PRAGMAs already proven by the author's Solde app), improving
+  concurrent-access behavior now that a hosted instance can have several Organization members reading
+  and writing at once. Fully sync, no change to `db.py`'s engine model.
+- **Docs site (MkDocs + Material) on GitHub Pages** (CHR-005): a public, user-facing documentation site
+  under `docs-site/`, mirroring the shape of VMCT v6's `mkdocs.yml` (theme, nav, built-in search),
+  separate from the internal `docs/adr/`. Deploys from `main` to
+  <https://davidp57.github.io/walker/>.
+- **CI: backend + frontend quality gates on every PR** (CHR-006): a GitHub Actions workflow
+  (`ci.yml`) running on every pull request — backend (`ruff check`, `ruff format --check`, `mypy`,
+  `pytest` with the ≥80% coverage gate) and frontend (`eslint`, `prettier --check`, `vitest`,
+  `vite build`).
+- **Branch protection requires CI to pass before merge** (CHR-007): `develop` and `main` both require
+  CHR-006's `Backend quality gate`/`Frontend quality gate` checks to pass, with `enforce_admins`
+  enabled, before a pull request can merge.
+- **CD: publish the Docker image to GHCR on version tags** (CHR-008): a `v*`-tag-triggered workflow
+  builds and pushes the existing self-migrating `Dockerfile` image to `ghcr.io/davidp57/walker`.
+- **Standalone `.exe` (PyInstaller) + CD to GitHub Releases** (CHR-009): packages the FastAPI backend,
+  the built frontend, and the Alembic migration chain into one Windows `.exe`
+  (`src/walker/standalone.py`, `walker.spec`) — no Python/Node install required. Resolves its SQLite
+  file under `%APPDATA%\Walker`, runs migrations on boot, and opens the default browser. A `v*`-tag
+  CD workflow attaches `walker.exe` to the GitHub Release.
+- **Kanban drag-and-drop** (BIZ-026): Tasks board columns support a real keyboard-and-mouse
+  drag-and-drop move (via `@dnd-kit`), persisted through the existing `PUT /api/tasks/{id}`, replacing
+  click-to-move as the primary way to change a Task's status.
 - **UX lot shipped**: post-MVP UX improvements surfaced by a review of the running app — frontend-only,
   no API/schema/domain change (durations still recorded and aggregated exactly as before, ADR-0005).
   - **Unified Fortnight grid** (BIZ-007): Fortnight and "Enter in T&E" merged into one screen with a
