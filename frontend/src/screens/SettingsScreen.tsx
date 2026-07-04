@@ -1,11 +1,13 @@
 import { useState } from 'react'
-import type { Absence, Density } from '../types'
+import type { Absence, Density, PeriodScheme } from '../types'
 
 interface SettingsScreenProps {
   workdays: boolean[] // index by JS getDay(): 0=Sun … 6=Sat
   onToggleWorkday: (dayIndex: number) => void
   density: Density
   onDensityChange: (density: Density) => void
+  periodScheme: PeriodScheme
+  onPeriodSchemeChange: (scheme: PeriodScheme) => void
   absences: Absence[] // manually managed in the POC
   onAddAbsence: (date: string, reason: string) => void
   onRemoveAbsence: (date: string) => void
@@ -22,6 +24,12 @@ const DAY_LABELS: Record<number, string> = {
   0: 'Sun',
 }
 
+const PERIOD_SCHEME_OPTIONS: { value: PeriodScheme; label: string }[] = [
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'semi_monthly', label: 'Semi-monthly' },
+  { value: 'monthly', label: 'Monthly' },
+]
+
 const formatDate = (iso: string): string => {
   const d = new Date(`${iso}T00:00:00`)
   return Number.isNaN(d.getTime())
@@ -34,6 +42,8 @@ export function SettingsScreen({
   onToggleWorkday,
   density,
   onDensityChange,
+  periodScheme,
+  onPeriodSchemeChange,
   absences,
   onAddAbsence,
   onRemoveAbsence,
@@ -54,7 +64,7 @@ export function SettingsScreen({
         Settings
       </div>
       <div className="wk-screen-sub" style={{ marginBottom: 22 }}>
-        Personalize how the Fortnight view reads.
+        Personalize how the Timesheet period view reads.
       </div>
 
       <div className="wk-set-list">
@@ -98,6 +108,27 @@ export function SettingsScreen({
             >
               Compact
             </button>
+          </div>
+        </div>
+
+        <div className="wk-set-card is-row">
+          <div>
+            <div className="wk-set-title">Timesheet period scheme</div>
+            <div className="wk-set-desc">
+              How the Timesheet period view splits the calendar (ADR-0009).
+            </div>
+          </div>
+          <div className="wk-period">
+            {PERIOD_SCHEME_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`wk-seg${periodScheme === option.value ? ' is-active' : ''}`}
+                onClick={() => onPeriodSchemeChange(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
 

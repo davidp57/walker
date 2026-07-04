@@ -21,7 +21,7 @@ const RECURRENCE_KIND_OPTIONS: { value: RecurrenceKind | ''; label: string }[] =
   { value: 'every_n_days', label: 'Every N days' },
   { value: 'weekly', label: 'Weekly, on chosen days' },
   { value: 'monthly', label: 'Monthly, on a day of month' },
-  { value: 'fortnight_relative', label: 'Relative to a fortnight boundary' },
+  { value: 'period_relative', label: 'Relative to a Timesheet period boundary' },
 ]
 
 const WEEKDAY_OPTIONS: { value: number; label: string }[] = [
@@ -43,8 +43,8 @@ function defaultRuleFor(kind: RecurrenceKind): RecurrenceRule {
       return { kind: 'weekly', weekdays: [0] }
     case 'monthly':
       return { kind: 'monthly', day: 1 }
-    case 'fortnight_relative':
-      return { kind: 'fortnight_relative', anchor: 'end', offsetDays: 0 }
+    case 'period_relative':
+      return { kind: 'period_relative', anchor: 'end', offsetDays: 0 }
   }
 }
 
@@ -400,7 +400,7 @@ export function TaskPanel({
               </label>
             )}
 
-            {recurrenceRule?.kind === 'fortnight_relative' && (
+            {recurrenceRule?.kind === 'period_relative' && (
               <div style={{ display: 'flex', gap: 12, marginTop: 10 }}>
                 <label style={{ flex: 1 }}>
                   <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
@@ -411,15 +411,15 @@ export function TaskPanel({
                     value={recurrenceRule.anchor}
                     onChange={(e) =>
                       setRecurrenceRule({
-                        kind: 'fortnight_relative',
+                        kind: 'period_relative',
                         anchor: e.target.value as 'start' | 'end',
                         offsetDays: recurrenceRule.offsetDays,
                       })
                     }
                     data-testid="wk-task-recurrence-anchor-select"
                   >
-                    <option value="start">Fortnight start</option>
-                    <option value="end">Fortnight end</option>
+                    <option value="start">Timesheet period start</option>
+                    <option value="end">Timesheet period end</option>
                   </select>
                 </label>
                 <label style={{ flex: 1 }}>
@@ -432,7 +432,7 @@ export function TaskPanel({
                     value={recurrenceRule.offsetDays}
                     onChange={(e) =>
                       setRecurrenceRule({
-                        kind: 'fortnight_relative',
+                        kind: 'period_relative',
                         anchor: recurrenceRule.anchor,
                         offsetDays: Number(e.target.value) || 0,
                       })

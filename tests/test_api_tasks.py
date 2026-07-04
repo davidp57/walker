@@ -319,7 +319,7 @@ def test_completing_a_recurring_task_rolls_it_forward_every_n_days(client: TestC
     assert body["id"] == created["id"]
 
 
-def test_completing_a_fortnight_relative_task_snaps_to_working_days_via_settings(
+def test_completing_a_period_relative_task_snaps_to_working_days_via_settings(
     client: TestClient,
 ) -> None:
     # Mon-Fri work rhythm (Sun-first booleans).
@@ -333,7 +333,7 @@ def test_completing_a_fortnight_relative_task_snaps_to_working_days_via_settings
         json={
             "title": "Key in Timesheet system",
             "due_date": "2026-06-15",
-            "recurrence_rule": {"kind": "fortnight_relative", "anchor": "end", "offset_days": -1},
+            "recurrence_rule": {"kind": "period_relative", "anchor": "end", "offset_days": -1},
         },
     ).json()
 

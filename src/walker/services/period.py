@@ -1,23 +1,30 @@
-"""Fortnight aggregation — real minutes into the Timesheet-system Code × Activity × Day grid (BIZ-004, ADR-0008).
+"""Timesheet period aggregation — real minutes into the Timesheet-system Code × Activity × Day grid
+(BIZ-004, BIZ-027, ADR-0008, ADR-0009).
 
 Web-independent. No rounding and no target (ADR-0005): cells are exact summed minutes. Only
 completed, categorized entries (code + activity, ``end_minute`` set) contribute.
+
+The Timesheet period's shape is configurable per-user (ADR-0009): ``period_bounds`` is a pure
+function of a ``PeriodScheme`` and a date, with no dependency on a database session. The three
+supported schemes are ``weekly``, ``semi_monthly`` (1st-15th / 16th-end of month — Walker's
+original, still-default behavior), and ``monthly``.
 """
 
 from __future__ import annotations
 
 import calendar
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.models import Entry, TimesheetCode
+from walker.models.settings import PeriodScheme
 
 
 @dataclass
-class FortnightRow:
+class PeriodRow:
     """One Code × Activity row: minutes summed per day-of-month."""
 
     timesheet_code_id: int
@@ -26,25 +33,52 @@ class FortnightRow:
 
 
 @dataclass
-class FortnightGrid:
-    """The aggregated grid for a fortnight window."""
+class PeriodGrid:
+    """The aggregated grid for a Timesheet period window."""
 
     start: date
     end: date
-    rows: list[FortnightRow]
+    rows: list[PeriodRow]
 
 
-def fortnight_bounds(on: date) -> tuple[date, date]:
-    """Return the (start, end) of the fortnight containing ``on``: 1st–15th or 16th–end of month."""
+def _weekly_bounds(on: date) -> tuple[date, date]:
+    """Return the Monday-Sunday week containing ``on``."""
+    start = on - timedelta(days=on.weekday())
+    end = start + timedelta(days=6)
+    return start, end
+
+
+def _semi_monthly_bounds(on: date) -> tuple[date, date]:
+    """Return the (start, end) of the semi-monthly period containing ``on``: 1st-15th or 16th-end."""
     if on.day <= 15:
         return date(on.year, on.month, 1), date(on.year, on.month, 15)
     last_day = calendar.monthrange(on.year, on.month)[1]
     return date(on.year, on.month, 16), date(on.year, on.month, last_day)
 
 
-def aggregate_fortnight(session: Session, user_id: int, on: date) -> FortnightGrid:
-    """Aggregate a user's entries into the Code × Activity × Day grid for ``on``'s fortnight."""
-    start, end = fortnight_bounds(on)
+def _monthly_bounds(on: date) -> tuple[date, date]:
+    """Return the (start, end) of the calendar month containing ``on``."""
+    last_day = calendar.monthrange(on.year, on.month)[1]
+    return date(on.year, on.month, 1), date(on.year, on.month, last_day)
+
+
+def period_bounds(scheme: PeriodScheme, on: date) -> tuple[date, date]:
+    """Return the (start, end) of the Timesheet period containing ``on``, per ``scheme``.
+
+    Pure function, no database dependency (ADR-0009): ``weekly`` is Monday-Sunday, ``semi_monthly``
+    is the 1st-15th / 16th-end-of-month split (Walker's original, still-default behavior), and
+    ``monthly`` is the full calendar month.
+    """
+    if scheme == "weekly":
+        return _weekly_bounds(on)
+    if scheme == "monthly":
+        return _monthly_bounds(on)
+    return _semi_monthly_bounds(on)
+
+
+def aggregate_period(session: Session, user_id: int, scheme: PeriodScheme, on: date) -> PeriodGrid:
+    """Aggregate a user's entries into the Code × Activity × Day grid for ``on``'s Timesheet period."""
+    start, end = period_bounds(scheme, on)
     entries = session.scalars(
         select(Entry).where(
             Entry.user_id == user_id,
@@ -66,13 +100,13 @@ def aggregate_fortnight(session: Session, user_id: int, on: date) -> FortnightGr
         by_day[entry.date.day] = by_day.get(entry.date.day, 0) + minutes
 
     rows = [
-        FortnightRow(timesheet_code_id=code_id, activity=activity, minutes_by_day=by_day)
+        PeriodRow(timesheet_code_id=code_id, activity=activity, minutes_by_day=by_day)
         for (code_id, activity), by_day in cells.items()
     ]
-    return FortnightGrid(start=start, end=end, rows=rows)
+    return PeriodGrid(start=start, end=end, rows=rows)
 
 
-def resolve_to_real_codes(session: Session, grid: FortnightGrid) -> FortnightGrid:
+def resolve_to_real_codes(session: Session, grid: PeriodGrid) -> PeriodGrid:
     """Collapse virtual-code rows into their real code (ADR-0008): Timesheet-system-facing aggregation only.
 
     Several virtual codes sharing one real code merge into a single ``(real code, activity)`` row,
@@ -95,7 +129,7 @@ def resolve_to_real_codes(session: Session, grid: FortnightGrid) -> FortnightGri
             by_day[day] = by_day.get(day, 0) + minutes
 
     rows = [
-        FortnightRow(timesheet_code_id=code_id, activity=activity, minutes_by_day=by_day)
+        PeriodRow(timesheet_code_id=code_id, activity=activity, minutes_by_day=by_day)
         for (code_id, activity), by_day in cells.items()
     ]
-    return FortnightGrid(start=grid.start, end=grid.end, rows=rows)
+    return PeriodGrid(start=grid.start, end=grid.end, rows=rows)

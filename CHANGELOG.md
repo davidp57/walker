@@ -7,6 +7,14 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ### Added
 
+- **Timesheet period rename + configurable period scheme** (BIZ-027): "Fortnight" is retired in favor
+  of **Timesheet period** across the backend (`services/period.py`'s `period_bounds`/`aggregate_period`,
+  `/api/period/*` routes), frontend (`PeriodGrid`/`PeriodScreen` components, UI strings), and docs. A
+  new `period_scheme` field on `Settings` (`weekly | semi_monthly | monthly`, default `semi_monthly`)
+  lets a User pick their Timesheet period's shape in Settings; `period_bounds(scheme, on_date)` is a
+  pure function with no database dependency, and changing the scheme reshapes the Timesheet period view
+  immediately (no reload). Existing users on the default scheme see byte-for-byte identical boundaries
+  (1st–15th / 16th–end of month). See ADR-0009.
 - **Remove PwC branding; optional User display name** (CHR-004): the shell footer no longer hardcodes
   "Consultant" / "PwC · Advisory" — it shows the `User`'s optional `name` when set, falling back to
   `username`, with no role/employer line at all. `User` gains a nullable `name` column, surfaced via a

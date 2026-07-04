@@ -1,4 +1,4 @@
-"""Settings + absences endpoints (BIZ-006)."""
+"""Settings + absences endpoints (BIZ-006, BIZ-027)."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ def get_settings(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> SettingsView:
-    """Return the user's settings (work rhythm, density, absences)."""
+    """Return the user's settings (work rhythm, density, period scheme, absences)."""
     return settings_service.get_settings(session, user.id)
 
 
@@ -32,8 +32,14 @@ def update_settings(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> SettingsView:
-    """Update the work rhythm and density."""
-    return settings_service.update_settings(session, user.id, workdays=body.workdays, density=body.density)
+    """Update the work rhythm, density, and (optionally) the Timesheet period scheme."""
+    return settings_service.update_settings(
+        session,
+        user.id,
+        workdays=body.workdays,
+        density=body.density,
+        period_scheme=body.period_scheme,
+    )
 
 
 @router.post("/settings/absences", response_model=SettingsRead)

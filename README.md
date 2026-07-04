@@ -1,7 +1,7 @@
 # Walker
 
-Walker is a personal time tracker whose job is to make filling the PwC **Timesheet system** painless.
-You track your time during the day against the real PwC charge codes; at the end of each fortnight
+Walker is a personal time tracker whose job is to make filling the **Timesheet system** painless. You
+track your time during the day against the real charge codes; at the end of each Timesheet period
 Walker shows you exactly what to enter into the Timesheet system — a Timesheet-system-shaped grid plus
 a tick-as-you-go checklist.
 

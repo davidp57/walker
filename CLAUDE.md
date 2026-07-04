@@ -4,10 +4,11 @@ Guidance for AI coding agents working on this repository.
 
 ## Project
 
-Walker is a personal, single-user (for now) web app that makes filling the PwC **Timesheet system**
-painless. You track time during the day against the real PwC charge codes (**Timesheet code** +
-**Activity**); at fortnight-end Walker shows the Timesheet-system-shaped matrix plus an **entry
-checklist**. It **replaces Clockify** (see `docs/adr/0001-walker-replaces-clockify.md`).
+Walker is a personal, single-user (for now) web app that makes filling the **Timesheet system**
+painless. You track time during the day against the real charge codes (**Timesheet code** +
+**Activity**); at the end of each Timesheet period Walker shows the Timesheet-system-shaped matrix
+plus an **entry checklist**. It **replaces Clockify** (see
+`docs/adr/0001-walker-replaces-clockify.md`).
 
 - **Stack**: Python 3.13+ · FastAPI + Uvicorn (JSON API) · SQLAlchemy 2.0 + Alembic · SQLite (POC) ·
   pip + venv (PEP 621) · React 19 + Vite + TypeScript (SPA) · Docker.
@@ -21,8 +22,8 @@ API-first (see `docs/adr/0003-api-first-react-spa.md`): FastAPI exposes a JSON A
 React SPA consumes it; in production FastAPI also serves the built SPA as static files (single image
 at first). Keep the web layer thin over a web-independent service layer:
 
-- `src/walker/services/` — domain logic (imputation, fortnight aggregation, catalog import, timer
-  rules). **Web-independent; must not import from `walker.api`.**
+- `src/walker/services/` — domain logic (imputation, Timesheet period aggregation, catalog import,
+  timer rules). **Web-independent; must not import from `walker.api`.**
 - `src/walker/api/` — routers + Pydantic `schemas.py` (the JSON contract) + dependencies.
 - `src/walker/models/` — SQLAlchemy models; `db.py` holds the engine/session; migrations in `alembic/`.
 - `config.py` — `Settings` via pydantic-settings (`WALKER_*` env). `exceptions.py` — `WalkerError`

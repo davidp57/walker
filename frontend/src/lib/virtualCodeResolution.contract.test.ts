@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { resolveChecklistRows } from './checklist'
-import type { FortnightRow, TimesheetCode } from '../types'
+import type { PeriodRow, TimesheetCode } from '../types'
 import fixture from '../../../tests/fixtures/virtual_code_resolution.json'
 
 /**
@@ -50,7 +50,7 @@ describe('resolveChecklistRows contract with backend resolve_to_real_codes', () 
     codesById[String(code.id)] = toTimesheetCode(code)
   })
 
-  const rows: FortnightRow[] = data.rows.map((row) => ({
+  const rows: PeriodRow[] = data.rows.map((row) => ({
     key: `${row.timesheet_code_id}|${row.activity}`,
     code: codesById[String(row.timesheet_code_id)],
     activity: row.activity,

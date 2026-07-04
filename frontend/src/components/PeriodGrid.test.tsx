@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { FortnightGrid } from './FortnightGrid'
-import type { DayColumn, FortnightRow, TimesheetCode } from '../types'
+import { PeriodGrid } from './PeriodGrid'
+import type { DayColumn, PeriodRow, TimesheetCode } from '../types'
 
 const day = (overrides: Partial<DayColumn> = {}): DayColumn => ({
   day: 1,
@@ -36,8 +36,8 @@ function findCell(text: string): HTMLTableCellElement {
   return match
 }
 
-describe('FortnightGrid — checklist checkbox affordance (BIZ-008)', () => {
-  const row: FortnightRow = {
+describe('PeriodGrid — checklist checkbox affordance (BIZ-008)', () => {
+  const row: PeriodRow = {
     key: 'c1|Bug fixing',
     code: code({ name: 'Paper V4' }),
     activity: 'Bug fixing',
@@ -46,7 +46,7 @@ describe('FortnightGrid — checklist checkbox affordance (BIZ-008)', () => {
 
   it('shows a checkbox beside the duration on a filled cell at rest, unticked', () => {
     render(
-      <FortnightGrid
+      <PeriodGrid
         mode="checklist"
         days={[day({ day: 1 }), day({ day: 2 })]}
         rows={[row]}
@@ -68,7 +68,7 @@ describe('FortnightGrid — checklist checkbox affordance (BIZ-008)', () => {
 
   it('shows a ticked, checked checkbox with the is-done (green) styling once entered', () => {
     render(
-      <FortnightGrid
+      <PeriodGrid
         mode="checklist"
         days={[day({ day: 1 }), day({ day: 2 })]}
         rows={[row]}
@@ -93,7 +93,7 @@ describe('FortnightGrid — checklist checkbox affordance (BIZ-008)', () => {
 
   it('shows no checkbox on the running-timer cell', () => {
     render(
-      <FortnightGrid
+      <PeriodGrid
         mode="checklist"
         days={[day({ day: 1 })]}
         rows={[{ ...row, minutesByDay: {} }]}
@@ -108,10 +108,10 @@ describe('FortnightGrid — checklist checkbox affordance (BIZ-008)', () => {
     expect(runningCell.querySelector('input[type="checkbox"]')).not.toBeInTheDocument()
   })
 
-  it('shows no checkbox in fortnight (Review) mode', () => {
+  it('shows no checkbox in period (Review) mode', () => {
     render(
-      <FortnightGrid
-        mode="fortnight"
+      <PeriodGrid
+        mode="period"
         days={[day({ day: 1 })]}
         rows={[row]}
         runningCell={null}
@@ -125,17 +125,17 @@ describe('FortnightGrid — checklist checkbox affordance (BIZ-008)', () => {
   })
 })
 
-describe('FortnightGrid — Activity dedup', () => {
+describe('PeriodGrid — Activity dedup', () => {
   it('omits the Activity line when it equals the Code project name', () => {
-    const row: FortnightRow = {
+    const row: PeriodRow = {
       key: 'c1|Internal administration',
       code: code({ name: 'Internal administration' }),
       activity: 'Internal administration',
       minutesByDay: { 1: 60 },
     }
     render(
-      <FortnightGrid
-        mode="fortnight"
+      <PeriodGrid
+        mode="period"
         days={[day()]}
         rows={[row]}
         runningCell={null}
@@ -149,15 +149,15 @@ describe('FortnightGrid — Activity dedup', () => {
   })
 
   it('still shows the Activity line when it differs from the project name', () => {
-    const row: FortnightRow = {
+    const row: PeriodRow = {
       key: 'c1|Bug fixing',
       code: code({ name: 'Paper V4' }),
       activity: 'Bug fixing',
       minutesByDay: { 1: 60 },
     }
     render(
-      <FortnightGrid
-        mode="fortnight"
+      <PeriodGrid
+        mode="period"
         days={[day()]}
         rows={[row]}
         runningCell={null}
@@ -171,8 +171,8 @@ describe('FortnightGrid — Activity dedup', () => {
   })
 })
 
-describe('FortnightGrid — copy Timesheet-system code', () => {
-  const row: FortnightRow = {
+describe('PeriodGrid — copy Timesheet-system code', () => {
+  const row: PeriodRow = {
     key: 'c1|Internal administration',
     code: code({ number: 'N9/1042' }),
     activity: 'Internal administration',
@@ -192,7 +192,7 @@ describe('FortnightGrid — copy Timesheet-system code', () => {
 
   it('copies the code number to the clipboard when clicked, in Enter-in-Timesheet-system (checklist) mode', async () => {
     render(
-      <FortnightGrid
+      <PeriodGrid
         mode="checklist"
         days={[day()]}
         rows={[row]}
@@ -211,7 +211,7 @@ describe('FortnightGrid — copy Timesheet-system code', () => {
 
   it('shows a confirmation after copying, then reverts', async () => {
     render(
-      <FortnightGrid
+      <PeriodGrid
         mode="checklist"
         days={[day()]}
         rows={[row]}
@@ -234,7 +234,7 @@ describe('FortnightGrid — copy Timesheet-system code', () => {
   it('does not trigger the row n/N badge toggle when the copy button is clicked', () => {
     const onToggleRow = vi.fn()
     render(
-      <FortnightGrid
+      <PeriodGrid
         mode="checklist"
         days={[day()]}
         rows={[row]}
@@ -254,7 +254,7 @@ describe('FortnightGrid — copy Timesheet-system code', () => {
   it('still allows the row n/N badge to toggle the row independently', () => {
     const onToggleRow = vi.fn()
     render(
-      <FortnightGrid
+      <PeriodGrid
         mode="checklist"
         days={[day()]}
         rows={[row]}

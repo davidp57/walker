@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { FortnightScreen } from './FortnightScreen'
-import type { ChecklistState, DayColumn, FortnightRow, TimesheetCode } from '../types'
+import { PeriodScreen } from './PeriodScreen'
+import type { ChecklistState, DayColumn, PeriodRow, TimesheetCode } from '../types'
 
 afterEach(() => cleanup())
 
@@ -36,14 +36,14 @@ const days: DayColumn[] = [
   { day: 3, weekday: 'Wed', isWeekend: true, isAbsence: false, isToday: false },
 ]
 
-const reviewRows: FortnightRow[] = [
+const reviewRows: PeriodRow[] = [
   { key: '1|Bug fixing', code, activity: 'Bug fixing', minutesByDay: { 1: 60 } },
   { key: '2|Bug fixing', code: virtualCode, activity: 'Bug fixing', minutesByDay: { 2: 30 } },
 ]
 
 // Enter-in-Timesheet-system rows: the virtual code above resolves to the real code, so this is what
 // resolveChecklistRows would produce — a single merged real-code row with both days' minutes.
-const enterRows: FortnightRow[] = [
+const enterRows: PeriodRow[] = [
   { key: '1|Bug fixing', code, activity: 'Bug fixing', minutesByDay: { 1: 60, 2: 30 } },
 ]
 
@@ -57,7 +57,7 @@ function clickCell(text: string, eventInit?: Parameters<typeof fireEvent.click>[
   fireEvent.click(match, eventInit)
 }
 
-function renderScreen(overrides: Partial<Parameters<typeof FortnightScreen>[0]> = {}) {
+function renderScreen(overrides: Partial<Parameters<typeof PeriodScreen>[0]> = {}) {
   const props = {
     periodLabel: '1 – 15 July 2026',
     days,
@@ -75,11 +75,11 @@ function renderScreen(overrides: Partial<Parameters<typeof FortnightScreen>[0]> 
     onChecklistReset: vi.fn(),
     ...overrides,
   }
-  render(<FortnightScreen {...props} />)
+  render(<PeriodScreen {...props} />)
   return props
 }
 
-describe('FortnightScreen — mode toggle', () => {
+describe('PeriodScreen — mode toggle', () => {
   it('opens in Review mode by default', () => {
     renderScreen()
 
@@ -123,7 +123,7 @@ describe('FortnightScreen — mode toggle', () => {
   })
 })
 
-describe('FortnightScreen — Review mode', () => {
+describe('PeriodScreen — Review mode', () => {
   it('drills into a filled cell via onOpenCell', () => {
     const onOpenCell = vi.fn()
     renderScreen({ onOpenCell })
@@ -161,8 +161,8 @@ describe('FortnightScreen — Review mode', () => {
   })
 })
 
-describe('FortnightScreen — Enter in Timesheet system mode', () => {
-  function enterMode(overrides: Partial<Parameters<typeof FortnightScreen>[0]> = {}) {
+describe('PeriodScreen — Enter in Timesheet system mode', () => {
+  function enterMode(overrides: Partial<Parameters<typeof PeriodScreen>[0]> = {}) {
     const props = renderScreen(overrides)
     fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
     return props
@@ -236,7 +236,7 @@ describe('FortnightScreen — Enter in Timesheet system mode', () => {
   })
 })
 
-describe('FortnightScreen — Total column', () => {
+describe('PeriodScreen — Total column', () => {
   it('shows the Total column header in Review mode', () => {
     renderScreen()
 
@@ -252,7 +252,7 @@ describe('FortnightScreen — Total column', () => {
   })
 })
 
-describe('FortnightScreen — running timer cell', () => {
+describe('PeriodScreen — running timer cell', () => {
   it('is tinted/read-only in Review and not addable/openable', () => {
     const onOpenCell = vi.fn()
     const onAddCell = vi.fn()

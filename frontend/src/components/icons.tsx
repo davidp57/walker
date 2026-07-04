@@ -20,7 +20,7 @@ export const IconTracker = ({ size = 15, style, className }: IconProps) => (
   </svg>
 )
 
-export const IconFortnight = ({ size = 15, style, className }: IconProps) => (
+export const IconPeriod = ({ size = 15, style, className }: IconProps) => (
   <svg
     viewBox="0 0 24 24"
     fill="none"

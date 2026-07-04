@@ -1,7 +1,7 @@
-import type { FortnightRow, TimesheetCode } from '../types'
+import type { PeriodRow, TimesheetCode } from '../types'
 
 /**
- * Resolve the Fortnight/Review rows into the Enter-in-Timesheet-system rows (ADR-0008).
+ * Resolve the Timesheet period/Review rows into the Enter-in-Timesheet-system rows (ADR-0008).
  *
  * Virtual codes collapse into the real code they borrow their number/label/activities from — a
  * `codeId → TimesheetCode` map is used to find each row's real code. Several rows that resolve to
@@ -9,10 +9,10 @@ import type { FortnightRow, TimesheetCode } from '../types'
  * ADR-0005). Rows for a real code with no virtual pass through unchanged.
  */
 export function resolveChecklistRows(
-  rows: FortnightRow[],
+  rows: PeriodRow[],
   codesById: Record<string, TimesheetCode>,
-): FortnightRow[] {
-  const merged = new Map<string, FortnightRow>()
+): PeriodRow[] {
+  const merged = new Map<string, PeriodRow>()
   rows.forEach((row) => {
     const realCode = row.code.realCodeId ? (codesById[row.code.realCodeId] ?? row.code) : row.code
     const key = `${realCode.id}|${row.activity}`

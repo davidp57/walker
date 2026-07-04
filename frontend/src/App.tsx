@@ -9,7 +9,7 @@ import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
 import { CellEntriesModal } from './components/CellEntriesModal'
 import { TrackerScreen, type DayGroup } from './screens/TrackerScreen'
-import { FortnightScreen } from './screens/FortnightScreen'
+import { PeriodScreen } from './screens/PeriodScreen'
 import { CodeCatalogScreen } from './screens/CodeCatalogScreen'
 import { SettingsScreen } from './screens/SettingsScreen'
 import { TasksScreen } from './screens/TasksScreen'
@@ -21,7 +21,8 @@ import type {
   DayColumn,
   Density,
   Entry,
-  FortnightRow,
+  PeriodRow,
+  PeriodScheme,
   Task,
   TaskSuggestion,
   TimesheetCode,
@@ -46,7 +47,7 @@ import {
   fetchChecklist,
   fetchCodes,
   fetchEntriesRange,
-  fetchFortnight,
+  fetchPeriod,
   fetchSettings,
   fetchTaskTags,
   fetchTasks,
@@ -89,33 +90,46 @@ const dayLabel = (iso: string): string => {
 
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-// The 1st or 16th anchoring the fortnight that contains `anchor` (the API reference date).
-const fortnightStart = (anchor: string): string => {
-  const [y, m, d] = anchor.split('-').map(Number)
-  return isoDate(new Date(y, m - 1, d <= 15 ? 1 : 16))
-}
-
-// Move to the previous/next fortnight, crossing month boundaries.
-const shiftFortnight = (anchor: string, dir: -1 | 1): string => {
+// Timesheet period bounds (ADR-0009), mirroring `services/period.py::period_bounds` — a pure
+// function of (scheme, date) with no side effects, so the SPA reshapes the period view instantly
+// on a scheme change with no server round-trip needed to recompute boundaries.
+const periodBounds = (scheme: PeriodScheme, anchor: string): { start: Date; end: Date } => {
   const [y, m, d] = anchor.split('-').map(Number)
   const idx = m - 1
-  const firstHalf = d <= 15
-  if (dir === 1) {
-    return firstHalf ? isoDate(new Date(y, idx, 16)) : isoDate(new Date(y, idx + 1, 1))
+  if (scheme === 'weekly') {
+    const dt = new Date(y, idx, d)
+    const mondayOffset = (dt.getDay() + 6) % 7 // Sunday=0 -> 6 days back to Monday
+    const start = new Date(y, idx, d - mondayOffset)
+    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6)
+    return { start, end }
   }
-  return firstHalf ? isoDate(new Date(y, idx - 1, 16)) : isoDate(new Date(y, idx, 1))
+  if (scheme === 'monthly') {
+    return { start: new Date(y, idx, 1), end: new Date(y, idx + 1, 0) }
+  }
+  // semi_monthly (default): 1st-15th or 16th-end of month.
+  if (d <= 15) return { start: new Date(y, idx, 1), end: new Date(y, idx, 15) }
+  return { start: new Date(y, idx, 16), end: new Date(y, idx + 1, 0) }
 }
 
-// Human label for the fortnight containing `anchor`, e.g. "1 – 15 July 2026".
-const periodLabelFor = (anchor: string): string => {
-  const [y, m, d] = anchor.split('-').map(Number)
-  const idx = m - 1
-  const monthLabel = new Date(y, idx, 1).toLocaleDateString('en-US', {
-    month: 'long',
-    year: 'numeric',
-  })
-  if (d <= 15) return `1 – 15 ${monthLabel}`
-  return `16 – ${new Date(y, idx + 1, 0).getDate()} ${monthLabel}`
+// The Timesheet period's start date (ISO), for the API reference date.
+const periodStartFor = (scheme: PeriodScheme, anchor: string): string =>
+  isoDate(periodBounds(scheme, anchor).start)
+
+// Move to the previous/next Timesheet period, crossing month boundaries.
+const shiftPeriod = (scheme: PeriodScheme, anchor: string, dir: -1 | 1): string => {
+  const { start, end } = periodBounds(scheme, anchor)
+  const step = dir === 1 ? new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1) : new Date(start.getFullYear(), start.getMonth(), start.getDate() - 1)
+  return isoDate(step)
+}
+
+// Human label for the Timesheet period containing `anchor`, e.g. "1 – 15 July 2026".
+const periodLabelFor = (scheme: PeriodScheme, anchor: string): string => {
+  const { start, end } = periodBounds(scheme, anchor)
+  const monthLabel = (d: Date) => d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${start.getDate()} – ${end.getDate()} ${monthLabel(start)}`
+  }
+  return `${start.getDate()} ${monthLabel(start)} – ${end.getDate()} ${monthLabel(end)}`
 }
 
 // Parse a checklist key `${codeId}|${activity}#${day}` back into a server mark.
@@ -177,7 +191,7 @@ function AppInner() {
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
-  // A not-yet-persisted entry being composed in the Fortnight view; persisted only on Save.
+  // A not-yet-persisted entry being composed in the Timesheet period view; persisted only on Save.
   const [addDraft, setAddDraft] = useState<Entry | null>(null)
   const [cellDrill, setCellDrill] = useState<{
     date: string
@@ -200,10 +214,11 @@ function AppInner() {
   // (target 'task') is open — title becomes the comment, code is prefilled, Activity is chosen.
   const [pendingTaskStart, setPendingTaskStart] = useState<Task | null>(null)
 
-  // Settings (drive the fortnight grid + density)
+  // Settings (drive the Timesheet period grid + density)
   const [workdays, setWorkdays] = useState<boolean[]>([false, true, true, true, true, true, false]) // Sun..Sat
   const [absences, setAbsences] = useState<Absence[]>([])
   const [density, setDensity] = useState<Density>('comfortable')
+  const [periodScheme, setPeriodScheme] = useState<PeriodScheme>('semi_monthly')
 
   useEffect(() => {
     document.documentElement.dataset.density = density === 'compact' ? 'compact' : ''
@@ -222,6 +237,7 @@ function AppInner() {
       .then((s) => {
         setWorkdays(s.workdays)
         setDensity(s.density)
+        setPeriodScheme(s.periodScheme)
         setAbsences(s.absences)
       })
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your settings.')))
@@ -252,16 +268,19 @@ function AppInner() {
       .finally(() => setEntriesLoading(false))
   }, [trackerFrom, notifyError])
 
-  // Load the fortnight grid + checklist whenever the anchored period or entries change.
+  // Load the Timesheet period grid + checklist whenever the anchored period, scheme, or entries
+  // change — a scheme change reshapes the view immediately (BIZ-027): no stale cached period.
   useEffect(() => {
-    const ref = fortnightStart(anchor)
-    fetchFortnight(ref)
+    const ref = periodStartFor(periodScheme, anchor)
+    fetchPeriod(ref)
       .then(setMatrix)
-      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load the fortnight grid.')))
+      .catch((err: unknown) =>
+        notifyError(errorMessage(err, 'Could not load the Timesheet period grid.')),
+      )
     fetchChecklist(ref)
       .then(setChecked)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load the checklist.')))
-  }, [anchor, entries, notifyError])
+  }, [anchor, periodScheme, entries, notifyError])
 
   const reload = () =>
     fetchEntriesRange(trackerFrom, TODAY)
@@ -272,7 +291,7 @@ function AppInner() {
   const runningId = running?.id ?? null
 
   // Entries still lacking a Timesheet code (BIZ-010) — surfaced as a live count in the shell so
-  // nothing is left uncoded before the fortnight closes. Mirrors EntryRow's own `flagged` rule.
+  // nothing is left uncoded before the Timesheet period closes. Mirrors EntryRow's own `flagged` rule.
   const uncategorizedCount = useMemo(() => entries.filter((e) => !e.codeId).length, [entries])
 
   // Tick the clock every second only while a timer is running.
@@ -419,7 +438,7 @@ function AppInner() {
   }
 
   // Compose a manual entry (no timer): default to today 9:00–10:00. Nothing is written until Save
-  // (BIZ-011) — cancelling the editor leaves no phantom entry, matching the Fortnight add path.
+  // (BIZ-011) — cancelling the editor leaves no phantom entry, matching the Timesheet period add path.
   const addEntry = () => {
     setAddDraft({
       id: 'new',
@@ -432,11 +451,12 @@ function AppInner() {
     })
   }
 
-  // Compose an entry inside the Fortnight view. Nothing is written until Save (no phantom on cancel).
-  // Default the date to today when viewing the current period, else the first day of the viewed one.
-  const openAddEntryFortnight = () => {
-    const periodStart = fortnightStart(anchor)
-    const date = periodStart === fortnightStart(TODAY) ? TODAY : periodStart
+  // Compose an entry inside the Timesheet period view. Nothing is written until Save (no phantom on
+  // cancel). Default the date to today when viewing the current period, else the first day of the
+  // viewed one.
+  const openAddEntryInPeriod = () => {
+    const periodStart = periodStartFor(periodScheme, anchor)
+    const date = periodStart === periodStartFor(periodScheme, TODAY) ? TODAY : periodStart
     setAddDraft({
       id: 'new',
       date,
@@ -634,21 +654,23 @@ function AppInner() {
       }))
   }, [entries, draft.description, draft.codeId, codesById])
 
-  // Fortnight columns + rows (matrix comes from GET /api/fortnight/{date})
-  const days: DayColumn[] = useMemo(() => {
-    const [year, m, d] = anchor.split('-').map(Number)
-    const idx = m - 1
-    const lastDay = new Date(year, idx + 1, 0).getDate()
-    const nums =
-      d <= 15
-        ? Array.from({ length: 15 }, (_, i) => i + 1)
-        : Array.from({ length: lastDay - 15 }, (_, i) => i + 16)
-    return nums.map((day) => {
-      const dt = new Date(year, idx, day)
+  // Timesheet period columns + rows (matrix comes from GET /api/period/{date}). Days are keyed by
+  // day-of-month (matching the backend's `minutes_by_day`), which is unambiguous for the
+  // `semi_monthly`/`monthly` schemes (never cross a month boundary) and also for `weekly` (a 7-day
+  // window can never repeat a day-of-month value, even when it crosses into the next month).
+  // `dayIsoByDayOfMonth` carries each day's full ISO date alongside its day-of-month key, so cell
+  // drill-downs resolve the right date even when the period spans two months.
+  const { days, dayIsoByDayOfMonth } = useMemo(() => {
+    const { start, end } = periodBounds(periodScheme, anchor)
+    const dayCount = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1
+    const isoByDay = new Map<number, string>()
+    const columns: DayColumn[] = Array.from({ length: dayCount }, (_, i) => {
+      const dt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i)
       const iso = isoDate(dt)
+      isoByDay.set(dt.getDate(), iso)
       const absence = absences.find((a) => a.date === iso)
       return {
-        day,
+        day: dt.getDate(),
         weekday: WD[dt.getDay()],
         isWeekend: !workdays[dt.getDay()],
         isAbsence: !!absence,
@@ -656,31 +678,32 @@ function AppInner() {
         isToday: iso === TODAY,
       }
     })
-  }, [anchor, workdays, absences])
+    return { days: columns, dayIsoByDayOfMonth: isoByDay }
+  }, [periodScheme, anchor, workdays, absences])
 
-  const rows: FortnightRow[] = useMemo(
+  const rows: PeriodRow[] = useMemo(
     () =>
       Object.keys(matrix)
         .map((key) => {
           const [codeId, activity] = key.split('|') as [string, ActivityName]
           return { key, code: codesById[codeId], activity, minutesByDay: matrix[key] }
         })
-        .filter((r): r is FortnightRow => Boolean(r.code)),
+        .filter((r): r is PeriodRow => Boolean(r.code)),
     [matrix, codesById],
   )
 
-  // The running timer as a fortnight cell: shown live in its code × activity row, but only when it
-  // is categorized and its day falls in the period on screen. Read-only (can't edit a live timer).
+  // The running timer as a Timesheet period cell: shown live in its code × activity row, but only
+  // when it is categorized and its day falls in the period on screen. Read-only (can't edit a live
+  // timer).
   const runningCell = useMemo(() => {
     if (!running?.codeId || !running.activity) return null
     const code = codesById[running.codeId]
     if (!code) return null
     const day = Number(running.date.slice(8, 10))
-    const inPeriod =
-      running.date.slice(0, 7) === anchor.slice(0, 7) && days.some((d) => d.day === day)
+    const inPeriod = dayIsoByDayOfMonth.get(day) === running.date
     if (!inPeriod) return null
     return { key: `${running.codeId}|${running.activity}`, day, code, activity: running.activity }
-  }, [running, anchor, days, codesById])
+  }, [running, dayIsoByDayOfMonth, codesById])
 
   // The running cell's key, resolved virtual→real (ADR-0008) so it matches `checklistRows`' keys —
   // Enter-in-Timesheet-system must tint/exclude the running cell even when tracked on a virtual code.
@@ -692,9 +715,9 @@ function AppInner() {
     return { key: `${realCode.id}|${runningCell.activity}`, day: runningCell.day }
   }, [runningCell, codesById])
 
-  // Fortnight rows with the running timer's live minutes folded into its cell.
+  // Timesheet period rows with the running timer's live minutes folded into its cell.
   // Injected even at 0 minutes so a just-started timer shows up immediately as a running cell.
-  const gridRows: FortnightRow[] = useMemo(() => {
+  const gridRows: PeriodRow[] = useMemo(() => {
     if (!runningCell) return rows
     const { key, day, code, activity } = runningCell
     if (rows.some((r) => r.key === key)) {
@@ -720,16 +743,13 @@ function AppInner() {
   // from `gridRows` (not raw `rows`) so the running cell is present here too (BIZ-007) — it is
   // excluded from fill order/ticking via `enterRunningCell`, so its live minutes never affect the
   // entered-count arithmetic, only its (tinted, read-only) visibility.
-  const checklistRows: FortnightRow[] = useMemo(
+  const checklistRows: PeriodRow[] = useMemo(
     () => resolveChecklistRows(gridRows, codesById),
     [gridRows, codesById],
   )
 
-  // ---- Fortnight cell drill-down (edit the entries behind a grid cell) ----
-  const cellDayIso = (day: number): string => {
-    const [y, m] = anchor.split('-').map(Number)
-    return isoDate(new Date(y, m - 1, day))
-  }
+  // ---- Timesheet period cell drill-down (edit the entries behind a grid cell) ----
+  const cellDayIso = (day: number): string => dayIsoByDayOfMonth.get(day) ?? anchor
   const loadCell = (date: string, codeId: string, activity: string) =>
     fetchEntriesRange(date, date)
       .then((es) =>
@@ -752,7 +772,7 @@ function AppInner() {
     if (cellDrill) void loadCell(cellDrill.date, cellDrill.codeId, cellDrill.activity)
   }
 
-  // Click an empty Fortnight cell → open "New entry" prefilled with that cell's date + row's
+  // Click an empty Timesheet period cell → open "New entry" prefilled with that cell's date + row's
   // code/activity, and the most recent comment used on that code × activity (blank if none).
   const openAddInCell = (rowKey: string, day: number) => {
     const bar = rowKey.indexOf('|')
@@ -774,7 +794,7 @@ function AppInner() {
 
   // ---- Checklist (server-backed — BIZ-005) ----
   const applyChecklistChange = (next: ChecklistState) => {
-    const date = fortnightStart(anchor)
+    const date = periodStartFor(periodScheme, anchor)
     const keys = new Set([...Object.keys(checked), ...Object.keys(next)])
     keys.forEach((key) => {
       const before = !!checked[key]
@@ -790,23 +810,31 @@ function AppInner() {
     setChecked(next)
   }
   const resetChecklistMarks = () => {
-    apiResetChecklist(fortnightStart(anchor))
+    apiResetChecklist(periodStartFor(periodScheme, anchor))
       .then(() => setChecked({}))
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not reset the checklist.')))
   }
 
-  // ---- Settings (server-backed — BIZ-006) ----
+  // ---- Settings (server-backed — BIZ-006, BIZ-027) ----
   const toggleWorkday = (index: number) => {
     const next = workdays.map((worked, j) => (j === index ? !worked : worked))
     setWorkdays(next)
-    apiUpdateSettings(next, density).catch((err: unknown) =>
+    apiUpdateSettings(next, density, periodScheme).catch((err: unknown) =>
       notifyError(errorMessage(err, 'Could not save your work rhythm.')),
     )
   }
   const changeDensity = (value: Density) => {
     setDensity(value)
-    apiUpdateSettings(workdays, value).catch((err: unknown) =>
+    apiUpdateSettings(workdays, value, periodScheme).catch((err: unknown) =>
       notifyError(errorMessage(err, 'Could not save the density setting.')),
+    )
+  }
+  // Changing the period scheme reshapes the Timesheet period view immediately (BIZ-027): state
+  // updates first, so `days`/the grid effect recompute with no stale cached period and no reload.
+  const changePeriodScheme = (value: PeriodScheme) => {
+    setPeriodScheme(value)
+    apiUpdateSettings(workdays, density, value).catch((err: unknown) =>
+      notifyError(errorMessage(err, 'Could not save the Timesheet period scheme.')),
     )
   }
   const addAbsence = (date: string, reason: string) => {
@@ -847,7 +875,7 @@ function AppInner() {
       })
   })()
 
-  const periodLabel = periodLabelFor(anchor)
+  const periodLabel = periodLabelFor(periodScheme, anchor)
 
   const timerBar = (
     <TimerBar
@@ -920,8 +948,8 @@ function AppInner() {
           onAddEntry={addEntry}
         />
       )}
-      {route === 'fortnight' && (
-        <FortnightScreen
+      {route === 'period' && (
+        <PeriodScreen
           periodLabel={periodLabel}
           days={days}
           reviewRows={gridRows}
@@ -929,12 +957,12 @@ function AppInner() {
           runningCell={runningCell ? { key: runningCell.key, day: runningCell.day } : null}
           enterRunningCell={enterRunningCell}
           checked={checked}
-          onPrev={() => setAnchor((a) => shiftFortnight(a, -1))}
-          onNext={() => setAnchor((a) => shiftFortnight(a, 1))}
+          onPrev={() => setAnchor((a) => shiftPeriod(periodScheme, a, -1))}
+          onNext={() => setAnchor((a) => shiftPeriod(periodScheme, a, 1))}
           onThis={() => setAnchor(TODAY)}
           onOpenCell={openCell}
           onAddCell={openAddInCell}
-          onAddEntry={openAddEntryFortnight}
+          onAddEntry={openAddEntryInPeriod}
           onChecklistChange={applyChecklistChange}
           onChecklistReset={resetChecklistMarks}
         />
@@ -976,6 +1004,8 @@ function AppInner() {
           onToggleWorkday={toggleWorkday}
           density={density}
           onDensityChange={changeDensity}
+          periodScheme={periodScheme}
+          onPeriodSchemeChange={changePeriodScheme}
           absences={absences}
           onAddAbsence={addAbsence}
           onRemoveAbsence={removeAbsence}

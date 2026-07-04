@@ -1,7 +1,7 @@
 """Seed the local dev database with a realistic demo dataset (idempotent).
 
 Run once after ``alembic upgrade head`` so the app shows real content on every screen.
-Uses the real current date so the Tracker/Fortnight line up with what the SPA requests.
+Uses the real current date so the Tracker/Timesheet period line up with what the SPA requests.
 """
 
 from __future__ import annotations
@@ -62,7 +62,7 @@ def main() -> None:
             Entry(user_id=user.id, date=today, start_minute=850, end_minute=875, timesheet_code_id=None, activity=None, description=""),
         ])
 
-        # Spread work across the first-half fortnight so the grid + checklist have content.
+        # Spread work across the first-half Timesheet period so the grid + checklist have content.
         for day in (1, 2, 3):
             day_date = today.replace(day=day)
             session.add(Entry(user_id=user.id, date=day_date, start_minute=540, end_minute=660, timesheet_code_id=pap, activity="Bug fixing", description="PAP V4"))
@@ -72,7 +72,7 @@ def main() -> None:
             session.add(Settings(user_id=user.id))
         session.add(Absence(user_id=user.id, date=today.replace(day=14), reason="Annual leave"))
         session.commit()
-        print("Seeded demo data (4 codes, today's entries, fortnight history, 1 absence).")
+        print("Seeded demo data (4 codes, today's entries, Timesheet period history, 1 absence).")
     finally:
         session.close()
 

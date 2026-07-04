@@ -54,9 +54,12 @@ export interface Absence {
   reason: string // "Annual leave", "Public holiday", ...
 }
 
-export type FortnightPeriod = 'first' | 'second' // 1–15 | 16–end
+export type SemiMonthlyHalf = 'first' | 'second' // 1–15 | 16–end
 
-/** One day column in the Fortnight/Checklist grid. */
+/** The three fixed Timesheet period schemes a User can pick in Settings (ADR-0009). */
+export type PeriodScheme = 'weekly' | 'semi_monthly' | 'monthly'
+
+/** One day column in the Timesheet period/Checklist grid. */
 export interface DayColumn {
   day: number // day-of-month
   weekday: string // "Mon", "Tue", ...
@@ -66,11 +69,11 @@ export interface DayColumn {
   isToday: boolean
 }
 
-export type FortnightRowKey = string // `${codeId}|${activity}`
+export type PeriodRowKey = string // `${codeId}|${activity}`
 
 /** A Code × Activity row: minutes per day-of-month. */
-export interface FortnightRow {
-  key: FortnightRowKey
+export interface PeriodRow {
+  key: PeriodRowKey
   code: TimesheetCode
   activity: ActivityName
   minutesByDay: Record<number, number>
@@ -91,7 +94,7 @@ export interface TaskSuggestion {
 
 export type Density = 'comfortable' | 'compact'
 
-export const checklistKey = (rowKey: FortnightRowKey, day: number): string => `${rowKey}#${day}`
+export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`
 
 /** The Task status workflow: To-do -> In-progress -> Waiting -> Test -> Done (Waiting/Test skippable). */
 export type TaskStatus = 'todo' | 'in_progress' | 'waiting' | 'test' | 'done'
@@ -107,7 +110,7 @@ export type RecurrenceRule =
   | { kind: 'every_n_days'; n: number }
   | { kind: 'weekly'; weekdays: number[] } // Monday=0 .. Sunday=6
   | { kind: 'monthly'; day: number } // day-of-month, clamped to shorter months
-  | { kind: 'fortnight_relative'; anchor: 'start' | 'end'; offsetDays: number }
+  | { kind: 'period_relative'; anchor: 'start' | 'end'; offsetDays: number }
 
 /**
  * A Task: the persisted, metadata-rich form of a thing to do (see CONTEXT.md). Optionally linked to
