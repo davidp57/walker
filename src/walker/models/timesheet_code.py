@@ -1,4 +1,4 @@
-"""The TimesheetCode model — a real PwC T&E charge code, scoped to a user."""
+"""The TimesheetCode model — a real Timesheet-system charge code, scoped to a user."""
 
 from __future__ import annotations
 
@@ -14,10 +14,10 @@ if TYPE_CHECKING:
 
 
 class TimesheetCode(TimestampMixin, Base):
-    """A T&E Timesheet code (e.g. ``N9/1042``) with its per-code activities.
+    """A Timesheet-system Timesheet code (e.g. ``N9/1042``) with its per-code activities.
 
     Scoped to a ``user_id`` from day one (see ADR-0007). A code is either **real** (``real_code_id``
-    is ``None`` — exists in T&E, imported) or **virtual** (Walker-only, ``real_code_id`` points at
+    is ``None`` — exists in the Timesheet system, imported) or **virtual** (Walker-only, ``real_code_id`` points at
     exactly one real code — see ADR-0008). ``number`` uniqueness applies to real codes only, enforced
     in the service layer (``services/catalog.py``); a virtual code is identified by its ``name``.
     """
@@ -44,17 +44,17 @@ class TimesheetCode(TimestampMixin, Base):
 
     @property
     def is_virtual(self) -> bool:
-        """``True`` when this code is Walker-only, backed by a real T&E code (ADR-0008)."""
+        """``True`` when this code is Walker-only, backed by a real Timesheet-system code (ADR-0008)."""
         return self.real_code_id is not None
 
     @property
     def resolved_number(self) -> str:
-        """The T&E number: own for a real code, borrowed from the real code for a virtual one."""
+        """The Timesheet-system number: own for a real code, borrowed from the real code for a virtual one."""
         return self.real_code.number if self.real_code is not None else self.number
 
     @property
     def resolved_label(self) -> str:
-        """The technical T&E label: own for a real code, borrowed for a virtual one."""
+        """The technical Timesheet-system label: own for a real code, borrowed for a virtual one."""
         return self.real_code.label if self.real_code is not None else self.label
 
     @property

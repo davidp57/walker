@@ -1,4 +1,4 @@
-"""The ChecklistMark model — a per-fortnight "entered into T&E" tick (BIZ-005, ADR-0005)."""
+"""The ChecklistMark model — a per-fortnight "entered into the Timesheet system" tick (BIZ-005, ADR-0005)."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from walker.models.base import Base, TimestampMixin
 
 
 class ChecklistMark(TimestampMixin, Base):
-    """Marks a single ``(code, activity, day)`` grid cell as keyed into T&E for a fortnight."""
+    """Marks a single ``(code, activity, day)`` grid cell as keyed into the Timesheet system for a fortnight."""
 
     __tablename__ = "checklist_marks"
     __table_args__ = (

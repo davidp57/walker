@@ -1,4 +1,4 @@
-"""Fortnight aggregation — real minutes into the T&E Code × Activity × Day grid (BIZ-004, ADR-0008).
+"""Fortnight aggregation — real minutes into the Timesheet-system Code × Activity × Day grid (BIZ-004, ADR-0008).
 
 Web-independent. No rounding and no target (ADR-0005): cells are exact summed minutes. Only
 completed, categorized entries (code + activity, ``end_minute`` set) contribute.
@@ -73,10 +73,11 @@ def aggregate_fortnight(session: Session, user_id: int, on: date) -> FortnightGr
 
 
 def resolve_to_real_codes(session: Session, grid: FortnightGrid) -> FortnightGrid:
-    """Collapse virtual-code rows into their real code (ADR-0008): T&E-facing aggregation only.
+    """Collapse virtual-code rows into their real code (ADR-0008): Timesheet-system-facing aggregation only.
 
     Several virtual codes sharing one real code merge into a single ``(real code, activity)`` row,
-    with per-day minutes summed exactly (no rounding, ADR-0005) — matching what is keyed into T&E.
+    with per-day minutes summed exactly (no rounding, ADR-0005) — matching what is keyed into the
+    Timesheet system.
     Real codes without virtuals pass through unchanged. Code ids are read straight off the grid, so
     no extra ``user_id`` scoping is needed here.
     """
