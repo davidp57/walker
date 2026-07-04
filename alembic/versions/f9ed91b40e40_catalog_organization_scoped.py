@@ -1,7 +1,7 @@
 """catalog organization scoped
 
 Revision ID: f9ed91b40e40
-Revises: d3fe489557c3
+Revises: 7e31f17decef
 Create Date: 2026-07-04 12:00:00.000000
 """
 
@@ -14,7 +14,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "f9ed91b40e40"
-down_revision: str | None = "d3fe489557c3"
+down_revision: str | None = "7e31f17decef"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import './styles/tokens.css'
 import './styles/walker.css'
-import { AppShell, type Route } from './components/AppShell'
+import { AppShell, type Route, type ShellUser } from './components/AppShell'
 import { TimerBar } from './components/TimerBar'
 import { CodePicker } from './components/CodePicker'
 import { CodeEditor } from './components/CodeEditor'
@@ -50,6 +50,7 @@ import {
   fetchSettings,
   fetchTaskTags,
   fetchTasks,
+  fetchUser,
   importCatalog as apiImportCatalog,
   patchEntry as apiPatchEntry,
   removeAbsence as apiRemoveAbsence,
@@ -152,6 +153,7 @@ export default function App() {
 function AppInner() {
   const { notifyError } = useToast()
   const [route, setRoute] = useState<Route>('tracker')
+  const [user, setUser] = useState<ShellUser | undefined>(undefined)
   const [codes, setCodes] = useState<TimesheetCode[]>([])
   const [codesLoading, setCodesLoading] = useState(true)
   const [entries, setEntries] = useState<Entry[]>([])
@@ -209,6 +211,9 @@ function AppInner() {
 
   // Load the catalog + settings from the API on boot.
   useEffect(() => {
+    fetchUser()
+      .then(setUser)
+      .catch(() => setUser(undefined))
     fetchCodes()
       .then(setCodes)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your code catalog.')))
@@ -889,6 +894,7 @@ function AppInner() {
       onNavigate={setRoute}
       timer={timerBar}
       uncategorizedCount={uncategorizedCount}
+      user={user}
     >
       {route === 'tracker' && (
         <TrackerScreen

@@ -32,6 +32,51 @@ describe('AppShell — nav label consistency', () => {
   })
 })
 
+describe('AppShell — footer display name (CHR-004)', () => {
+  it('shows the user name when set', () => {
+    render(
+      <AppShell
+        route="tracker"
+        onNavigate={() => {}}
+        timer={null}
+        user={{ username: 'jdoe', name: 'Jane Doe' }}
+      >
+        <div />
+      </AppShell>,
+    )
+    expect(screen.getByText('Jane Doe')).toBeInTheDocument()
+  })
+
+  it('falls back to the username when no name is set', () => {
+    render(
+      <AppShell
+        route="tracker"
+        onNavigate={() => {}}
+        timer={null}
+        user={{ username: 'jdoe', name: null }}
+      >
+        <div />
+      </AppShell>,
+    )
+    expect(screen.getByText('jdoe')).toBeInTheDocument()
+  })
+
+  it('renders no PwC or role/employer text', () => {
+    render(
+      <AppShell
+        route="tracker"
+        onNavigate={() => {}}
+        timer={null}
+        user={{ username: 'jdoe', name: null }}
+      >
+        <div />
+      </AppShell>,
+    )
+    expect(screen.queryByText(/PwC/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Consultant/)).not.toBeInTheDocument()
+  })
+})
+
 describe('AppShell — uncategorized-Entry count (BIZ-010)', () => {
   it('shows the count next to the Activity nav item when there are uncategorized Entries', () => {
     render(

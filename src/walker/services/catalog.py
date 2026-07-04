@@ -291,7 +291,7 @@ def parse_catalog_csv(text: str) -> list[ParsedCode]:
     Two layouts are accepted:
 
     * **Headered** — first row is ``code_number,code_label,code_name,activity_code,activity_label``.
-    * **Headerless PwC export** — four columns
+    * **Headerless export** — four columns
       ``code_number,code_label,activity_code,activity_label`` (``code_name`` defaults to
       ``code_label``); quoted fields may contain commas.
 

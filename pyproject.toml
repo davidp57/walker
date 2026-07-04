@@ -15,6 +15,9 @@ dependencies = [
     "pydantic-settings>=2.5.0",
     "python-multipart>=0.0.20",
     "structlog>=25.0",
+    "authlib>=1.3.2",
+    "itsdangerous>=2.2.0",
+    "joserfc>=1.0.0",
 ]
 
 [project.optional-dependencies]
@@ -24,6 +27,11 @@ dev = [
     "httpx>=0.27.0",
     "ruff>=0.6.0",
     "mypy>=1.11.0",
+    "types-Authlib>=1.3.2",
+]
+# Only needed to produce the standalone .exe (CHR-009); not a runtime or test dependency.
+build-exe = [
+    "pyinstaller>=6.11.0",
 ]
 docs = [
     "mkdocs>=1.6.0",
