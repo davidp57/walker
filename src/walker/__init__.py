@@ -1,3 +1,3 @@
-"""Walker — personal time tracker feeding the PwC Timesheet system."""
+"""Walker — personal time tracker feeding the Timesheet system."""
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
