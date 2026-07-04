@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import Depends, Request
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from walker.config import settings
@@ -16,12 +17,26 @@ def _get_implicit_default_user(session: Session) -> User:
 
     There is no authentication in this mode; all data is scoped to this single user so that
     multi-user becomes a later addition rather than a schema migration.
+
+    On a brand-new database, the SPA's several parallel boot-time requests (``/api/user``,
+    ``/api/settings``, ``/api/codes``, ...) can all see no User yet and race to create it — the
+    losers hit ``username``'s unique constraint. Roll back and re-fetch the winner's row instead
+    of letting that surface as a 500 (same fix as ``services/settings.py``'s get-or-create).
     """
     user = session.scalar(select(User).where(User.username == settings.default_user))
-    if user is None:
-        user = User(username=settings.default_user)
-        session.add(user)
+    if user is not None:
+        return user
+
+    user = User(username=settings.default_user)
+    session.add(user)
+    try:
         session.commit()
+    except IntegrityError:
+        session.rollback()
+        user = session.scalar(select(User).where(User.username == settings.default_user))
+        if user is None:
+            raise
+    else:
         session.refresh(user)
     return user
 
