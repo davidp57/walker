@@ -8,9 +8,21 @@ OAuth app with each provider you want to offer — Walker can't do this part for
     Walker's session cookie is set with the `Secure` flag, so browsers silently refuse to store it
     over plain HTTP. SSO will *appear* to work — the provider's consent screen and redirect both
     complete — but you'll land back on Walker still signed out, or immediately get a 401 from
-    `/api/auth/me`. Put a reverse proxy with a real TLS certificate (Traefik, Caddy, nginx) in
-    front of Walker before enabling `sso` mode; a bare `http://<ip>:8000` deployment cannot work
-    with SSO regardless of how the provider apps are configured.
+    `/api/auth/me`. Put a reverse proxy with a real TLS certificate (Traefik, Caddy, nginx,
+    Synology's built-in reverse proxy, ...) in front of Walker before enabling `sso` mode; a bare
+    `http://<ip>:8000` deployment cannot work with SSO regardless of how the provider apps are
+    configured.
+
+!!! warning "Behind a reverse proxy, Walker must be told the real scheme is HTTPS"
+    If the reverse proxy terminates TLS and forwards to Walker over plain HTTP internally (the
+    normal setup), Walker builds the OAuth `redirect_uri` from what *it* sees — plain HTTP —
+    unless it trusts the proxy's `X-Forwarded-Proto` header. Symptom: Google rejects the sign-in
+    with `Error 400: redirect_uri_mismatch`, and the "error details" link shows a `redirect_uri`
+    starting with `http://` even though you're browsing over `https://`. Walker's own server
+    entry point already trusts forwarded headers from any peer (`forwarded_allow_ips="*"` in
+    `uvicorn.run`, safe here since Walker is meant to sit behind exactly one trusted proxy) — make
+    sure your reverse proxy actually sends `X-Forwarded-Proto: https` (Synology's and most
+    others do this by default).
 
 ## Google
 
