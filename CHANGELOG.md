@@ -5,6 +5,36 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-07-04
+
+### Added
+
+- **A real sign-in screen for SSO deployments** (BIZ-029 gap): `GET /api/health` now reports
+  `auth_mode` and which SSO providers have both a client id and secret configured. The SPA checks
+  this on boot and, when a sign-in is needed, renders provider buttons (real page navigations to
+  `/api/auth/login/{provider}`) instead of the app — previously SSO was backend-only, with no way
+  to actually sign in short of typing a login URL by hand.
+- **Rolling `:develop` Docker image + `.exe` build artifact**: both CD workflows now also run on
+  every push to `develop` (image tag `:develop`; the `.exe` as a downloadable workflow artifact,
+  not a release), so a fix can be smoke-tested before it's actually released.
+
+### Fixed
+
+- **Missing `httpx` runtime dependency**: `authlib`'s Starlette OAuth client hard-imports it, but
+  it was only declared under the `dev` extra — any deployment with `WALKER_AUTH_MODE=sso` crashed
+  on startup with `ModuleNotFoundError`, including the Docker image.
+- **SSO `redirect_uri_mismatch` behind a reverse proxy**: uvicorn only trusted
+  `X-Forwarded-Proto`/`X-Forwarded-Host` from `127.0.0.1` by default, so behind a reverse proxy
+  terminating TLS, Walker built the OAuth `redirect_uri` as `http://...` instead of `https://...`,
+  which Google (correctly) rejected. The hosted entry point now trusts forwarded headers from any
+  peer (`forwarded_allow_ips="*"`), safe since Walker is meant to sit behind exactly one trusted
+  proxy.
+- **Get-or-create races on first launch**: a brand-new database's first few parallel boot requests
+  (`/api/user`, `/api/settings`, `/api/codes`, ...) could all race to create the implicit default
+  user, a User's Settings row, or (SSO) an Organization/User — the losing request hit a unique
+  constraint and 500'd instead of just using the winner's row. Affected the very first launch of
+  every standalone Docker/`.exe` deployment, and any user's first SSO sign-in.
+
 ## [1.0.1] - 2026-07-04
 
 ### Fixed

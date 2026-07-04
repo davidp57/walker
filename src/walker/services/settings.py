@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from walker.models import Absence, Settings
@@ -28,16 +29,32 @@ class SettingsView:
 
 
 def _get_or_create(session: Session, user_id: int) -> Settings:
+    """Find or create the user's ``Settings`` row, tolerating a concurrent create for the same user.
+
+    Two requests can both see no row yet (e.g. the several boot-time API calls the SPA fires in
+    parallel, for a User signing in for the very first time) and both try to insert one — the
+    loser hits ``settings.user_id``'s unique constraint instead of a normal race-free get. Rather
+    than 500 in that case, roll back and re-fetch the winner's row.
+    """
     settings = session.scalar(select(Settings).where(Settings.user_id == user_id))
-    if settings is None:
-        settings = Settings(
-            user_id=user_id,
-            workdays=DEFAULT_WORKDAYS,
-            density="comfortable",
-            period_scheme=DEFAULT_PERIOD_SCHEME,
-        )
-        session.add(settings)
+    if settings is not None:
+        return settings
+
+    settings = Settings(
+        user_id=user_id,
+        workdays=DEFAULT_WORKDAYS,
+        density="comfortable",
+        period_scheme=DEFAULT_PERIOD_SCHEME,
+    )
+    session.add(settings)
+    try:
         session.commit()
+    except IntegrityError:
+        session.rollback()
+        settings = session.scalar(select(Settings).where(Settings.user_id == user_id))
+        if settings is None:
+            raise
+    else:
         session.refresh(settings)
     return settings
 
