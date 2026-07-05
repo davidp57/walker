@@ -22,6 +22,9 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 ## Now — not yet chosen
 
+- **ADAPTIVE** (theme toggle + responsive phone layout) — PRD ready, tickets not yet cut. See
+  `.backlog/ADAPTIVE/PRD.md`.
+
 ## Forward-looking (not scheduled)
 
 - **Docs chatbot**: parked for now, but the target architecture is scoped — copy VMCT v6's

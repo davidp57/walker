@@ -12,6 +12,7 @@ source of truth for **scope and status**.
 
 | Lot | Status |
 |-----|--------|
+| [ADAPTIVE](ADAPTIVE/PRD.md) — Theme toggle (dark/light, server-persisted) + a fully-functional responsive phone layout | ⬜ |
 | [TECH](TECH/PRD.md) — Cross-cutting technical debt (living lot; tickets added/resolved individually) | 🔄 |
 
 ## Archived lots
