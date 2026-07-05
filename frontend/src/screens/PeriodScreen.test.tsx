@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PeriodScreen } from './PeriodScreen'
 import type { ChecklistState, DayColumn, PeriodRow, TimesheetCode } from '../types'
@@ -55,6 +55,13 @@ function clickCell(text: string, eventInit?: Parameters<typeof fireEvent.click>[
     .find((td): td is HTMLTableCellElement => td !== null)
   if (!match) throw new Error(`No wk-cell found with text "${text}"`)
   fireEvent.click(match, eventInit)
+}
+
+// PeriodGrid (BIZ-034) now renders both the table and the phone day-card list from the same data,
+// so text/title queries that used to be unique can match twice. Scope to the table for assertions
+// that aren't specifically about the grid-vs-cards markup itself.
+function table() {
+  return document.querySelector('.wk-grid') as HTMLTableElement
 }
 
 function renderScreen(overrides: Partial<Parameters<typeof PeriodScreen>[0]> = {}) {
@@ -137,8 +144,9 @@ describe('PeriodScreen — Review mode', () => {
     const onAddCell = vi.fn()
     renderScreen({ onAddCell })
 
-    // Row "2|Bug fixing" has no minutes on day 1 → empty, addable working cell.
-    const addCells = screen.getAllByText('+')
+    // Row "2|Bug fixing" has no minutes on day 1 → empty, addable working cell. The "+" affordance
+    // only exists in the table (the day-card list has no add-empty-cell equivalent).
+    const addCells = within(table()).getAllByText('+')
     fireEvent.click(addCells[0])
 
     expect(onAddCell).toHaveBeenCalled()
@@ -156,8 +164,8 @@ describe('PeriodScreen — Review mode', () => {
   it('shows one row per code (virtual codes as their own row)', () => {
     renderScreen()
 
-    expect(screen.getByText('Paper V4')).toBeInTheDocument()
-    expect(screen.getByText('Workday contact info')).toBeInTheDocument()
+    expect(within(table()).getByText('Paper V4')).toBeInTheDocument()
+    expect(within(table()).getByText('Workday contact info')).toBeInTheDocument()
   })
 })
 
@@ -171,7 +179,7 @@ describe('PeriodScreen — Enter in Timesheet system mode', () => {
   it('resolves virtual codes into the real code (merged row)', () => {
     enterMode()
 
-    expect(screen.getByText('Paper V4')).toBeInTheDocument()
+    expect(within(table()).getByText('Paper V4')).toBeInTheDocument()
     expect(screen.queryByText('Workday contact info')).not.toBeInTheDocument()
   })
 
@@ -240,7 +248,7 @@ describe('PeriodScreen — Total column', () => {
   it('shows the Total column header in Review mode', () => {
     renderScreen()
 
-    expect(screen.getByText('Total')).toBeInTheDocument()
+    expect(within(table()).getByText('Total')).toBeInTheDocument()
   })
 
   it('shows the Total column header in Enter in Timesheet system mode', () => {
@@ -248,7 +256,7 @@ describe('PeriodScreen — Total column', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
 
-    expect(screen.getByText('Total')).toBeInTheDocument()
+    expect(within(table()).getByText('Total')).toBeInTheDocument()
   })
 })
 
@@ -276,8 +284,9 @@ describe('PeriodScreen — running timer cell', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
 
-    // Day 1 for the merged real-code row is the running cell; clicking it must not toggle.
-    const cell = screen.getByTitle('Timer running — stop it to edit')
+    // Day 1 for the merged real-code row is the running cell; clicking it must not toggle. Scoped
+    // to the table — the day-card list (BIZ-034) renders the same running-cell title on its line.
+    const cell = within(table()).getByTitle('Timer running — stop it to edit')
     fireEvent.click(cell)
 
     expect(onChecklistChange).not.toHaveBeenCalled()
@@ -294,7 +303,7 @@ describe('PeriodScreen — running timer cell', () => {
     })
     fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
 
-    const cell = screen.getByTitle('Timer running — stop it to edit')
+    const cell = within(table()).getByTitle('Timer running — stop it to edit')
     fireEvent.click(cell)
 
     expect(onChecklistChange).not.toHaveBeenCalled()

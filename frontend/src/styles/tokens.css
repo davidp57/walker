@@ -80,6 +80,11 @@
   /* ---- Density (row/cell heights) ---- */
   --wk-row-h: 44px;
   --wk-cell-h: 34px;
+
+  /* ---- Responsive breakpoints ----
+     Reference only: custom properties can't be used inside @media conditions, so the actual
+     media queries hardcode this value (640px) — keep them in sync if this token ever changes. */
+  --wk-bp-phone: 640px;
 }
 
 :root[data-density='compact'] {

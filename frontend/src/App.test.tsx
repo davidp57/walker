@@ -402,11 +402,15 @@ describe('App — Timesheet period screen (BIZ-007)', () => {
 
     fireEvent.click(await screen.findByText('Timesheet period'))
     fireEvent.click(await screen.findByRole('button', { name: 'Enter in Timesheet system' }))
-    await screen.findByText('Paper V4')
+    await screen.findAllByText('Paper V4')
 
     // The running entry is on the virtual code; resolved to the real code (ADR-0008) its cell must
     // still be tinted/read-only — "Timer running" title only appears on the resolved real-code row.
-    expect(await screen.findByTitle('Timer running — stop it to edit')).toBeInTheDocument()
+    // PeriodGrid (BIZ-034) renders both the table and the phone day-card list from the same data,
+    // so this title can now appear twice — asserting at least one is enough for this check.
+    expect((await screen.findAllByTitle('Timer running — stop it to edit')).length).toBeGreaterThan(
+      0,
+    )
   })
 })
 
