@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Absence, Density, PeriodScheme } from '../types'
+import type { Absence, Density, PeriodScheme, Theme } from '../types'
 
 interface SettingsScreenProps {
   workdays: boolean[] // index by JS getDay(): 0=Sun … 6=Sat
@@ -8,6 +8,8 @@ interface SettingsScreenProps {
   onDensityChange: (density: Density) => void
   periodScheme: PeriodScheme
   onPeriodSchemeChange: (scheme: PeriodScheme) => void
+  theme: Theme
+  onThemeChange: (theme: Theme) => void
   absences: Absence[] // manually managed in the POC
   onAddAbsence: (date: string, reason: string) => void
   onRemoveAbsence: (date: string) => void
@@ -30,6 +32,12 @@ const PERIOD_SCHEME_OPTIONS: { value: PeriodScheme; label: string }[] = [
   { value: 'monthly', label: 'Monthly' },
 ]
 
+const THEME_OPTIONS: { value: Theme; label: string }[] = [
+  { value: 'dark', label: 'Dark' },
+  { value: 'light', label: 'Light' },
+  { value: 'system', label: 'System' },
+]
+
 const formatDate = (iso: string): string => {
   const d = new Date(`${iso}T00:00:00`)
   return Number.isNaN(d.getTime())
@@ -44,6 +52,8 @@ export function SettingsScreen({
   onDensityChange,
   periodScheme,
   onPeriodSchemeChange,
+  theme,
+  onThemeChange,
   absences,
   onAddAbsence,
   onRemoveAbsence,
@@ -125,6 +135,25 @@ export function SettingsScreen({
                 type="button"
                 className={`wk-seg${periodScheme === option.value ? ' is-active' : ''}`}
                 onClick={() => onPeriodSchemeChange(option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="wk-set-card is-row">
+          <div>
+            <div className="wk-set-title">Theme</div>
+            <div className="wk-set-desc">Dark, light, or match your system's appearance.</div>
+          </div>
+          <div className="wk-period">
+            {THEME_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={`wk-seg${theme === option.value ? ' is-active' : ''}`}
+                onClick={() => onThemeChange(option.value)}
               >
                 {option.label}
               </button>

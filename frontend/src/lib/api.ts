@@ -9,6 +9,7 @@ import type {
   Task,
   TaskPriority,
   TaskStatus,
+  Theme,
   TimesheetCode,
 } from '../types'
 
@@ -375,6 +376,7 @@ interface ApiSettings {
   workdays: boolean[]
   density: string
   period_scheme: PeriodScheme
+  theme: Theme
   absences: { date: string; reason: string }[]
 }
 
@@ -383,6 +385,7 @@ export interface SettingsData {
   workdays: boolean[]
   density: 'comfortable' | 'compact'
   periodScheme: PeriodScheme
+  theme: Theme
   absences: { date: string; reason: string }[]
 }
 
@@ -391,26 +394,29 @@ function mapSettings(settings: ApiSettings): SettingsData {
     workdays: settings.workdays,
     density: settings.density === 'compact' ? 'compact' : 'comfortable',
     periodScheme: settings.period_scheme,
+    theme: settings.theme,
     absences: settings.absences,
   }
 }
 
-/** Fetch the user's settings (work rhythm, density, period scheme, absences). */
+/** Fetch the user's settings (work rhythm, density, period scheme, theme, absences). */
 export async function fetchSettings(): Promise<SettingsData> {
   return mapSettings(await getJson<ApiSettings>('/api/settings'))
 }
 
-/** Update the work rhythm, density, and (optionally) the Timesheet period scheme. */
+/** Update the work rhythm, density, and (optionally) the Timesheet period scheme/theme. */
 export async function updateSettings(
   workdays: boolean[],
   density: string,
   periodScheme?: PeriodScheme,
+  theme?: Theme,
 ): Promise<SettingsData> {
   return mapSettings(
     await sendJson<ApiSettings>('/api/settings', 'PUT', {
       workdays,
       density,
       period_scheme: periodScheme,
+      theme,
     }),
   )
 }
