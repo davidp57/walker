@@ -19,11 +19,12 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   configurable Timesheet period), Organization-scoped catalog + SSO for a hosted deployment, SQLite WAL
   mode, MkDocs docs site on GitHub Pages, blocking CI + branch protection, Docker CD to GHCR, standalone
   `.exe` CD to GitHub Releases. See `.backlog/archive/SHIP.md`, ADR-0009, ADR-0010.
+- **ADAPTIVE** (theme toggle + responsive phone layout) — dark-mode rendering fix, a real per-user
+  dark/light/system theme (server-persisted, defaults to `prefers-color-scheme`), and a
+  fully-functional phone layout (bottom tab bar, day-card Timesheet period grid, touch-capable
+  Timer/entry-editing/kanban drag-and-drop). See `.backlog/archive/ADAPTIVE.md`.
 
 ## Now — not yet chosen
-
-- **ADAPTIVE** (theme toggle + responsive phone layout) — PRD ready, tickets not yet cut. See
-  `.backlog/ADAPTIVE/PRD.md`.
 
 ## Forward-looking (not scheduled)
 
