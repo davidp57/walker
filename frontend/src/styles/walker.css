@@ -5,6 +5,11 @@
 * {
   box-sizing: border-box;
 }
+html,
+body {
+  color-scheme: dark;
+  background: var(--wk-bg-0);
+}
 .wk-app,
 .wk-app * {
   font-family: var(--wk-font-ui);
