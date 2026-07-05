@@ -9,6 +9,15 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+/**
+ * Clicks a nav destination by label, scoped to the sidebar (BIZ-033 also renders a bottom tab bar
+ * with the same labels, so an unscoped query would be ambiguous).
+ */
+async function clickNav(label: string): Promise<void> {
+  const nav = await screen.findByRole('navigation', { name: /main navigation/i })
+  fireEvent.click(within(nav).getByText(label))
+}
+
 const realCode: TimesheetCode = {
   id: '1',
   number: 'N9/1042',
@@ -380,7 +389,7 @@ describe('App — Timesheet period screen (BIZ-007)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Timesheet period'))
+    await clickNav('Timesheet period')
 
     expect(await screen.findByRole('button', { name: 'Review' })).toHaveClass('is-active')
     expect(
@@ -403,13 +412,17 @@ describe('App — Timesheet period screen (BIZ-007)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Timesheet period'))
+    await clickNav('Timesheet period')
     fireEvent.click(await screen.findByRole('button', { name: 'Enter in Timesheet system' }))
-    await screen.findByText('Paper V4')
+    await screen.findAllByText('Paper V4')
 
     // The running entry is on the virtual code; resolved to the real code (ADR-0008) its cell must
     // still be tinted/read-only — "Timer running" title only appears on the resolved real-code row.
-    expect(await screen.findByTitle('Timer running — stop it to edit')).toBeInTheDocument()
+    // PeriodGrid (BIZ-034) renders both the table and the phone day-card list from the same data,
+    // so this title can now appear twice — asserting at least one is enough for this check.
+    expect((await screen.findAllByTitle('Timer running — stop it to edit')).length).toBeGreaterThan(
+      0,
+    )
   })
 })
 
@@ -444,7 +457,7 @@ describe('App — start a Timer from a Task (BIZ-023)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Tasks'))
+    await clickNav('Tasks')
     fireEvent.click(await screen.findByTestId('wk-task-start-7'))
 
     // The picker opens scoped to the task's code — only its activity remains to be picked.
@@ -504,7 +517,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Settings'))
+    await clickNav('Settings')
     await waitFor(() => expect(fetchPeriod).toHaveBeenCalled())
     const callsBeforeChange = fetchPeriod.mock.calls.length
 
@@ -513,7 +526,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
     // The period view recomputes with no reload: a fresh grid fetch fires for the new scheme.
     await waitFor(() => expect(fetchPeriod.mock.calls.length).toBeGreaterThan(callsBeforeChange))
 
-    fireEvent.click(await screen.findByText('Timesheet period'))
+    await clickNav('Timesheet period')
 
     // A full calendar month's worth of columns now render (semi-monthly would cap at 15/16).
     const dayHeaders = document.querySelectorAll('.wk-day-num')
@@ -533,7 +546,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Settings'))
+    await clickNav('Settings')
     fireEvent.click(await screen.findByRole('button', { name: 'Weekly' }))
 
     await waitFor(() =>

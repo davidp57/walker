@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AppShell } from './AppShell'
 
@@ -12,10 +12,10 @@ describe('AppShell — nav', () => {
       </AppShell>,
     )
 
-    const nav = screen.getByRole('navigation')
+    const nav = screen.getByRole('navigation', { name: /main navigation/i })
     const items = nav.querySelectorAll('.wk-nav-item')
     expect(items).toHaveLength(5)
-    expect(screen.getByText('Tasks')).toBeInTheDocument()
+    expect(nav).toHaveTextContent('Tasks')
     expect(screen.queryByText('Enter in Timesheet system')).not.toBeInTheDocument()
     expect(screen.queryByText('Enter into Timesheet system')).not.toBeInTheDocument()
   })
@@ -28,7 +28,8 @@ describe('AppShell — nav label consistency', () => {
         <div />
       </AppShell>,
     )
-    expect(screen.getByText('Activity')).toBeInTheDocument()
+    const nav = screen.getByRole('navigation', { name: /main navigation/i })
+    expect(nav).toHaveTextContent('Activity')
   })
 })
 
@@ -77,6 +78,70 @@ describe('AppShell — footer display name (CHR-004)', () => {
   })
 })
 
+describe('AppShell — bottom tab bar (BIZ-033)', () => {
+  it('renders a bottom tab bar with the same five sections as the sidebar', () => {
+    render(
+      <AppShell route="tracker" onNavigate={() => {}} timer={null}>
+        <div />
+      </AppShell>,
+    )
+
+    const tabbar = screen.getByRole('navigation', { name: /bottom tab bar/i })
+    const items = tabbar.querySelectorAll('.wk-tabbar-item')
+    expect(items).toHaveLength(5)
+    expect(tabbar).toHaveTextContent('Activity')
+    expect(tabbar).toHaveTextContent('Timesheet period')
+    expect(tabbar).toHaveTextContent('Tasks')
+    expect(tabbar).toHaveTextContent('Code catalog')
+    expect(tabbar).toHaveTextContent('Settings')
+  })
+
+  it('calls onNavigate with the right route when a tab is tapped', () => {
+    const onNavigate = vi.fn()
+    render(
+      <AppShell route="tracker" onNavigate={onNavigate} timer={null}>
+        <div />
+      </AppShell>,
+    )
+
+    const tabbar = screen.getByRole('navigation', { name: /bottom tab bar/i })
+    const tasksTab = Array.from(tabbar.querySelectorAll('.wk-tabbar-item')).find((el) =>
+      el.textContent?.includes('Tasks'),
+    )
+    expect(tasksTab).toBeDefined()
+    tasksTab!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(onNavigate).toHaveBeenCalledWith('tasks')
+  })
+
+  it('visually distinguishes the active tab', () => {
+    render(
+      <AppShell route="period" onNavigate={() => {}} timer={null}>
+        <div />
+      </AppShell>,
+    )
+
+    const tabbar = screen.getByRole('navigation', { name: /bottom tab bar/i })
+    const activeTab = Array.from(tabbar.querySelectorAll('.wk-tabbar-item')).find((el) =>
+      el.textContent?.includes('Timesheet period'),
+    )
+    expect(activeTab).toHaveClass('is-active')
+  })
+
+  it('shows the uncategorized-Entry badge on the Activity tab too (BIZ-010)', () => {
+    render(
+      <AppShell route="tracker" onNavigate={() => {}} timer={null} uncategorizedCount={2}>
+        <div />
+      </AppShell>,
+    )
+
+    const tabbar = screen.getByRole('navigation', { name: /bottom tab bar/i })
+    const activityTab = Array.from(tabbar.querySelectorAll('.wk-tabbar-item')).find((el) =>
+      el.textContent?.includes('Activity'),
+    )
+    expect(activityTab).toHaveTextContent('2')
+  })
+})
+
 describe('AppShell — uncategorized-Entry count (BIZ-010)', () => {
   it('shows the count next to the Activity nav item when there are uncategorized Entries', () => {
     render(
@@ -85,7 +150,8 @@ describe('AppShell — uncategorized-Entry count (BIZ-010)', () => {
       </AppShell>,
     )
 
-    const activity = screen.getByText('Activity').closest('button')
+    const nav = screen.getByRole('navigation', { name: /main navigation/i })
+    const activity = within(nav).getByText('Activity').closest('button')
     expect(activity).not.toBeNull()
     expect(activity).toHaveTextContent('3')
   })
@@ -97,7 +163,8 @@ describe('AppShell — uncategorized-Entry count (BIZ-010)', () => {
       </AppShell>,
     )
 
-    const activity = screen.getByText('Activity').closest('button')
+    const nav = screen.getByRole('navigation', { name: /main navigation/i })
+    const activity = within(nav).getByText('Activity').closest('button')
     expect(activity).not.toBeNull()
     expect(screen.queryByTestId('wk-uncategorized-badge')).not.toBeInTheDocument()
   })
