@@ -58,7 +58,7 @@ export function AppShell({
     <div className="wk-app">
       <aside className="wk-sidebar">
         <Logo />
-        <nav className="wk-nav">
+        <nav className="wk-nav" aria-label="Main navigation">
           {NAV.map((item) => (
             <button
               key={item.key}
@@ -92,6 +92,31 @@ export function AppShell({
         {timer}
         <div className="wk-outlet">{children}</div>
       </main>
+
+      {/* Phone-portrait replacement for the sidebar (BIZ-033): same NAV, same Route/onNavigate
+          contract, shown/hidden purely via the `--wk-bp-phone` media query in walker.css. */}
+      <nav className="wk-tabbar" aria-label="Bottom tab bar">
+        {NAV.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            className={`wk-tabbar-item${route === item.key ? ' is-active' : ''}`}
+            onClick={() => onNavigate(item.key)}
+          >
+            <span className="wk-tabbar-ico">{item.icon}</span>
+            <span className="wk-tabbar-label">{item.label}</span>
+            {item.key === 'tracker' && uncategorizedCount > 0 && (
+              <span
+                className="wk-tabbar-badge"
+                data-testid="wk-uncategorized-badge-tabbar"
+                title={`${uncategorizedCount} entr${uncategorizedCount === 1 ? 'y' : 'ies'} without a Timesheet code`}
+              >
+                {uncategorizedCount}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
     </div>
   )
 }
