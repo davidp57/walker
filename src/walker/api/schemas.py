@@ -7,7 +7,7 @@ from datetime import date
 
 from pydantic import BaseModel, ConfigDict
 
-from walker.models.settings import PeriodScheme
+from walker.models.settings import PeriodScheme, Theme
 
 
 class HealthResponse(BaseModel):
@@ -243,22 +243,24 @@ class AbsenceRead(BaseModel):
 
 
 class SettingsRead(BaseModel):
-    """The user's settings: work rhythm (Sun..Sat), density, period scheme, and absences."""
+    """The user's settings: work rhythm (Sun..Sat), density, period scheme, theme, and absences."""
 
     model_config = ConfigDict(from_attributes=True)
 
     workdays: list[bool]
     density: str
     period_scheme: PeriodScheme
+    theme: Theme
     absences: list[AbsenceRead]
 
 
 class SettingsUpdate(BaseModel):
-    """Payload to update the work rhythm, density, and (optionally) the period scheme."""
+    """Payload to update the work rhythm, density, and (optionally) the period scheme/theme."""
 
     workdays: list[bool]
     density: str
     period_scheme: PeriodScheme | None = None
+    theme: Theme | None = None
 
 
 class AbsenceWrite(BaseModel):
