@@ -80,6 +80,13 @@
   /* ---- Density (row/cell heights) ---- */
   --wk-row-h: 44px;
   --wk-cell-h: 34px;
+
+  /* ---- Breakpoints ----
+     Shared with BIZ-034 (implemented independently/in parallel). CSS custom properties can't be
+     read inside @media conditions, so the value is hardcoded there too (`max-width: 640px`) — this
+     token exists for documentation/reference and for any JS that needs the same value. Keep both
+     in sync if this ever changes. */
+  --wk-bp-phone: 640px;
 }
 
 :root[data-density='compact'] {

@@ -162,6 +162,64 @@ body {
   overflow: auto;
 }
 
+/* ---------- Bottom tab bar (BIZ-033) ----------
+   Phone-portrait replacement for .wk-sidebar: same 5 sections, same Route/onNavigate contract.
+   Hidden by default (desktop); swapped in below --wk-bp-phone (see media query at file end). */
+.wk-tabbar {
+  display: none;
+  flex-shrink: 0;
+  background: var(--wk-bg-1);
+  border-top: 1px solid var(--wk-line);
+}
+.wk-tabbar-item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px 10px;
+  cursor: pointer;
+  font-size: var(--wk-fs-10);
+  font-weight: var(--wk-fw-medium);
+  color: var(--wk-text-mid);
+  background: transparent;
+  border: none;
+}
+.wk-tabbar-item.is-active {
+  color: var(--wk-accent);
+  font-weight: var(--wk-fw-semibold);
+}
+.wk-tabbar-ico {
+  width: 20px;
+  display: flex;
+  justify-content: center;
+  opacity: 0.85;
+}
+.wk-tabbar-label {
+  line-height: 1.1;
+}
+.wk-tabbar-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 22px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--wk-radius-pill);
+  background: var(--wk-amber-soft);
+  border: 1px solid var(--wk-amber-line);
+  color: var(--wk-amber);
+  font-family: var(--wk-font-mono);
+  font-size: 9px;
+  font-weight: var(--wk-fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
 /* ---------- Logo badge ---------- */
 .wk-badge {
   width: 34px;
@@ -1849,4 +1907,19 @@ body {
   justify-content: center;
   text-decoration: none;
   width: 100%;
+}
+
+/* ---------- Phone-portrait layout (BIZ-033) ----------
+   Below --wk-bp-phone (640px, hardcoded here — see the token's comment in tokens.css for why),
+   swap the sidebar for the bottom tab bar. Nothing else about the layout or state changes. */
+@media (max-width: 640px) {
+  .wk-app {
+    flex-direction: column;
+  }
+  .wk-sidebar {
+    display: none;
+  }
+  .wk-tabbar {
+    display: flex;
+  }
 }
