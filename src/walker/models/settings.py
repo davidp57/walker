@@ -19,9 +19,16 @@ DEFAULT_WORKDAYS = "0111110"
 PeriodScheme = Literal["weekly", "semi_monthly", "monthly"]
 DEFAULT_PERIOD_SCHEME: PeriodScheme = "semi_monthly"
 
+# The theme preference: "system" follows the OS's prefers-color-scheme; "dark"/"light" are explicit
+# overrides (ADAPTIVE lot, theme toggle).
+Theme = Literal["dark", "light", "system"]
+DEFAULT_THEME: Theme = "system"
+
 
 class Settings(TimestampMixin, Base):
-    """A user's settings: which weekdays are workdays, the grid density, and the period scheme."""
+    """A user's settings: which weekdays are workdays, the grid density, the period scheme, and the
+    theme preference.
+    """
 
     __tablename__ = "settings"
 
@@ -30,3 +37,4 @@ class Settings(TimestampMixin, Base):
     workdays: Mapped[str] = mapped_column(String(7), default=DEFAULT_WORKDAYS)
     density: Mapped[str] = mapped_column(String(20), default="comfortable")
     period_scheme: Mapped[str] = mapped_column(String(20), default=DEFAULT_PERIOD_SCHEME)
+    theme: Mapped[str] = mapped_column(String(20), default=DEFAULT_THEME)

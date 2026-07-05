@@ -22,7 +22,7 @@ def get_settings(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> SettingsView:
-    """Return the user's settings (work rhythm, density, period scheme, absences)."""
+    """Return the user's settings (work rhythm, density, period scheme, theme, absences)."""
     return settings_service.get_settings(session, user.id)
 
 
@@ -32,13 +32,14 @@ def update_settings(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> SettingsView:
-    """Update the work rhythm, density, and (optionally) the Timesheet period scheme."""
+    """Update the work rhythm, density, and (optionally) the Timesheet period scheme/theme."""
     return settings_service.update_settings(
         session,
         user.id,
         workdays=body.workdays,
         density=body.density,
         period_scheme=body.period_scheme,
+        theme=body.theme,
     )
 
 

@@ -1,30 +1,36 @@
-"""Settings + absences domain logic (BIZ-006, BIZ-027).
+"""Settings + absences domain logic (BIZ-006, BIZ-027, BIZ-031).
 
 Web-independent. Work rhythm is stored as a 7-char "0/1" string (Sun..Sat) and exposed as a
 ``list[bool]``. Absences are unique per date (re-adding a date updates its reason). ``period_scheme``
-drives the Timesheet period computation in ``services/period.py`` (ADR-0009).
+drives the Timesheet period computation in ``services/period.py`` (ADR-0009). ``theme`` is the
+user's dark/light/system preference (ADAPTIVE lot); ``resolve_theme`` turns it into an actual
+rendered value.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from walker.models import Absence, Settings
-from walker.models.settings import DEFAULT_PERIOD_SCHEME, DEFAULT_WORKDAYS, PeriodScheme
+from walker.models.settings import DEFAULT_PERIOD_SCHEME, DEFAULT_THEME, DEFAULT_WORKDAYS, PeriodScheme, Theme
 
 
 @dataclass
 class SettingsView:
-    """The settings as exposed to the API: work rhythm, density, period scheme, and absences."""
+    """The settings as exposed to the API: work rhythm, density, period scheme, theme, and
+    absences.
+    """
 
     workdays: list[bool]
     density: str
     period_scheme: PeriodScheme
+    theme: Theme
     absences: list[Absence]
 
 
@@ -45,6 +51,7 @@ def _get_or_create(session: Session, user_id: int) -> Settings:
         workdays=DEFAULT_WORKDAYS,
         density="comfortable",
         period_scheme=DEFAULT_PERIOD_SCHEME,
+        theme=DEFAULT_THEME,
     )
     session.add(settings)
     try:
@@ -69,12 +76,30 @@ def _as_period_scheme(value: str) -> PeriodScheme:
     return DEFAULT_PERIOD_SCHEME
 
 
+def _as_theme(value: str) -> Theme:
+    if value in ("dark", "light", "system"):
+        return value  # type: ignore[return-value]
+    return DEFAULT_THEME
+
+
+def resolve_theme(preference: Theme, prefers_dark: bool) -> Literal["dark", "light"]:
+    """Resolve a theme preference to an actual dark/light value.
+
+    ``"system"`` defers to ``prefers_dark`` (the browser's ``prefers-color-scheme``); ``"dark"``/
+    ``"light"`` always win outright regardless of ``prefers_dark``. Pure function, no DOM/DB access.
+    """
+    if preference == "system":
+        return "dark" if prefers_dark else "light"
+    return preference
+
+
 def _view(session: Session, user_id: int) -> SettingsView:
     settings = _get_or_create(session, user_id)
     return SettingsView(
         workdays=[char == "1" for char in settings.workdays],
         density=settings.density,
         period_scheme=_as_period_scheme(settings.period_scheme),
+        theme=_as_theme(settings.theme),
         absences=_absences(session, user_id),
     )
 
@@ -91,13 +116,16 @@ def update_settings(
     workdays: list[bool],
     density: str,
     period_scheme: PeriodScheme | None = None,
+    theme: Theme | None = None,
 ) -> SettingsView:
-    """Persist the work rhythm, density, and (optionally) the Timesheet period scheme."""
+    """Persist the work rhythm, density, and (optionally) the Timesheet period scheme/theme."""
     settings = _get_or_create(session, user_id)
     settings.workdays = "".join("1" if worked else "0" for worked in workdays)
     settings.density = density
     if period_scheme is not None:
         settings.period_scheme = period_scheme
+    if theme is not None:
+        settings.theme = theme
     session.commit()
     return _view(session, user_id)
 
