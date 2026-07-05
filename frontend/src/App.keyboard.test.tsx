@@ -38,6 +38,7 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
     workdays: [false, true, true, true, true, true, false],
     density: 'comfortable',
     periodScheme: 'semi_monthly',
+    theme: 'system',
     absences: [],
   })
   vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})

@@ -86,3 +86,42 @@
   --wk-row-h: 36px;
   --wk-cell-h: 28px;
 }
+
+/* ---- Light theme (BIZ-032) ----
+   Same fonts, same accent hue family as the dark palette above (today's values, unchanged) —
+   only surface/text/border tokens invert for a light background. */
+:root[data-theme='light'] {
+  /* ---- Surfaces (light theme) ---- */
+  --wk-bg-0: #f5f6f8; /* app background */
+  --wk-bg-1: #ffffff; /* panels / cards / sidebar / timer bar */
+  --wk-bg-2: #eef0f4; /* raised (chips, headers, totals) */
+  --wk-bg-3: #e3e6ec; /* hover / active nav */
+  --wk-line: #d8dce3; /* borders */
+  --wk-line-soft: #e4e7ed;
+  --wk-weekend: #e7e9ee; /* greyed weekend columns */
+
+  /* ---- Text ---- */
+  --wk-text-hi: #14161b;
+  --wk-text: #3a3f4a;
+  --wk-text-mid: #565c68;
+  --wk-text-lo: #5b6270; /* WCAG AA (>=4.5:1) on every surface it's used on — see contrast.test.ts */
+
+  /* ---- Accent (brand, themeable — same hue family as dark, darkened for AA on a light surface) ---- */
+  --wk-accent: #2f6fe0;
+  --wk-accent-soft: rgba(47, 111, 224, 0.1);
+  --wk-accent-line: rgba(47, 111, 224, 0.35);
+  --wk-on-accent: #f8fafd; /* text on solid accent */
+
+  /* ---- Semantic ---- */
+  --wk-amber: #8f5710; /* uncategorized / needs completing */
+  --wk-amber-soft: rgba(143, 87, 16, 0.1);
+  --wk-amber-line: rgba(143, 87, 16, 0.32);
+  --wk-green: #0f7050; /* entered into Timesheet system / complete */
+  --wk-green-soft: rgba(15, 112, 80, 0.12);
+  --wk-danger: #b8341f;
+
+  /* ---- Shadows (lighter, since there's no dark backdrop to separate against) ---- */
+  --wk-shadow-1: 0 2px 8px rgba(20, 22, 27, 0.08);
+  --wk-shadow-2: 0 18px 44px rgba(20, 22, 27, 0.16);
+  --wk-shadow-modal: 0 24px 60px rgba(20, 22, 27, 0.22);
+}

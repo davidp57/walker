@@ -5,9 +5,17 @@
 * {
   box-sizing: border-box;
 }
-html,
-body {
+/* Tells the browser the page itself is dark/light (native scrollbars, form controls, etc. — TEC-006),
+   driven by the resolved theme (BIZ-032). `:not([data-theme="light"])` covers both the default (no
+   attribute yet, before the first paint sets it) and an explicit `data-theme="dark"`. */
+html:not([data-theme='light']),
+html:not([data-theme='light']) body {
   color-scheme: dark;
+  background: var(--wk-bg-0);
+}
+html[data-theme='light'],
+html[data-theme='light'] body {
+  color-scheme: light;
   background: var(--wk-bg-0);
 }
 .wk-app,

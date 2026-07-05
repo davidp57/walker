@@ -26,10 +26,17 @@ import type {
   PeriodScheme,
   Task,
   TaskSuggestion,
+  Theme,
   TimesheetCode,
 } from './types'
 import { resolveChecklistRows } from './lib/checklist'
 import { elapsedSecondsSince, formatDuration } from './lib/time'
+import {
+  applyResolvedTheme,
+  readCachedThemePreference,
+  resolveTheme,
+  writeCachedThemePreference,
+} from './lib/theme'
 import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor } from './lib/tasks'
 import { ToastProvider } from './lib/toast'
@@ -278,10 +285,27 @@ function AppInner() {
   const [absences, setAbsences] = useState<Absence[]>([])
   const [density, setDensity] = useState<Density>('comfortable')
   const [periodScheme, setPeriodScheme] = useState<PeriodScheme>('semi_monthly')
+  // Seeded from the last preference the server returned, not a hardcoded "system" (BIZ-032): the
+  // theme-applying effect below runs on this very first render, before `fetchSettings` resolves —
+  // starting from the real last-known preference avoids momentarily resolving the wrong theme and
+  // clobbering the flash-free value `main.tsx` already painted from its own resolved-theme cache.
+  const [theme, setTheme] = useState<Theme>(() => readCachedThemePreference() ?? 'system')
 
   useEffect(() => {
     document.documentElement.dataset.density = density === 'compact' ? 'compact' : ''
   }, [density])
+
+  // Apply the resolved theme (BIZ-032): mirrors `resolve_theme`'s logic (services/settings.py) —
+  // "system" defers to the OS's prefers-color-scheme, "dark"/"light" always win outright. Listens
+  // for a live OS-preference change so a "system" preference updates the rendered theme with no
+  // reload; the listener is a no-op (but harmless) once the preference is explicitly dark/light.
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const apply = () => applyResolvedTheme(resolveTheme(theme, media.matches))
+    apply()
+    media.addEventListener('change', apply)
+    return () => media.removeEventListener('change', apply)
+  }, [theme])
 
   // Load the catalog + settings from the API on boot.
   useEffect(() => {
@@ -297,6 +321,8 @@ function AppInner() {
         setWorkdays(s.workdays)
         setDensity(s.density)
         setPeriodScheme(s.periodScheme)
+        setTheme(s.theme)
+        writeCachedThemePreference(s.theme)
         setAbsences(s.absences)
       })
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your settings.')))
@@ -874,17 +900,17 @@ function AppInner() {
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not reset the checklist.')))
   }
 
-  // ---- Settings (server-backed — BIZ-006, BIZ-027) ----
+  // ---- Settings (server-backed — BIZ-006, BIZ-027, BIZ-032) ----
   const toggleWorkday = (index: number) => {
     const next = workdays.map((worked, j) => (j === index ? !worked : worked))
     setWorkdays(next)
-    apiUpdateSettings(next, density, periodScheme).catch((err: unknown) =>
+    apiUpdateSettings(next, density, periodScheme, theme).catch((err: unknown) =>
       notifyError(errorMessage(err, 'Could not save your work rhythm.')),
     )
   }
   const changeDensity = (value: Density) => {
     setDensity(value)
-    apiUpdateSettings(workdays, value, periodScheme).catch((err: unknown) =>
+    apiUpdateSettings(workdays, value, periodScheme, theme).catch((err: unknown) =>
       notifyError(errorMessage(err, 'Could not save the density setting.')),
     )
   }
@@ -892,8 +918,17 @@ function AppInner() {
   // updates first, so `days`/the grid effect recompute with no stale cached period and no reload.
   const changePeriodScheme = (value: PeriodScheme) => {
     setPeriodScheme(value)
-    apiUpdateSettings(workdays, density, value).catch((err: unknown) =>
+    apiUpdateSettings(workdays, density, value, theme).catch((err: unknown) =>
       notifyError(errorMessage(err, 'Could not save the Timesheet period scheme.')),
+    )
+  }
+  // Changing the theme applies immediately (BIZ-032): state updates first, so the `data-theme`
+  // effect above re-resolves and repaints with no reload, then persists to the server.
+  const changeTheme = (value: Theme) => {
+    setTheme(value)
+    writeCachedThemePreference(value)
+    apiUpdateSettings(workdays, density, periodScheme, value).catch((err: unknown) =>
+      notifyError(errorMessage(err, 'Could not save the theme.')),
     )
   }
   const addAbsence = (date: string, reason: string) => {
@@ -1065,6 +1100,8 @@ function AppInner() {
           onDensityChange={changeDensity}
           periodScheme={periodScheme}
           onPeriodSchemeChange={changePeriodScheme}
+          theme={theme}
+          onThemeChange={changeTheme}
           absences={absences}
           onAddAbsence={addAbsence}
           onRemoveAbsence={removeAbsence}
