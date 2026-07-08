@@ -33,16 +33,10 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 ## Now — not yet chosen
 
-- **POLISH** (living lot of small UX improvements) — see `.backlog/POLISH/PRD.md`:
-  - BIZ-038 — running Timer as a live row in the Activity view (or at least fold it into the day Total).
-  - BIZ-039 — add an absence over a date range (fans out to one absence per day).
-  - BIZ-040 — reveal the "Add a description…" placeholder only on hover/focus (de-noise Activity).
-  - BIZ-041 — Tasks list: priority & due as inline pills, drop the always-empty columns.
-  - BIZ-042 — time-proportion bars in the Activity list.
-  - BIZ-043 — change a task's status inline from the list view.
-  - BIZ-044 — kanban: collapsible Done + tighter columns to tame the horizontal scroll.
-  - BIZ-045 — Code catalog: collapse a code's activities behind a count.
-  - BIZ-046 — guided first-run empty states (lightweight onboarding).
+- **POLISH** (living lot of small UX improvements) — first batch shipped (BIZ-038 … BIZ-047: running
+  Timer in Activity, absence date range, description de-noise, task priority/due pills + inline
+  status, time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty
+  states, Review/Enter explainer). Lot stays open for future UX polish. See `.backlog/POLISH/PRD.md`.
 
 ## Forward-looking (not scheduled)
 
