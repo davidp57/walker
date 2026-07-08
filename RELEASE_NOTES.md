@@ -1,23 +1,23 @@
-# Walker v1.1.0
+# Walker v1.2.0
 
-**Walker goes mobile and gains a light theme.** This release ships a complete responsive phone
-layout and a per-user dark/light/system theme, so Walker is comfortable to use on a phone and adapts
-to how you like to look at it.
+**Tasks organize by project, code selection gets fluid everywhere, and the docs are now bilingual.**
 
 ## Added
 
-- **Per-user theme (dark / light / system).** Pick a theme in Settings; it's persisted server-side
-  and follows your OS `prefers-color-scheme` by default. A full light palette now sits alongside the
-  original dark one.
-- **Responsive phone layout.** Walker is now fully usable on a phone:
-  - a **bottom tab bar** for navigation in portrait,
-  - the **Timesheet period grid reflows into day cards** instead of a wide matrix,
-  - **touch-capable** timer, entry editing, and kanban drag-and-drop.
-
-## Fixed
-
-- The dark background is now painted on `html`/`body` with the correct `color-scheme`, removing a
-  rendering defect at the page edges.
+- **Group tasks by project (code).** The Tasks list gains a "Project (code)" option in its "Group
+  by" control (ordered by code name, "No project" last), and the kanban board splits into one
+  swimlane per project (plus a "No project" lane) when grouped by project — each lane keeps the full
+  status columns. Dragging a card stays status-only within a lane; a task's project is changed in the
+  task panel.
+- **Searchable, creatable code picker on the Task editor.** A task's code field now opens the same
+  rich picker used when categorizing an entry — search your codes, add one from the reference catalog
+  on the fly, or create a new real or virtual code — instead of a plain dropdown. It runs in a
+  code-only mode (a task has no activity): one click picks the code. "No code (orphan task)" stays
+  available.
+- **French documentation.** The published docs site is now bilingual — English primary, French a
+  fully-translated secondary — with a language switcher in the header.
+- **Catalog-import documentation.** A new "Importing your code catalog" page (EN/FR) explains the
+  CSV format and how to import your codes, linked from the day-to-day guide.
 
 ## Upgrading
 

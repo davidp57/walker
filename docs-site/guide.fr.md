@@ -44,8 +44,8 @@ cela arrange, même le lendemain.
 Les codes d'imputation de Walker reflètent les codes que votre système de feuille de temps utilise
 pour ventiler le travail, chacun avec un numéro, un libellé et une couleur pour un repérage visuel
 rapide dans la grille. Vous (ou votre organisation) importez cette liste une fois depuis le catalogue
-de votre système de feuille de temps, et elle devient consultable au moment de choisir un code pour
-une entrée.
+de votre système de feuille de temps (voir [Importer votre catalogue de codes](catalog-import.md)),
+et elle devient consultable au moment de choisir un code pour une entrée.
 
 Par-dessus ces codes réels, vous pouvez créer des **codes virtuels** : vos propres catégories, plus
 spécifiques, qui pointent vers un code réel (par exemple, scinder un code large « Travail projet » en
