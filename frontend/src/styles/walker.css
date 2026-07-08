@@ -1745,6 +1745,20 @@ html[data-theme='light'] body {
   overflow-x: auto;
   padding-bottom: var(--wk-space-2);
 }
+/* Project (code) swimlanes (BIZ-036): stacked lanes, each a labelled status board. */
+.wk-board-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wk-space-5);
+}
+.wk-board-lane-head {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  margin-bottom: var(--wk-space-2);
+}
 .wk-board-column {
   flex: 1 1 0;
   min-width: 220px;

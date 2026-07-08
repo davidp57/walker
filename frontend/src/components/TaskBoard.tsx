@@ -15,11 +15,16 @@ import {
 } from '@dnd-kit/core'
 import type { Task, TaskStatus, TimesheetCode } from '../types'
 
-interface TaskBoardProps {
+interface StatusBoardProps {
   tasks: Task[]
   codesById: Record<string, TimesheetCode>
   onOpenTask: (task: Task) => void
   onMoveTask: (task: Task, status: TaskStatus) => void
+}
+
+export interface TaskBoardProps extends StatusBoardProps {
+  /** Split the board into one swimlane per project (code), plus a "No project" lane (BIZ-036). */
+  groupByCode?: boolean
 }
 
 const STATUS_ORDER: TaskStatus[] = ['todo', 'in_progress', 'waiting', 'test', 'done']
@@ -189,7 +194,9 @@ function BoardCard({ task, code, prevStatus, nextStatus, onOpenTask, onMoveTask 
 }
 
 /**
- * Kanban board over the same Tasks as the list (BIZ-022) — fixed columns = the status workflow.
+ * The status-column board itself (BIZ-022) — fixed columns = the status workflow, over whatever
+ * subset of Tasks it is handed. Owns its own `DndContext`, so several of these can coexist as
+ * independent swimlanes (BIZ-036) without their per-status droppable ids colliding.
  *
  * Moving a Task across columns supports both drag-and-drop (`@dnd-kit/core`, modeled after Azure
  * DevOps boards — pick up a card, drag it over a column, drop to change status) and the original
@@ -197,7 +204,7 @@ function BoardCard({ task, code, prevStatus, nextStatus, onOpenTask, onMoveTask 
  * sensor also makes the drag path itself operable without a pointer: focus a card's drag handle,
  * Space to lift, arrow keys to move between columns, Space to drop (Escape cancels).
  */
-export function TaskBoard({ tasks, codesById, onOpenTask, onMoveTask }: TaskBoardProps) {
+function StatusBoard({ tasks, codesById, onOpenTask, onMoveTask }: StatusBoardProps) {
   const [overStatus, setOverStatus] = useState<TaskStatus | null>(null)
   const atStatusRef = useRef<TaskStatus | null>(null)
   const coordinateGetter = useMemo(() => makeColumnCoordinateGetter(atStatusRef), [])
@@ -276,5 +283,73 @@ export function TaskBoard({ tasks, codesById, onOpenTask, onMoveTask }: TaskBoar
         })}
       </div>
     </DndContext>
+  )
+}
+
+interface Lane {
+  key: string // codeId, or "none" for tasks without a code
+  label: string
+  tasks: Task[]
+}
+
+/**
+ * Bucket tasks into project (code) swimlanes, ordered by code name ascending with the "No project"
+ * lane last (BIZ-036). A task whose code is not in the active set falls back to its code id as the
+ * label rather than being dropped.
+ */
+function laneOrder(tasks: Task[], codesById: Record<string, TimesheetCode>): Lane[] {
+  const byKey = new Map<string, Lane>()
+  for (const task of tasks) {
+    const key = task.codeId ?? 'none'
+    const label = task.codeId ? (codesById[task.codeId]?.name ?? task.codeId) : 'No project'
+    const lane = byKey.get(key) ?? { key, label, tasks: [] }
+    lane.tasks.push(task)
+    byKey.set(key, lane)
+  }
+  return [...byKey.values()].sort((a, b) => {
+    if (a.key === 'none') return 1
+    if (b.key === 'none') return -1
+    return a.label.localeCompare(b.label)
+  })
+}
+
+/**
+ * Kanban board over the same Tasks as the list (BIZ-022). By default a single status-column board;
+ * with `groupByCode` (BIZ-036) it splits into one project (code) swimlane per code plus a "No
+ * project" lane, each an independent status board. Dragging stays status-only within a lane — a
+ * task's code is changed in the task panel, not by moving cards between lanes.
+ */
+export function TaskBoard({
+  tasks,
+  codesById,
+  onOpenTask,
+  onMoveTask,
+  groupByCode = false,
+}: TaskBoardProps) {
+  if (!groupByCode) {
+    return (
+      <StatusBoard
+        tasks={tasks}
+        codesById={codesById}
+        onOpenTask={onOpenTask}
+        onMoveTask={onMoveTask}
+      />
+    )
+  }
+
+  return (
+    <div className="wk-board-lanes">
+      {laneOrder(tasks, codesById).map((lane) => (
+        <div key={lane.key} className="wk-board-lane" data-testid={`wk-board-lane-${lane.key}`}>
+          <div className="wk-board-lane-head">{lane.label}</div>
+          <StatusBoard
+            tasks={lane.tasks}
+            codesById={codesById}
+            onOpenTask={onOpenTask}
+            onMoveTask={onMoveTask}
+          />
+        </div>
+      ))}
+    </div>
   )
 }

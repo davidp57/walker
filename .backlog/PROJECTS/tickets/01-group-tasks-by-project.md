@@ -1,7 +1,7 @@
 # BIZ-036 — Group tasks by project (code): list group + board swimlanes
 
 ID: BIZ-036
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
