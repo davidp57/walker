@@ -26,6 +26,10 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 ## Now — not yet chosen
 
+- **PROJECTS** (project/code-centric tasks) — group tasks by their Timesheet code: a "Project
+  (code)" group-by in the list and per-project swimlanes on the kanban (BIZ-036), plus unifying
+  every code-selection surface on the searchable/creatable `CodePicker` — starting with the Task
+  editor's plain `<select>` (BIZ-037). See `.backlog/PROJECTS/PRD.md`.
 - **I18N** (bilingual user-facing docs) — make the published MkDocs site bilingual: English primary
   (default/root/fallback), French secondary with full parity and a language switcher, via
   `mkdocs-static-i18n`. Scope is `docs-site/` only; the app and internal dev docs stay English-only.
