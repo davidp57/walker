@@ -1157,6 +1157,9 @@ function AppInner() {
               .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the code.')))
           }
           onPick={(codeId, activity) => {
+            // This picker always chooses an activity (never code-only, BIZ-037); the guard narrows
+            // `activity` to a string for the entry/timer paths below.
+            if (activity === undefined) return
             // Prefill from the last comment used on this code (real or virtual) + activity, when one
             // exists (BIZ-013) — otherwise leave the description as it was.
             const lastDescription = lastDescriptionFor(entries, codeId, activity)
@@ -1262,6 +1265,15 @@ function AppInner() {
           onSave={saveTask}
           onDelete={taskPanel.task ? () => deleteTask(taskPanel.task!) : undefined}
           onClose={() => setTaskPanel(null)}
+          onSearchReference={searchReference}
+          onAddFromReference={(number) =>
+            apiAddCodeFromReference(number).then((added) => {
+              void reloadCodes()
+              return added
+            })
+          }
+          onCreateNew={(q) => setEditor({ code: null, initialName: q })}
+          onCreateNewVirtual={() => setVirtualEditor({ code: null, reopenPicker: null })}
         />
       )}
 

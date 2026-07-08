@@ -12,6 +12,11 @@ All notable changes to Walker are documented here. Format loosely follows
   swimlane per project (plus a "No project" lane) when grouped by project. Drag-and-drop stays
   status-only within a lane — a task's code is changed in the task panel, not by moving cards
   between lanes.
+- **Searchable, creatable code picker on the Task editor** (BIZ-037): the task's code field is now
+  the same rich picker used when categorizing an entry — search your codes, add one from the
+  reference catalog on the fly, or create a new real/virtual code — instead of a plain dropdown of
+  active codes. The picker runs in a code-only mode (a task has no activity): one click picks the
+  code. "No code (orphan task)" stays available.
 
 ## [1.1.0] - 2026-07-08
 
