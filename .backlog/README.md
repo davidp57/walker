@@ -12,6 +12,7 @@ source of truth for **scope and status**.
 
 | Lot | Status |
 |-----|--------|
+| [I18N](I18N/PRD.md) — Bilingual user-facing documentation (EN primary, FR secondary) | ⬜ |
 | [TECH](TECH/PRD.md) — Cross-cutting technical debt (living lot; tickets added/resolved individually) | 🔄 |
 
 ## Archived lots
