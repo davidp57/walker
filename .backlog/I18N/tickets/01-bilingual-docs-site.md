@@ -1,7 +1,7 @@
 # CHR-010 — Bilingual docs site (EN primary, FR secondary)
 
 ID: CHR-010
-Status: ⬜ ready
+Status: ✅ done
 Type: chore
 Priority: P3
 

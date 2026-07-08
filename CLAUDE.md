@@ -120,6 +120,12 @@ Single-context — `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
 All repo artifacts — code, docs, ADRs, commit messages, and **UI copy** — are in **English**.
 Conversation with the user may be in French. Timesheet-system codes and labels keep their original wording.
 
+**Exception (CHR-010)**: the published user-facing docs site (`docs-site/`) is **bilingual** — English
+is primary (the default, served at the site root, and the fallback), French is a fully-maintained
+secondary via `mkdocs-static-i18n` (each page has a `.fr.md` sibling). This applies **only** to
+`docs-site/`; internal dev docs (`docs/adr`, `docs/agents`, `docs/design`), the repo `README.md`,
+code, and UI copy stay English-only.
+
 ## Run
 
 - **Dev**: backend `walker` (or `uvicorn walker.api.app:app --reload`) on `:8000`; frontend
