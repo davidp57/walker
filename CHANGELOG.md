@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-08
+
 ### Added
 
 - **Group tasks by project (code)** (BIZ-036): the Tasks list gains a "Project (code)" option in its
