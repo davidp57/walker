@@ -40,8 +40,8 @@ around capturing time first and sorting it out whenever is convenient, even the 
 
 Walker's charge codes mirror the codes your timesheet system uses to bucket work, each with a number,
 a label, and a color for quick visual scanning in the grid. You (or your organization) import this
-list once from your timesheet system's own catalog, and it becomes searchable when picking a code for
-an entry.
+list once from your timesheet system's own catalog (see [Importing your code catalog](catalog-import.md)),
+and it becomes searchable when picking a code for an entry.
 
 On top of those real codes, you can create **virtual codes**: your own, more specific categories that
 point back to one real code (for example, splitting a broad "Project work" code into a few virtual

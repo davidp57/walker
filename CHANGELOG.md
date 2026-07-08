@@ -20,6 +20,9 @@ All notable changes to Walker are documented here. Format loosely follows
 - **French documentation** (CHR-010): the published docs site is now bilingual — English primary
   (the default, served at the site root, and the fallback), French a fully-translated secondary —
   with a language switcher in the header, via the `mkdocs-static-i18n` plugin.
+- **Catalog-import documentation page** (CHR-011): a user-facing "Importing your code catalog" page
+  (EN/FR) on the docs site — the two-tier reference/active model, the accepted CSV layouts, and how
+  to import — linked from the day-to-day guide.
 
 ## [1.1.0] - 2026-07-08
 
