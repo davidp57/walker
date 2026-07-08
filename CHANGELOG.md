@@ -5,6 +5,22 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-08
+
+### Added
+
+- **Per-user theme (dark / light / system)** (BIZ-031, BIZ-032): a theme preference persisted
+  server-side per user, defaulting to the OS `prefers-color-scheme`, wired through the SPA with a
+  full light palette alongside the original dark one.
+- **Responsive phone layout** (ADAPTIVE lot): a bottom tab bar for portrait navigation (BIZ-033),
+  the Timesheet period grid reflowed into day cards instead of a wide matrix (BIZ-034), and
+  touch-capable timer, entry editing, and kanban drag-and-drop (BIZ-035).
+
+### Fixed
+
+- **Dark-mode rendering defect**: the dark background is now painted on `html`/`body` with the
+  correct `color-scheme`, removing a rendering defect at the page edges.
+
 ## [1.0.2] - 2026-07-04
 
 ### Added
