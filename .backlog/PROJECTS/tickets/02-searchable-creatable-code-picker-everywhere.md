@@ -1,7 +1,7 @@
 # BIZ-037 — Searchable/creatable code selection everywhere a code is picked
 
 ID: BIZ-037
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 

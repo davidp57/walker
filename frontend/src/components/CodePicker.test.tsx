@@ -104,4 +104,28 @@ describe('CodePicker', () => {
 
     expect(screen.queryByText('➕ Create a new virtual code')).not.toBeInTheDocument()
   })
+
+  it('in codeOnly mode, picks a code on a single click with no activity step', () => {
+    const onPick = vi.fn()
+    renderPicker({ codeOnly: true, onPick })
+
+    // No activity buttons are shown in code-only mode.
+    expect(screen.queryByText('Bug fixing')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Paper V4'))
+
+    expect(onPick).toHaveBeenCalledWith('1')
+  })
+
+  it('in codeOnly mode, still lists codes that have no activities', () => {
+    const noActivities: TimesheetCode = {
+      ...realCode,
+      id: '3',
+      name: 'No-activity code',
+      activities: [],
+    }
+    renderPicker({ codeOnly: true, codes: [noActivities] })
+
+    expect(screen.getByText('No-activity code')).toBeInTheDocument()
+  })
 })

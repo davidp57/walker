@@ -4,8 +4,11 @@ import type { ActivityName, ReferenceCode, TimesheetCode } from '../types'
 interface CodePickerProps {
   title: string // "Switch task" | "Categorize entry"
   codes: TimesheetCode[]
-  onPick: (codeId: string, activity: ActivityName) => void
+  // In code-only mode `activity` is omitted — a single click picks the code (BIZ-037, for Tasks,
+  // which have no activity). Otherwise an activity must be chosen and is always passed.
+  onPick: (codeId: string, activity?: ActivityName) => void
   onClose: () => void
+  codeOnly?: boolean // pick a code without an activity (BIZ-037)
   onCreateNew?: (query: string) => void // create a real code on the fly when nothing matches
   onCreateNewVirtual?: (query: string) => void // create a virtual code on the fly (BIZ-013)
   onSearchReference?: (q: string) => Promise<ReferenceCode[]> // find codes in the general catalog
@@ -22,6 +25,7 @@ export function CodePicker({
   onCreateNewVirtual,
   onSearchReference,
   onAddFromReference,
+  codeOnly = false,
 }: CodePickerProps) {
   const [query, setQuery] = useState('')
 
@@ -30,13 +34,15 @@ export function CodePicker({
     return codes
       .map((c) => {
         const codeMatch = `${c.number} ${c.name} ${c.label}`.toLowerCase().includes(q)
-        const activities = c.activities.filter(
-          (a) => q === '' || codeMatch || a.label.toLowerCase().includes(q),
-        )
-        return { code: c, activities }
+        // Code-only: match on the code itself and ignore activities entirely (a Task has none).
+        const activities = codeOnly
+          ? []
+          : c.activities.filter((a) => q === '' || codeMatch || a.label.toLowerCase().includes(q))
+        const matches = codeOnly ? q === '' || codeMatch : activities.length > 0
+        return { code: c, activities, matches }
       })
-      .filter((r) => r.activities.length > 0)
-  }, [codes, query])
+      .filter((r) => r.matches)
+  }, [codes, query, codeOnly])
 
   // Keep the picker snappy on large catalogs: render a capped slice, type to narrow.
   const CAP = 200
@@ -83,8 +89,8 @@ export function CodePicker({
           />
         </div>
         <div className="wk-modal-body">
-          {shown.map(({ code, activities }) => (
-            <div key={code.id} className="wk-picker-code">
+          {shown.map(({ code, activities }) => {
+            const head = (
               <div className="wk-picker-code-head">
                 <span className="wk-dot" style={{ background: code.color }} />
                 <span>
@@ -104,20 +110,40 @@ export function CodePicker({
                   </span>
                 </span>
               </div>
-              <div className="wk-picker-acts">
-                {activities.map((a) => (
-                  <button
-                    key={a.code || a.label}
-                    type="button"
-                    className="wk-act"
-                    onClick={() => onPick(code.id, a.label)}
-                  >
-                    {a.label}
-                  </button>
-                ))}
+            )
+
+            // Code-only: the whole row is the pick target (no activity to choose).
+            if (codeOnly) {
+              return (
+                <button
+                  key={code.id}
+                  type="button"
+                  className="wk-picker-code wk-picker-code-pick"
+                  onClick={() => onPick(code.id)}
+                >
+                  {head}
+                </button>
+              )
+            }
+
+            return (
+              <div key={code.id} className="wk-picker-code">
+                {head}
+                <div className="wk-picker-acts">
+                  {activities.map((a) => (
+                    <button
+                      key={a.code || a.label}
+                      type="button"
+                      className="wk-act"
+                      onClick={() => onPick(code.id, a.label)}
+                    >
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
           {results.length > shown.length && (
             <div className="wk-modal-empty">
               Showing {shown.length} of {results.length} — type to search.

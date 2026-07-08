@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react'
-import type { RecurrenceRule, Task, TaskPriority, TaskStatus, TimesheetCode } from '../types'
+import type {
+  RecurrenceRule,
+  ReferenceCode,
+  Task,
+  TaskPriority,
+  TaskStatus,
+  TimesheetCode,
+} from '../types'
 import { selectOnFocus } from '../lib/time'
 import { MarkdownEditor } from './MarkdownEditor'
+import { CodePicker } from './CodePicker'
 
 export interface TaskDraft {
   title: string
@@ -55,6 +63,12 @@ interface TaskPanelProps {
   onSave: (draft: TaskDraft) => void
   onDelete?: () => void // omit to hide the Delete action (e.g. while creating)
   onClose: () => void
+  // Code selection via the shared CodePicker (BIZ-037). All optional so the panel still works
+  // read-only without them; App wires them exactly as it does for the entry flow.
+  onSearchReference?: (q: string) => Promise<ReferenceCode[]> // search the reference catalog
+  onAddFromReference?: (number: string) => Promise<TimesheetCode> // add a ref code; returns it
+  onCreateNew?: (query: string) => void // open the real-code editor prefilled with the query
+  onCreateNewVirtual?: (query: string) => void // open the virtual-code editor
 }
 
 const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
@@ -79,6 +93,10 @@ export function TaskPanel({
   onSave,
   onDelete,
   onClose,
+  onSearchReference,
+  onAddFromReference,
+  onCreateNew,
+  onCreateNewVirtual,
 }: TaskPanelProps) {
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
@@ -88,6 +106,8 @@ export function TaskPanel({
   const [tags, setTags] = useState<string[]>(task?.tags ?? [])
   const [tagInput, setTagInput] = useState('')
   const [codeId, setCodeId] = useState<string | null>(task?.codeId ?? null)
+  const [codePickerOpen, setCodePickerOpen] = useState(false)
+  const selectedCode = codeId ? (codes.find((c) => c.id === codeId) ?? null) : null
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(
     task?.recurrenceRule ?? null,
   )
@@ -283,24 +303,36 @@ export function TaskPanel({
             </div>
           </div>
 
-          <label>
+          <div>
             <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
               Timesheet code
             </div>
-            <select
-              className="wk-input"
-              value={codeId ?? ''}
-              onChange={(e) => setCodeId(e.target.value || null)}
-              data-testid="wk-task-code-select"
-            >
-              <option value="">No code (orphan task)</option>
-              {codes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} · {c.number}
-                </option>
-              ))}
-            </select>
-          </label>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                type="button"
+                className="wk-input wk-task-code-trigger"
+                style={{ flex: 1, textAlign: 'left', cursor: 'pointer' }}
+                data-testid="wk-task-code-trigger"
+                onClick={() => setCodePickerOpen(true)}
+              >
+                {selectedCode
+                  ? `${selectedCode.name} · ${selectedCode.number}`
+                  : codeId
+                    ? 'Code selected'
+                    : 'No code (orphan task)'}
+              </button>
+              {codeId && (
+                <button
+                  type="button"
+                  className="wk-btn-ghost"
+                  data-testid="wk-task-code-clear"
+                  onClick={() => setCodeId(null)}
+                >
+                  No code
+                </button>
+              )}
+            </div>
+          </div>
 
           <div>
             <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
@@ -478,6 +510,43 @@ export function TaskPanel({
           </div>
         </div>
       </div>
+
+      {codePickerOpen && (
+        <CodePicker
+          codeOnly
+          title="Task code"
+          codes={codes}
+          onPick={(id) => {
+            setCodeId(id)
+            setCodePickerOpen(false)
+          }}
+          onClose={() => setCodePickerOpen(false)}
+          onCreateNew={
+            onCreateNew &&
+            ((q) => {
+              setCodePickerOpen(false)
+              onCreateNew(q)
+            })
+          }
+          onCreateNewVirtual={
+            onCreateNewVirtual &&
+            ((q) => {
+              setCodePickerOpen(false)
+              onCreateNewVirtual(q)
+            })
+          }
+          onSearchReference={onSearchReference}
+          onAddFromReference={
+            onAddFromReference &&
+            ((number) => {
+              void onAddFromReference(number).then((added) => {
+                setCodeId(added.id)
+                setCodePickerOpen(false)
+              })
+            })
+          }
+        />
+      )}
     </div>
   )
 }
