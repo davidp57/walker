@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-08
+
 ### Added
 
 - **Running Timer shown in the Activity view** (BIZ-038): the in-progress entry now appears as a
