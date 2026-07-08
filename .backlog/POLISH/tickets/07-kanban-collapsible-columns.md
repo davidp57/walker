@@ -1,7 +1,7 @@
 # BIZ-044 — Kanban: tame the horizontal scroll (compact + collapsible Done)
 
 ID: BIZ-044
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 

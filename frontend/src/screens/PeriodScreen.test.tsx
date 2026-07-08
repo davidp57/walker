@@ -98,6 +98,17 @@ describe('PeriodScreen — mode toggle', () => {
     expect(screen.queryByText('lines entered')).not.toBeInTheDocument()
   })
 
+  it('explains what Review vs Enter show (BIZ-047)', () => {
+    renderScreen()
+
+    // Review subheading makes clear it's by tracked code, virtual codes as their own rows.
+    expect(screen.getByText(/virtual codes shown as their own rows/i)).toBeInTheDocument()
+    // The toggle buttons carry explanatory tooltips (Enter resolves to the real code).
+    expect(
+      screen.getByRole('button', { name: 'Enter in Timesheet system' }).getAttribute('title'),
+    ).toMatch(/resolved to the real code/i)
+  })
+
   it('switches to Enter in Timesheet system and shows its mode-specific controls', () => {
     renderScreen()
 

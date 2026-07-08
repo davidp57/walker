@@ -1,7 +1,7 @@
 # BIZ-045 — Code catalog: collapse a code's activities behind a count
 
 ID: BIZ-045
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 

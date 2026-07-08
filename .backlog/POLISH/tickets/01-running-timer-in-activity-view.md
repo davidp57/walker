@@ -1,7 +1,7 @@
 # BIZ-038 — Show the running timer in the Activity view
 
 ID: BIZ-038
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 

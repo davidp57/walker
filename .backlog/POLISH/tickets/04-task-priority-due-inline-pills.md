@@ -1,7 +1,7 @@
 # BIZ-041 — Tasks list: priority & due as inline pills, not always-empty columns
 
 ID: BIZ-041
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 

@@ -1,7 +1,7 @@
 # BIZ-040 — De-noise the empty "Add a description…" placeholder in the Activity list
 
 ID: BIZ-040
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 

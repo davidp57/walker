@@ -129,3 +129,40 @@ describe('EntryRow — Activity dedup', () => {
     expect(document.querySelector('.wk-code-meta')?.textContent).toBe('N9/1042 · Bug fixing')
   })
 })
+
+describe('EntryRow — running mode (BIZ-038)', () => {
+  it('renders live, read-only: shows "now" + live duration and no edit/resume/delete', () => {
+    renderRow({ running: true, liveMinutes: 48, entry: { ...ENTRY, end: null } })
+    expect(screen.getByText('now')).toBeInTheDocument()
+    expect(screen.getByText('0:48')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Edit entry' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete entry' })).not.toBeInTheDocument()
+    expect(document.querySelector('.wk-entry-row.is-running')).toBeInTheDocument()
+  })
+})
+
+describe('EntryRow — empty description invite (BIZ-040)', () => {
+  it('hides the "Add a description…" invite at rest and reveals it on row hover', () => {
+    renderRow({ entry: { ...ENTRY, description: '' } })
+    expect(screen.queryByText('Add a description…')).not.toBeInTheDocument()
+
+    const row = document.querySelector('.wk-entry-row') as HTMLElement
+    fireEvent.mouseEnter(row)
+    expect(screen.getByText('Add a description…')).toBeInTheDocument()
+  })
+})
+
+describe('EntryRow — duration bar (BIZ-042)', () => {
+  it('renders a proportional duration bar when a group scale is given', () => {
+    // duration = 600-540 = 60; maxMinutes 120 → 50%.
+    renderRow({ maxMinutes: 120 })
+    const fill = document.querySelector('.wk-dur-bar-fill') as HTMLElement
+    expect(fill).toBeInTheDocument()
+    expect(fill.style.width).toBe('50%')
+  })
+
+  it('renders no bar when no scale is provided', () => {
+    renderRow()
+    expect(document.querySelector('.wk-dur-bar')).not.toBeInTheDocument()
+  })
+})

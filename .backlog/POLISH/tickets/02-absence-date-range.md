@@ -1,7 +1,7 @@
 # BIZ-039 — Add an absence over a date range, not just a single day
 
 ID: BIZ-039
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 

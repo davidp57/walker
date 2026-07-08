@@ -1,7 +1,7 @@
 # BIZ-042 — Time-proportion bars in the Activity list
 
 ID: BIZ-042
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 
