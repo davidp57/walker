@@ -5,6 +5,14 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- **Group tasks by project (code)** (BIZ-036): the Tasks list gains a "Project (code)" option in its
+  "Group by" control (ordered by code name, "No project" last), and the kanban board splits into one
+  swimlane per project (plus a "No project" lane) when grouped by project. Drag-and-drop stays
+  status-only within a lane — a task's code is changed in the task panel, not by moving cards
+  between lanes.
+
 ## [1.1.0] - 2026-07-08
 
 ### Added

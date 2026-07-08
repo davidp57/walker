@@ -1,7 +1,21 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { TasksScreen } from './TasksScreen'
-import type { Task } from '../types'
+import type { Task, TimesheetCode } from '../types'
+
+function makeCode(id: string, name: string, number = `N/${id}`): TimesheetCode {
+  return {
+    id,
+    number,
+    name,
+    label: 'MNT',
+    color: '#5b9cf6',
+    activities: [],
+    isVirtual: false,
+    realCodeId: null,
+    realCodeNumber: null,
+  }
+}
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -137,6 +151,42 @@ describe('TasksScreen', () => {
 
     expect(screen.getByText('High')).toBeInTheDocument()
     expect(screen.getByText('No priority')).toBeInTheDocument()
+  })
+
+  it('groups the list by project (code), ordering by code name with "No project" last', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4'), '5': makeCode('5', 'Alpha') }
+    const tasks = [
+      makeTask({ id: '1', title: 'Paper task', codeId: '9' }),
+      makeTask({ id: '2', title: 'Orphan task', codeId: null }),
+      makeTask({ id: '3', title: 'Alpha task', codeId: '5' }),
+    ]
+    render(<TasksScreen tasks={tasks} codesById={codesById} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'code' } })
+
+    const titles = [...document.querySelectorAll('.wk-task-group-title')].map(
+      (el) => el.textContent,
+    )
+    expect(titles).toEqual(['Alpha', 'Paper V4', 'No project'])
+  })
+
+  it('splits the board into project swimlanes (plus "No project") when grouped by project', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4') }
+    const tasks = [
+      makeTask({ id: '1', title: 'Paper task', codeId: '9' }),
+      makeTask({ id: '2', title: 'Orphan task', codeId: null }),
+    ]
+    render(<TasksScreen tasks={tasks} codesById={codesById} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    fireEvent.click(screen.getByTestId('wk-task-view-board'))
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'code' } })
+
+    expect(
+      within(screen.getByTestId('wk-board-lane-9')).getByText('Paper task'),
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('wk-board-lane-none')).getByText('Orphan task'),
+    ).toBeInTheDocument()
   })
 
   it('shows the list view by default, with a toggle to switch to the board', () => {
