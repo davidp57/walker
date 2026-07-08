@@ -26,6 +26,11 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 ## Now — not yet chosen
 
+- **I18N** (bilingual user-facing docs) — make the published MkDocs site bilingual: English primary
+  (default/root/fallback), French secondary with full parity and a language switcher, via
+  `mkdocs-static-i18n`. Scope is `docs-site/` only; the app and internal dev docs stay English-only.
+  See `.backlog/I18N/PRD.md`, CHR-010.
+
 ## Forward-looking (not scheduled)
 
 - **Docs chatbot**: parked for now, but the target architecture is scoped — copy VMCT v6's
