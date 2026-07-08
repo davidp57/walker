@@ -14,6 +14,9 @@ interface TrackerScreenProps {
   codesById: Record<string, TimesheetCode>
   /** True until the first entries response has arrived — avoids flashing the empty state. */
   loading?: boolean
+  /** The live running entry's id + elapsed minutes, shown as a read-only live row (BIZ-038). */
+  runningId?: string | null
+  runningMinutes?: number
   onEditEntry: (id: string, patch: Partial<Entry>) => void
   onCategorizeEntry: (id: string) => void
   onOpenEntry: (id: string) => void
@@ -27,6 +30,8 @@ export function TrackerScreen({
   groups,
   codesById,
   loading = false,
+  runningId = null,
+  runningMinutes = 0,
   onEditEntry,
   onCategorizeEntry,
   onOpenEntry,
@@ -35,6 +40,8 @@ export function TrackerScreen({
   onLoadEarlier,
   onAddEntry,
 }: TrackerScreenProps) {
+  const durationOf = (e: Entry): number =>
+    e.id === runningId ? runningMinutes : Math.max(0, (e.end ?? e.start) - e.start)
   return (
     <div className="wk-screen wk-entry-cols" style={{ maxWidth: 1120 }}>
       <div className="wk-screen-head">
@@ -91,18 +98,24 @@ export function TrackerScreen({
                 <div />
               </div>
               <div className="wk-entry-list">
-                {group.entries.map((entry) => (
-                  <EntryRow
-                    key={entry.id}
-                    entry={entry}
-                    code={entry.codeId ? (codesById[entry.codeId] ?? null) : null}
-                    onEdit={(patch) => onEditEntry(entry.id, patch)}
-                    onCategorize={() => onCategorizeEntry(entry.id)}
-                    onOpenEditor={() => onOpenEntry(entry.id)}
-                    onResume={() => onResumeEntry(entry.id)}
-                    onDelete={() => onDeleteEntry(entry.id)}
-                  />
-                ))}
+                {(() => {
+                  const groupMax = Math.max(1, ...group.entries.map(durationOf))
+                  return group.entries.map((entry) => (
+                    <EntryRow
+                      key={entry.id}
+                      entry={entry}
+                      code={entry.codeId ? (codesById[entry.codeId] ?? null) : null}
+                      running={entry.id === runningId}
+                      liveMinutes={runningMinutes}
+                      maxMinutes={groupMax}
+                      onEdit={(patch) => onEditEntry(entry.id, patch)}
+                      onCategorize={() => onCategorizeEntry(entry.id)}
+                      onOpenEditor={() => onOpenEntry(entry.id)}
+                      onResume={() => onResumeEntry(entry.id)}
+                      onDelete={() => onDeleteEntry(entry.id)}
+                    />
+                  ))
+                })()}
               </div>
             </div>
           ))}

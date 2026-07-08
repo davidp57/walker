@@ -7,11 +7,12 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 - **CORE** (MVP tracker) — the design UI wired end-to-end to a real FastAPI `/api`: catalog, timer/entries,
   fortnight aggregation, entry checklist, settings. See `.backlog/archive/CORE.md`.
-- **VCODE** (virtual codes) — user-created codes resolving to a real T&E code, two-level aggregation
-  (Review by code, Enter in T&E resolved to the real code). See `.backlog/archive/VCODE.md`.
+- **VCODE** (virtual codes) — user-created codes resolving to a real timesheet code, two-level
+  aggregation (Review by code, Enter in the timesheet system resolved to the real code). See
+  `.backlog/archive/VCODE.md`.
 - **UX** (post-MVP UX improvements) — keyboard-first daily loop, uncategorized count, delete undo,
   WCAG-AA contrast, label consistency, visible error/loading feedback, unified Fortnight grid (Review /
-  Enter in T&E). See `.backlog/archive/UX.md`.
+  Enter in the timesheet system). See `.backlog/archive/UX.md`.
 - **TASKS** (task manager) — Tasks (markdown, status, priority, due, tags, optional code), list + kanban
   views (with drag-and-drop), start-timer-from-task, Stop\|Complete, recurrence. See
   `.backlog/archive/TASKS.md`.
@@ -32,7 +33,10 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 ## Now — not yet chosen
 
-_(nothing selected)_
+- **POLISH** (living lot of small UX improvements) — first batch shipped (BIZ-038 … BIZ-047: running
+  Timer in Activity, absence date range, description de-noise, task priority/due pills + inline
+  status, time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty
+  states, Review/Enter explainer). Lot stays open for future UX polish. See `.backlog/POLISH/PRD.md`.
 
 ## Forward-looking (not scheduled)
 

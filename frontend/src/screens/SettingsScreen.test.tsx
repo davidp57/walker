@@ -90,3 +90,33 @@ describe('SettingsScreen — theme control (BIZ-032)', () => {
     expect(screen.getByRole('button', { name: 'System' })).toBeInTheDocument()
   })
 })
+
+describe('SettingsScreen — absence range (BIZ-039)', () => {
+  it('adds a date range when a "to" date is given', () => {
+    const onAddAbsence = vi.fn()
+    renderScreen({ onAddAbsence })
+
+    fireEvent.change(screen.getByLabelText('Absence start date'), {
+      target: { value: '2026-07-10' },
+    })
+    fireEvent.change(screen.getByLabelText('Absence end date (optional)'), {
+      target: { value: '2026-07-13' },
+    })
+    fireEvent.change(screen.getByPlaceholderText('Annual leave'), { target: { value: 'Leave' } })
+    fireEvent.click(screen.getByText('Add'))
+
+    expect(onAddAbsence).toHaveBeenCalledWith('2026-07-10', 'Leave', '2026-07-13')
+  })
+
+  it('adds a single day when no "to" date is given', () => {
+    const onAddAbsence = vi.fn()
+    renderScreen({ onAddAbsence })
+
+    fireEvent.change(screen.getByLabelText('Absence start date'), {
+      target: { value: '2026-07-14' },
+    })
+    fireEvent.click(screen.getByText('Add'))
+
+    expect(onAddAbsence).toHaveBeenCalledWith('2026-07-14', 'Absence', null)
+  })
+})

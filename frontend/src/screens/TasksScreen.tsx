@@ -158,8 +158,17 @@ export function TasksScreen({
       >
         <td>
           <div className="wk-task-title">{task.title}</div>
-          {task.tags.length > 0 && (
-            <div className="wk-task-tags">
+          {/* Priority & due show as inline pills only when set — no always-empty columns (BIZ-041). */}
+          {(task.priority || task.dueDate || task.tags.length > 0) && (
+            <div className="wk-task-meta-pills">
+              {task.priority && (
+                <span className={`wk-task-priority is-${task.priority}`}>{task.priority}</span>
+              )}
+              {task.dueDate && (
+                <span className={overdue ? 'wk-task-due is-overdue' : 'wk-task-due'}>
+                  {task.dueDate}
+                </span>
+              )}
               {task.tags.map((tag) => (
                 <span key={tag} className="wk-task-tag">
                   {tag}
@@ -169,17 +178,24 @@ export function TasksScreen({
           )}
         </td>
         <td>
-          <span className={`wk-task-status is-${task.status}`}>{STATUS_LABEL[task.status]}</span>
-        </td>
-        <td>
-          {task.priority ? (
-            <span className={`wk-task-priority is-${task.priority}`}>{task.priority}</span>
+          {/* Inline status change (BIZ-043) — reuses the same move path as the board. */}
+          {onMoveTask ? (
+            <select
+              className={`wk-task-status-select is-${task.status}`}
+              value={task.status}
+              data-testid={`wk-task-status-select-${task.id}`}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => onMoveTask(task, e.target.value as TaskStatus)}
+            >
+              {STATUS_ORDER.map((s) => (
+                <option key={s} value={s}>
+                  {STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
           ) : (
-            <span className="wk-task-priority">—</span>
+            <span className={`wk-task-status is-${task.status}`}>{STATUS_LABEL[task.status]}</span>
           )}
-        </td>
-        <td className={overdue ? 'wk-task-due is-overdue' : 'wk-task-due'}>
-          {task.dueDate ?? '—'}
         </td>
         <td>
           {code ? (
@@ -299,8 +315,6 @@ export function TasksScreen({
                 <tr>
                   {sortHeader('title', 'Title')}
                   {sortHeader('status', 'Status')}
-                  {sortHeader('priority', 'Priority')}
-                  {sortHeader('due', 'Due')}
                   <th>Code</th>
                   {onStartTask && <th />}
                 </tr>

@@ -5,11 +5,12 @@ Branch: feature/virtual-codes → PR → develop
 
 ## Summary
 
-User-created "virtual" codes backed by exactly one real T&E code (ADR-0008): a virtual code borrows
-its real code's number, technical label, and Activities, and owns its own name and colour. Two-level
-aggregation — the Fortnight/Review grid shows a virtual code as its own row; the Enter-in-T&E checklist
-resolves virtual codes to their real code, collapsing several virtual codes sharing one real code into
-a single T&E line. Delivered end-to-end: model, catalog CRUD (create/edit/delete + delete guards),
+User-created "virtual" codes backed by exactly one real timesheet code (ADR-0008): a virtual code
+borrows its real code's number, technical label, and Activities, and owns its own name and colour.
+Two-level aggregation — the Fortnight/Review grid shows a virtual code as its own row; the Enter
+checklist resolves virtual codes to their real code, collapsing several virtual codes sharing one real
+code into a single timesheet line. Delivered end-to-end: model, catalog CRUD (create/edit/delete +
+delete guards),
 picker integration (list, on-the-fly creation, last-comment prefill), and the two-level aggregation.
 
 ## Tickets
@@ -29,7 +30,7 @@ picker integration (list, on-the-fly creation, last-comment prefill), and the tw
   until this lot); `eslint`/`prettier --check`/`tsc --noEmit && vite build` clean.
 - Manual browser verification: created a virtual code on the fly from the code picker (picker reopens
   on the same target — "used immediately"), categorized an Entry on it, confirmed Review shows it as
-  its own row while Enter-in-T&E collapses it into its real code's line (daily total moved from 0:24 to
+  its own row while Enter collapses it into its real code's line (daily total moved from 0:24 to
   1:24, exactly the virtual code's tracked duration), confirmed editing a virtual code prefills
   correctly and the Delete button is hidden while an Entry references it.
 
@@ -43,4 +44,4 @@ picker integration (list, on-the-fly creation, last-comment prefill), and the tw
 - `api/routers/codes.py::_code_read()` builds `CodeRead` explicitly (no `from_attributes`) so
   `number`/`label`/`activities` are always the resolved values.
 - Frontend mirrors the resolve step client-side for the checklist (`lib/checklist.ts`) since the
-  Review and Enter-in-T&E grids share the same `rows` computation in `App.tsx`.
+  Review and Enter grids share the same `rows` computation in `App.tsx`.

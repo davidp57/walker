@@ -5,9 +5,10 @@ Branch: feature/*, fix/*, chore/* per ticket → PR → develop
 
 ## Summary
 
-Turns Walker from a personal, PwC-specific tool into a generic, shareable time-tracking app: vocabulary
-genericized ("T&E"/"Time & Expenses" → "Timesheet system", "Fortnight" → configurable "Timesheet
-period"), multi-tenant Organization model with domain-based auto-join and SSO for a hosted deployment,
+Turns Walker from a personal, company-specific tool into a generic, shareable time-tracking app:
+vocabulary genericized (the old timesheet-system name → "Timesheet system", "Fortnight" → configurable
+"Timesheet period"), multi-tenant Organization model with domain-based auto-join and SSO for a hosted
+deployment,
 a real-code catalog scoped per Organization, a public MkDocs docs site, CI quality gates + branch
 protection, and two standalone distribution paths (Docker image on GHCR, Windows `.exe` via
 PyInstaller) — each self-migrating on boot. See ADR-0009 (configurable Timesheet period) and ADR-0010
@@ -21,8 +22,8 @@ PyInstaller) — each self-migrating on boot. See ADR-0009 (configurable Timeshe
 | BIZ-028 | Organization model + domain-based auto-join | P2 | ✅ done |
 | BIZ-029 | SSO login (Google/Apple/Microsoft) for the hosted instance | P2 | ✅ done |
 | BIZ-030 | Real-code catalog becomes Organization-scoped | P2 | ✅ done |
-| CHR-003 | "T&E"/"Time & Expenses" → "Timesheet system" rename | P3 | ✅ done |
-| CHR-004 | Remove PwC branding; optional User display name | P3 | ✅ done |
+| CHR-003 | Old timesheet-system name → "Timesheet system" rename | P3 | ✅ done |
+| CHR-004 | Remove employer branding; optional User display name | P3 | ✅ done |
 | TEC-005 | Enable SQLite WAL mode for the hosted deployment | P2 | ✅ done |
 | CHR-005 | Docs site (MkDocs + Material) on GitHub Pages | P2 | ✅ done |
 | CHR-006 | CI: backend + frontend quality gates on every PR | P2 | ✅ done |

@@ -72,24 +72,45 @@ interface BoardColumnProps {
   status: TaskStatus
   count: number
   isDropTarget: boolean
+  collapsed?: boolean // BIZ-044: render a narrow rail (header + count only), no card body
+  onToggle?: () => void // present ⇒ the header is a collapse/expand toggle
   children: React.ReactNode
 }
 
 /** A status column, also a `@dnd-kit` drop target — highlighted while a card is dragged over it. */
-function BoardColumn({ status, count, isDropTarget, children }: BoardColumnProps) {
+function BoardColumn({
+  status,
+  count,
+  isDropTarget,
+  collapsed = false,
+  onToggle,
+  children,
+}: BoardColumnProps) {
   const { setNodeRef } = useDroppable({ id: status })
+  const cls = [
+    'wk-board-column',
+    isDropTarget ? 'is-drop-target' : '',
+    collapsed ? 'is-collapsed' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
-    <div
-      ref={setNodeRef}
-      className={isDropTarget ? 'wk-board-column is-drop-target' : 'wk-board-column'}
-      data-testid={`wk-board-column-${status}`}
-    >
-      <div className="wk-board-column-head">
-        <span>{STATUS_LABEL[status]}</span>
+    <div ref={setNodeRef} className={cls} data-testid={`wk-board-column-${status}`}>
+      <div
+        className="wk-board-column-head"
+        onClick={onToggle}
+        style={onToggle ? { cursor: 'pointer' } : undefined}
+        title={onToggle ? (collapsed ? 'Expand' : 'Collapse') : undefined}
+        data-testid={onToggle ? `wk-board-column-toggle-${status}` : undefined}
+      >
+        <span>
+          {STATUS_LABEL[status]}
+          {onToggle ? (collapsed ? ' ▸' : ' ▾') : ''}
+        </span>
         <span className="wk-board-column-count">{count}</span>
       </div>
-      <div className="wk-board-column-body">{children}</div>
+      {!collapsed && <div className="wk-board-column-body">{children}</div>}
     </div>
   )
 }
@@ -206,6 +227,8 @@ function BoardCard({ task, code, prevStatus, nextStatus, onOpenTask, onMoveTask 
  */
 function StatusBoard({ tasks, codesById, onOpenTask, onMoveTask }: StatusBoardProps) {
   const [overStatus, setOverStatus] = useState<TaskStatus | null>(null)
+  // BIZ-044: Done can be collapsed to a narrow rail to tame the horizontal scroll (session state).
+  const [doneCollapsed, setDoneCollapsed] = useState(false)
   const atStatusRef = useRef<TaskStatus | null>(null)
   const coordinateGetter = useMemo(() => makeColumnCoordinateGetter(atStatusRef), [])
   const sensors = useSensors(
@@ -257,12 +280,16 @@ function StatusBoard({ tasks, codesById, onOpenTask, onMoveTask }: StatusBoardPr
           const nextStatus = index < STATUS_ORDER.length - 1 ? STATUS_ORDER[index + 1] : null
           const columnTasks = byStatus(status)
 
+          const isDone = status === 'done'
+
           return (
             <BoardColumn
               key={status}
               status={status}
               count={columnTasks.length}
               isDropTarget={overStatus === status}
+              collapsed={isDone && doneCollapsed}
+              onToggle={isDone ? () => setDoneCollapsed((v) => !v) : undefined}
             >
               {columnTasks.map((task) => {
                 const code = task.codeId ? (codesById[task.codeId] ?? null) : null

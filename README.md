@@ -5,14 +5,16 @@ track your time during the day against the real charge codes; at the end of each
 Walker shows you exactly what to enter into the Timesheet system — a Timesheet-system-shaped grid plus
 a tick-as-you-go checklist.
 
-The name is a nod to *Walker, Texas Ranger* (the previous internal tool was called "Texas").
-
 > Status: **POC**, single user. Web app (FastAPI JSON API + React SPA), dockerized, SQLite.
+
+📖 **Documentation site:** <https://davidp57.github.io/Walker/> — getting started, day-to-day guide,
+self-hosting, and importing your code catalog (available in English and French).
 
 ## Documentation
 
 | Topic | Document |
 |---|---|
+| User documentation (published site) | <https://davidp57.github.io/Walker/> |
 | Ubiquitous language (glossary) | [CONTEXT.md](CONTEXT.md) |
 | Architecture decisions | [docs/adr/](docs/adr/) |
 | UI design brief (handoff) | [docs/design/handoff.md](docs/design/handoff.md) |
@@ -25,11 +27,25 @@ The name is a nod to *Walker, Texas Ranger* (the previous internal tool was call
 ```powershell
 python -m venv .venv; .venv\Scripts\Activate.ps1
 pip install -e .[dev]
+alembic upgrade head   # create/update the database schema (first run + after pulling new migrations)
 walker                 # http://localhost:8000  (API under /api)
 ```
 
 Frontend dev server: `cd frontend && npm install && npm run dev`.
 Container: `docker compose up --build`.
+
+### Database migrations (Alembic)
+
+Walker manages its SQLite schema with [Alembic](https://alembic.sqlalchemy.org/). In the dev flow
+above you apply migrations yourself with `alembic upgrade head` — run it once on first setup, and
+again whenever you pull changes that add a new migration; otherwise the app runs against an
+out-of-date schema and errors on the missing tables/columns. The plain `walker` (uvicorn) dev server
+does **not** migrate on its own.
+
+The **Docker image** and the **standalone `.exe`** both run `alembic upgrade head` automatically on
+startup, so migrations are hands-off there — you only ever run the command by hand in the raw dev
+flow. New migrations are generated with `alembic revision --autogenerate -m "<description>"` after a
+model change, then reviewed and committed.
 
 ## Standalone instance
 

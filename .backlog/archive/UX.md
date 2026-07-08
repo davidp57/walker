@@ -8,20 +8,21 @@ Branch: feature/ux-* per slice → PR → develop
 A set of independently-shippable UX improvements surfaced by a UX review of the running MVP: a
 faster, keyboard-first daily loop; a persistent uncategorized-Entry count; a safety net against
 mis-clicks (undo delete, deferred add); a WCAG-AA readability pass; consistent nav/screen labels;
-visible API errors and loading feedback; and a unified Fortnight grid merging Review and Enter in T&E
-into one screen with a header toggle (ADR-0008-aware row grouping). Frontend-only — no API, schema, or
+visible API errors and loading feedback; and a unified Fortnight grid merging Review and Enter in the
+timesheet system into one screen with a header toggle (ADR-0008-aware row grouping). Frontend-only — no
+API, schema, or
 domain change; durations remain recorded and aggregated exactly as before (ADR-0005).
 
 ## Tickets
 
 | ID | Title | Priority | Status |
 | --- | --- | --- | --- |
-| BIZ-007 | Unified Fortnight grid with Review / Enter in T&E toggle | P2 | ✅ done |
-| BIZ-008 | Enter-in-T&E checkbox affordance | P2 | ✅ done |
+| BIZ-007 | Unified Fortnight grid with Review / Enter toggle | P2 | ✅ done |
+| BIZ-008 | Enter checkbox affordance | P2 | ✅ done |
 | BIZ-009 | Keyboard-driven timer loop | P2 | ✅ done |
 | BIZ-010 | Uncategorized-Entry count | P2 | ✅ done |
 | BIZ-011 | Entry mutation safety (undo delete, deferred add, clearer row actions) | P2 | ✅ done |
-| BIZ-016 | Copy the T&E code from the Enter in T&E screen | P3 | ✅ done |
+| BIZ-016 | Copy the timesheet code from the Enter screen | P3 | ✅ done |
 | TEC-001 | Running-Timer elapsed correct across midnight | P3 | ✅ done |
 | TEC-002 | Visible API errors + loading feedback | P2 | ✅ done |
 | TEC-003 | WCAG-AA contrast + minimum functional text sizes | P2 | ✅ done |
@@ -45,9 +46,9 @@ domain change; durations remain recorded and aggregated exactly as before (ADR-0
 - `FortnightScreen.tsx` now owns a local `mode` state (`review` / `enter`, default `review`, not
   persisted); the former `ChecklistScreen.tsx` was deleted, its fill-order/toggle/progress logic folded
   in. `FortnightGrid.tsx` is shared between modes — row grouping differs (Review: by code, virtual codes
-  as their own rows; Enter in T&E: resolved to the real code, ADR-0008) but geometry, the Total column,
+  as their own rows; Enter: resolved to the real code, ADR-0008) but geometry, the Total column,
   weekend/absence styling, and the tinted read-only running-Timer cell are shared.
-- The running Timer's cell needed virtual→real code resolution to correctly match Enter-in-T&E's
+- The running Timer's cell needed virtual→real code resolution to correctly match the Enter mode's
   merged rows (`enterRunningCell` in `FortnightScreen.tsx`, resolved in `App.tsx`); `checklistRows` is
   built from `gridRows` (live-minutes-folded) rather than the raw matrix so a timer running on a virtual
   code is still visible/read-only there.

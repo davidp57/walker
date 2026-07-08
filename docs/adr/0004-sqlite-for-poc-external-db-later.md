@@ -1,11 +1,11 @@
 # Database: embedded SQLite for the POC, engine-agnostic for an external DB later
 
-Walker is first a single-user POC, used 99% locally. Medium-term it might be deployed at PwC for a few
-colleagues, even become a real product — without wanting to block ourselves.
+Walker is first a single-user POC, used 99% locally. Medium-term it might be deployed for a small team,
+even become a real product — without wanting to block ourselves.
 
 We start with **embedded SQLite** (a file on a Docker volume) for the POC, but data access stays
 **engine-agnostic** (SQLAlchemy + Alembic), so we can later switch to an **external SQL DBMS** —
-PostgreSQL, or likely **SQL Server** given the PwC / Microsoft context.
+PostgreSQL, or likely **SQL Server** given a Microsoft-stack context.
 
 ## Considered Options
 

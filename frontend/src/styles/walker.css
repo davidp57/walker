@@ -601,6 +601,37 @@ html[data-theme='light'] body {
   color: var(--wk-text-hi);
   font-variant-numeric: tabular-nums;
 }
+/* Proportion-of-the-day duration bar (BIZ-042): a thin track under the duration. */
+.wk-dur-bar {
+  margin-top: 4px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--wk-line-soft);
+  overflow: hidden;
+}
+.wk-dur-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  opacity: 0.7;
+}
+/* The running Timer shown as a live, read-only Activity row (BIZ-038). */
+.wk-entry-row.is-running {
+  background: var(--wk-accent-soft);
+}
+.wk-time-now {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--wk-accent);
+}
+.wk-time-now .wk-cell-live {
+  position: static;
+}
+.wk-pill-add.is-static {
+  cursor: default;
+  opacity: 0.8;
+}
 
 .wk-code-cell {
   cursor: pointer;
@@ -1474,6 +1505,20 @@ html[data-theme='light'] body {
   display: flex;
   flex-wrap: wrap;
   gap: 7px;
+  align-items: center;
+}
+/* Collapsed-activities toggle on a catalog card (BIZ-045). */
+.wk-catalog-acts-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
+  cursor: pointer;
+}
+.wk-catalog-acts-toggle:hover {
+  color: var(--wk-text-hi);
 }
 .wk-act-chip {
   font-family: var(--wk-font-mono);
@@ -1727,6 +1772,29 @@ html[data-theme='light'] body {
 .wk-task-due.is-overdue {
   color: var(--wk-danger);
 }
+/* Inline priority/due/tag pills under a task title (BIZ-041). */
+.wk-task-meta-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 3px;
+}
+.wk-task-due {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
+}
+/* Inline status selector in the list (BIZ-043). */
+.wk-task-status-select {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  background: var(--wk-bg-1);
+  color: var(--wk-text-hi);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  padding: 3px 6px;
+}
 
 /* ---------- Task view toggle + kanban board (BIZ-022) ---------- */
 .wk-task-view-toggle {
@@ -1777,7 +1845,7 @@ html[data-theme='light'] body {
 }
 .wk-board-column {
   flex: 1 1 0;
-  min-width: 220px;
+  min-width: 200px;
   background: var(--wk-bg-1);
   border: 1px solid var(--wk-line);
   border-radius: var(--wk-radius-lg);
@@ -1786,6 +1854,11 @@ html[data-theme='light'] body {
   transition:
     border-color 0.12s ease,
     background 0.12s ease;
+}
+/* Collapsed Done column — a slim rail showing just the header + count (BIZ-044). */
+.wk-board-column.is-collapsed {
+  flex: 0 0 auto;
+  min-width: 0;
 }
 .wk-board-column.is-drop-target {
   border-color: var(--wk-accent);

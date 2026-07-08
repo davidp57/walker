@@ -64,7 +64,12 @@ Invariants baked into ADRs:
 ## Git & PRs (GitHub)
 
 - Work on `feature/*` or `fix/*` branches from `develop`. `main` is production, `develop` is
-  integration. Commit directly to `develop` only on explicit user request.
+  integration. **Code changes** (anything under `src/`, `frontend/src/`, `alembic/`, tests, build
+  config) go via a `feature/*`/`fix/*` branch → PR → `develop`.
+- **Docs- and backlog-only changes** — ADRs (`docs/`), `.backlog/`, `README.md`, `CONTEXT.md`,
+  `ROADMAP.md`, `CHANGELOG.md`, and the `docs-site/` content — may be committed and pushed **directly
+  to `develop`** without a PR (branch protection allows admin bypass for these). Reserve PRs for
+  code changes.
 - Conventional Commits in English (`type(scope): description`); PR titles and descriptions in English.
 - **Authorship**: do not sign commits, PRs, or docs with AI/Claude attribution — the user is the
   author of record.

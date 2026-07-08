@@ -1,12 +1,13 @@
-# Virtual codes: user-created Timesheet codes backed by a real T&E code
+# Virtual codes: user-created Timesheet codes backed by a real timesheet code
 
-You work on finer-grained things — projects, sub-topics — than T&E codes represent, and several of
-them map to the **same** real T&E code (e.g. a project with no budget of its own, booked on a shared
-code). You want to **track and classify by these in Walker**, while Time & Expenses only accepts real
-**codes + activities**. The working name was "truc"; the concept is a **virtual code**.
+You work on finer-grained things — projects, sub-topics — than timesheet codes represent, and several
+of them map to the **same** real timesheet code (e.g. a project with no budget of its own, booked on a
+shared code). You want to **track and classify by these in Walker**, while the timesheet system only
+accepts real **codes + activities**. The working name was "truc"; the concept is a **virtual code**.
 
 A virtual code is a `TimesheetCode` with a nullable self-reference **`real_code_id`**: null = a **real**
-code (exists in T&E, imported from the catalog); set = a **virtual** code (Walker-only), which
+code (exists in the timesheet system, imported from the catalog); set = a **virtual** code
+(Walker-only), which
 **inherits** `number`, technical `label`, and `activities` from its real code and has its **own**
 `name` and `color`. An Entry references the code it was **tracked on** (real or virtual).
 
@@ -14,9 +15,9 @@ This yields **two levels of aggregation**:
 
 - **Walker (working view)** — the Fortnight/Review grid groups by code, so a virtual code is its **own
   row**: the user's fine classification.
-- **T&E (export)** — the Enter-in-T&E checklist and anything keyed into T&E **resolve virtual → real**
-  and aggregate by **real code × activity**: virtual codes sharing a real code **collapse into one**
-  T&E line.
+- **Timesheet system (export)** — the Enter checklist and anything keyed into the timesheet system
+  **resolve virtual → real** and aggregate by **real code × activity**: virtual codes sharing a real
+  code **collapse into one** timesheet line.
 
 `(user_id, number)` uniqueness holds for **real** codes only; a virtual code is identified by its
 `name` (it shares its real code's number).
@@ -36,9 +37,9 @@ This yields **two levels of aggregation**:
 ## Consequences
 
 - Minimal new surface: a nullable `real_code_id` on `TimesheetCode`, plus a virtual→real **resolve**
-  step wherever T&E-facing aggregation happens (fortnight export, checklist).
+  step wherever timesheet-facing aggregation happens (fortnight export, checklist).
 - The two Fortnight modes no longer share an identical row set — Review groups **by code** (virtual
-  rows), Enter-in-T&E resolves **to the real code**. This **amends** BIZ-007's "identical geometry"
+  rows), Enter resolves **to the real code**. This **amends** BIZ-007's "identical geometry"
   acceptance criterion (see the UX lot) to "same grid; Review by code, Enter resolved to real code".
 - `number` is no longer unique per user; the catalog **import** upserts by number against **real**
   codes only — virtual codes are user-created and invisible to import.

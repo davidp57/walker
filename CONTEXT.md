@@ -4,16 +4,13 @@ A personal daily task-tracking tool whose purpose is to fill an external corpora
 painlessly at the end of each period. Walker replaces Clockify with a tracker wired natively to that
 system's code catalog.
 
-The name comes from *Walker, Texas Ranger*: a previous internal tool at the author's employer was
-called "Texas" (even worse than the corporate timesheet app it fed).
-
 ## Language
 
 **Timesheet system**:
 The external, corporate web app where time must be entered and submitted each Timesheet period. The
 final destination of what Walker produces. Often notoriously unpleasant to use.
-_Avoid_: "T&E" / "Time & Expenses" (that was PwC's own timesheet system's name — genericized, see
-ADR-0009), "the timesheet" alone (ambiguous with the Timesheet concept below).
+_Avoid_: any company-specific name for the timesheet system (genericized, see ADR-0009), "the
+timesheet" alone (ambiguous with the Timesheet concept below).
 
 **Timesheet**:
 The set of time entries submitted to the Timesheet system for a given Timesheet period.
@@ -54,15 +51,16 @@ _Avoid_: "task" (reserved for the tracking side); a single global/shared activit
 **Timesheet entry**:
 The elementary cell of a Timesheet: a (Timesheet code [+ Activity], Day) pair assigned a duration in
 quarter-hours. A Timesheet is the matrix of these entries across the Timesheet period.
-_Avoid_: "T&E entry" (superseded), "entry" alone (ambiguous with a tracking Entry).
+_Avoid_: "timesheet-system entry" as a term of its own (superseded), "entry" alone (ambiguous with a
+tracking Entry).
 
 **Timesheet period**:
 The calendar-based window a Timesheet covers, per a **period scheme** the user picks in Settings:
-weekly, semi-monthly (1st–15th, then 16th–end of month — PwC's own scheme, and Walker's original,
-still-default behavior), or monthly. Each period has an **hours target** in the Timesheet system
-(working days × 8h) — but Walker does not manage that target (see ADR-0005). Formerly called a
-"Fortnight" (PwC-specific wording, semi-monthly hardcoded); genericized so other period schemes are
-possible (see ADR-0009).
+weekly, semi-monthly (1st–15th, then 16th–end of month — the original semi-monthly scheme, and
+Walker's original, still-default behavior), or monthly. Each period has an **hours target** in the
+Timesheet system (working days × 8h) — but Walker does not manage that target (see ADR-0005). Formerly
+called a "Fortnight" (company-specific wording, semi-monthly hardcoded); genericized so other period
+schemes are possible (see ADR-0009).
 _Avoid_: "Fortnight" (superseded), "pay period" (Walker doesn't touch pay), a period in the loose sense
 of "any rolling window" (it's always one of the three fixed schemes).
 

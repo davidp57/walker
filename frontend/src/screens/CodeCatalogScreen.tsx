@@ -150,66 +150,124 @@ export function CodeCatalogScreen({
         <div className="wk-loading">Loading…</div>
       ) : (
         <div className="wk-catalog-list">
-          {codes.map((c) => {
-            const inUse = isCodeInUse(c.id)
-            return (
-              <div key={c.id} className="wk-catalog-card">
-                <div className="wk-catalog-head">
-                  <span className="wk-dot" style={{ width: 10, height: 10, background: c.color }} />
-                  <div>
-                    <div className="wk-catalog-name">
-                      {c.name}
-                      {c.isVirtual && (
-                        <span
-                          className="wk-act-chip"
-                          style={{ marginLeft: 8, fontSize: 11, verticalAlign: 'middle' }}
-                        >
-                          virtual
-                        </span>
-                      )}
-                    </div>
-                    <div className="wk-catalog-meta">
-                      {c.number} · {c.label}
-                      {c.isVirtual && c.realCodeNumber && ` · backed by ${c.realCodeNumber}`}
-                    </div>
-                  </div>
-                  <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-                    <button
-                      type="button"
-                      className="wk-btn-ghost"
-                      onClick={() => (c.isVirtual ? onEditVirtual(c) : onEdit(c))}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="wk-btn-icon"
-                      title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
-                      disabled={inUse}
-                      style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
-                      onClick={() => onDelete(c)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-                <div className="wk-catalog-acts">
-                  {c.activities.map((a) => (
-                    <span key={a.code || a.label} className="wk-act-chip">
-                      {a.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
+          {codes.map((c) => (
+            <CatalogCard
+              key={c.id}
+              code={c}
+              inUse={isCodeInUse(c.id)}
+              onEdit={onEdit}
+              onEditVirtual={onEditVirtual}
+              onDelete={onDelete}
+            />
+          ))}
           {codes.length === 0 && (
-            <div className="wk-modal-empty">
-              No codes yet. Search above to add from your catalog, or use “New code”.
+            <div className="wk-empty">
+              <div className="wk-empty-title">No codes yet.</div>
+              <div className="wk-empty-sub">
+                Your catalog has two tiers: import your full reference catalog once (
+                <span className="wk-accent">Import reference</span>), then search above to add the
+                handful of codes you actually charge to. See{' '}
+                <a href="https://davidp57.github.io/Walker/catalog-import/">
+                  Importing your code catalog
+                </a>
+                .
+              </div>
             </div>
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * One active code, with its activities collapsed behind a count (BIZ-045) so the list stays dense on
+ * a large catalog. Codes with 0–1 activities render inline (nothing worth collapsing).
+ */
+function CatalogCard({
+  code: c,
+  inUse,
+  onEdit,
+  onEditVirtual,
+  onDelete,
+}: {
+  code: TimesheetCode
+  inUse: boolean
+  onEdit: (code: TimesheetCode) => void
+  onEditVirtual: (code: TimesheetCode) => void
+  onDelete: (code: TimesheetCode) => void
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const collapsible = c.activities.length > 1
+
+  return (
+    <div className="wk-catalog-card">
+      <div className="wk-catalog-head">
+        <span className="wk-dot" style={{ width: 10, height: 10, background: c.color }} />
+        <div>
+          <div className="wk-catalog-name">
+            {c.name}
+            {c.isVirtual && (
+              <span
+                className="wk-act-chip"
+                style={{ marginLeft: 8, fontSize: 11, verticalAlign: 'middle' }}
+              >
+                virtual
+              </span>
+            )}
+          </div>
+          <div className="wk-catalog-meta">
+            {c.number} · {c.label}
+            {c.isVirtual && c.realCodeNumber && ` · backed by ${c.realCodeNumber}`}
+          </div>
+        </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+          <button
+            type="button"
+            className="wk-btn-ghost"
+            onClick={() => (c.isVirtual ? onEditVirtual(c) : onEdit(c))}
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            className="wk-btn-icon"
+            title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
+            disabled={inUse}
+            style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
+            onClick={() => onDelete(c)}
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+      {c.activities.length > 0 &&
+        (collapsible && !expanded ? (
+          <button
+            type="button"
+            className="wk-catalog-acts-toggle"
+            onClick={() => setExpanded(true)}
+          >
+            {c.activities.length} activities ▸
+          </button>
+        ) : (
+          <div className="wk-catalog-acts">
+            {collapsible && (
+              <button
+                type="button"
+                className="wk-catalog-acts-toggle"
+                onClick={() => setExpanded(false)}
+              >
+                ▾
+              </button>
+            )}
+            {c.activities.map((a) => (
+              <span key={a.code || a.label} className="wk-act-chip">
+                {a.label}
+              </span>
+            ))}
+          </div>
+        ))}
     </div>
   )
 }

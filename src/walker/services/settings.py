@@ -10,15 +10,20 @@ rendered value.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from walker.exceptions import ValidationError
 from walker.models import Absence, Settings
 from walker.models.settings import DEFAULT_PERIOD_SCHEME, DEFAULT_THEME, DEFAULT_WORKDAYS, PeriodScheme, Theme
+
+# A single add-absence call may not span more than this many days (BIZ-039) — a guard against a
+# fat-fingered range, not a real limit anyone would hit for leave.
+MAX_ABSENCE_RANGE_DAYS = 366
 
 
 @dataclass
@@ -130,13 +135,31 @@ def update_settings(
     return _view(session, user_id)
 
 
-def add_absence(session: Session, user_id: int, on: date, reason: str) -> SettingsView:
-    """Add (or update the reason of) an absence for a date."""
+def _upsert_absence(session: Session, user_id: int, on: date, reason: str) -> None:
+    """Add or update a single day's absence, without committing."""
     absence = session.scalar(select(Absence).where(Absence.user_id == user_id, Absence.date == on))
     if absence is None:
         session.add(Absence(user_id=user_id, date=on, reason=reason))
     else:
         absence.reason = reason
+
+
+def add_absence(session: Session, user_id: int, on: date, reason: str, end: date | None = None) -> SettingsView:
+    """Add (or update the reason of) an absence over ``[on, end]`` inclusive (BIZ-039).
+
+    ``end`` defaults to ``on`` (a single day). Every calendar day in the range gets its own row
+    (weekends included), upserting per date so re-posting an overlapping range is idempotent. Raises
+    ``ValidationError`` if ``end`` precedes ``on`` or the range is unreasonably long.
+    """
+    last = end if end is not None else on
+    if last < on:
+        raise ValidationError(f"Absence end {last} is before start {on}.")
+    if (last - on).days + 1 > MAX_ABSENCE_RANGE_DAYS:
+        raise ValidationError(f"Absence range is longer than {MAX_ABSENCE_RANGE_DAYS} days.")
+    day = on
+    while day <= last:
+        _upsert_absence(session, user_id, day, reason)
+        day += timedelta(days=1)
     session.commit()
     return _view(session, user_id)
 

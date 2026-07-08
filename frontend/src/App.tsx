@@ -931,8 +931,8 @@ function AppInner() {
       notifyError(errorMessage(err, 'Could not save the theme.')),
     )
   }
-  const addAbsence = (date: string, reason: string) => {
-    apiAddAbsence(date, reason)
+  const addAbsence = (date: string, reason: string, end?: string | null) => {
+    apiAddAbsence(date, reason, end)
       .then((s) => setAbsences(s.absences))
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the absence.')))
   }
@@ -946,11 +946,14 @@ function AppInner() {
   const trackerGroups: DayGroup[] = (() => {
     const byDate = new Map<string, Entry[]>()
     for (const entry of entries) {
-      if (entry.end === null) continue // the running entry lives in the TimerBar
+      // The running entry (BIZ-038) is shown too — pinned to the top of its day, live and read-only.
       const list = byDate.get(entry.date) ?? []
       list.push(entry)
       byDate.set(entry.date, list)
     }
+    // The running entry's live duration (0 if none/uncounted) folds into the day total.
+    const durationOf = (e: Entry): number =>
+      e.id === runningId ? runningMinutes : Math.max(0, (e.end ?? e.start) - e.start)
     return [...byDate.keys()]
       .sort()
       .reverse()
@@ -959,7 +962,13 @@ function AppInner() {
           .get(date)!
           .slice()
           .sort((a, b) => a.start - b.start)
-        const total = dayEntries.reduce((s, e) => s + Math.max(0, (e.end ?? e.start) - e.start), 0)
+        // Pin the running entry to the top of its day (it's the current activity).
+        const runningIdx = dayEntries.findIndex((e) => e.id === runningId)
+        if (runningIdx > 0) {
+          const [live] = dayEntries.splice(runningIdx, 1)
+          dayEntries.unshift(live)
+        }
+        const total = dayEntries.reduce((s, e) => s + durationOf(e), 0)
         return {
           date,
           label: dayLabel(date),
@@ -1023,6 +1032,8 @@ function AppInner() {
           groups={trackerGroups}
           codesById={codesById}
           loading={entriesLoading}
+          runningId={runningId}
+          runningMinutes={runningMinutes}
           onEditEntry={(id, patch) =>
             apiPatchEntry(id, patch)
               .then(reload)

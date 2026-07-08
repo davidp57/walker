@@ -9,8 +9,8 @@ genuinely dynamic values (a Timesheet code's dot color, the checklist progress w
 the logo are inline SVG. Components are presentational (data in via props, actions out via callbacks).
 
 Exact UI terms used throughout: **Entry, Timesheet code, Activity, Fortnight, Absence, Timer, Code
-catalog**. Dark theme, subtle western wink (logo / empty states / microcopy). No T&E automation, no
-rounding controls, no enforced totals — real to-the-minute durations only.
+catalog**. Dark theme, subtle western wink (logo / empty states / microcopy). No timesheet automation,
+no rounding controls, no enforced totals — real to-the-minute durations only.
 
 An illustrative `App.tsx` wires the components against a mock store so it runs immediately; replace the
 store with your `/api` layer.
@@ -46,12 +46,13 @@ store with your `/api` layer.
 ~~~markdown
 # Walker — Design Spec (engineering handoff)
 
-Walker is a personal **Timer** + timesheet helper. You track work during the day against real PwC
-**Timesheet codes**; at the end of each **Fortnight** Walker shows exactly what to key into T&E.
+Walker is a personal **Timer** + timesheet helper. You track work during the day against real
+**Timesheet codes**; at the end of each **Fortnight** Walker shows exactly what to key into the
+timesheet system.
 
-**Non-goals (do not build):** no T&E automation / "submit to T&E", no rounding controls, no enforced
-daily/fortnight totals. Walker shows **real, to-the-minute** durations only. Rounding to the quarter
-hour and hitting 8h/day is the user's job inside T&E.
+**Non-goals (do not build):** no timesheet automation / "submit to the timesheet system", no rounding
+controls, no enforced daily/fortnight totals. Walker shows **real, to-the-minute** durations only.
+Rounding to the quarter hour and hitting 8h/day is the user's job inside the timesheet system.
 
 Desktop-first (99% usage: work PC, browser). Responsive is a bonus, not a requirement.
 Dark theme by default. Subtle western personality — a wink in the logo, empty states and microcopy
@@ -61,13 +62,14 @@ Dark theme by default. Subtle western personality — a wink in the logo, empty 
 
 ## Vocabulary (use these exact labels in the UI)
 - **Entry** — a tracked period of work. Can be empty/**uncategorized**; always editable.
-- **Timesheet code** (a.k.a. *code*) — a PwC charge code: a number (`N9/…`) + a technical label
+- **Timesheet code** (a.k.a. *code*) — a charge code: a number (`N9/…`) + a technical label
   (`MNT - PAP V4`) + a human **project name** (the *libellé*, e.g. "Paper V4"). The project name is
-  the primary identifier the user reads; the number is only needed for T&E.
+  the primary identifier the user reads; the number is only needed for the timesheet system.
 - **Activity** — a code's sub-category: `Bug fixing`, `Change request`, `Communication & Meeting`,
   `Support`.
 - **Fortnight** — the period 1st–15th, then 16th–end of month.
-- **Absence** — a non-worked day (leave, public holiday, part-time). Reflected from T&E; read-only.
+- **Absence** — a non-worked day (leave, public holiday, part-time). Reflected from the timesheet
+  system; read-only.
 - **Timer** — the persistent, always-visible running clock.
 - **Code catalog** — browse/search codes & activities; import from a file.
 
@@ -76,8 +78,8 @@ Dark theme by default. Subtle western personality — a wink in the logo, empty 
 ## Global layout & navigation
 
 `AppShell` = fixed left **Sidebar** (238px) + main column.
-- **Sidebar:** logo (star badge + "Walker" wordmark + `time → T&E` tagline), nav, user footer.
-- **Nav routes:** `Today` (Tracker) · `Fortnight` · `Enter in T&E` (Checklist) · `Code catalog` ·
+- **Sidebar:** logo (star badge + "Walker" wordmark + `time → timesheet` tagline), nav, user footer.
+- **Nav routes:** `Today` (Tracker) · `Fortnight` · `Enter in the timesheet system` (Checklist) · `Code catalog` ·
   `Settings`.
 - **Main column:** the **persistent Timer bar** (76px, visible on every route) above the routed screen.
 
@@ -152,14 +154,14 @@ spans; amber pill brightens on hover; resume/delete affordances change color on 
 
 ## Screen: Fortnight (`Fortnight` — "by code")
 
-**Purpose:** a 1:1 **visual mirror of T&E's BY-CODE grid**, so re-keying is a straight visual match.
+**Purpose:** a 1:1 **visual mirror of the timesheet system's BY-CODE grid**, so re-keying is a straight visual match.
 
 **Layout:** sticky-left "Code · Activity" column; one column per day of the period; a right **Total**
 column; a footer **Daily total** row + grand total.
 - Period switcher: segmented `1–15` / `16–31` + period label ("1 – 15 July 2026").
 - **Rows** = Timesheet code × Activity. **Cells** = real duration `H:MM` for that code/activity/day.
-- **Weekend** columns greyed. **Absence** columns striped (read-only, reflected from T&E). **Today**
-  column marked.
+- **Weekend** columns greyed. **Absence** columns striped (read-only, reflected from the timesheet
+  system). **Today** column marked.
 - Row header shows code number (mono) + activity. Row Total and Daily totals are informational.
 
 **States/interaction**
@@ -168,13 +170,15 @@ column; a footer **Daily total** row + grand total.
 
 ---
 
-## Screen: Checklist (`Enter in T&E`)
+## Screen: Checklist (`Enter in the timesheet system`)
 
-**Purpose:** track progress while keying the Fortnight grid into T&E — tick each cell as it's entered.
+**Purpose:** track progress while keying the Fortnight grid into the timesheet system — tick each cell
+as it's entered.
 
 **Layout:** same grid geometry as Fortnight (identical column order, so it reads 1:1), plus:
-- Header: "Enter into T&E" + instruction ("Tick each cell as you key it into T&E. Shift-click for a
-  range, ⌘/Ctrl-click to toggle one."), an `X / Y lines entered` counter, and **Reset**.
+- Header: "Enter into the timesheet system" + instruction ("Tick each cell as you key it into the
+  timesheet system. Shift-click for a range, ⌘/Ctrl-click to toggle one."), an `X / Y lines entered`
+  counter, and **Reset**.
 - A thin green **progress bar** (`done/total`).
 - Each row header carries a small **`done/total` badge** (click to mark the whole row entered; turns
   green when complete).
@@ -183,7 +187,7 @@ column; a footer **Daily total** row + grand total.
 - **Plain click:** toggle that cell entered/not; sets the range anchor.
 - **Shift-click:** mark the range **from anchor to target as entered**. Range order is **column-major**
   (vertical): traversal goes *down a day column first, then to the next column* — the natural order for
-  entering a full day into T&E.
+  entering a full day into the timesheet system.
 - **⌘/Ctrl-click:** toggle a single cell without disturbing the anchor.
 - Entered cells: green wash, green text, corner ✓.
 
@@ -211,8 +215,8 @@ Search box (filters by number, project name, technical label, or activity) + "�
 ## Screen: Settings
 
 Fortnight-view personalization (read-only presentational cards in v1): **Work rhythm** (Mon–Fri),
-**Part-time** (recurring non-worked day), **Absences this fortnight** (reflected from T&E, striped chip
-per Absence). No rounding/target controls anywhere.
+**Part-time** (recurring non-worked day), **Absences this fortnight** (reflected from the timesheet
+system, striped chip per Absence). No rounding/target controls anywhere.
 
 ---
 
@@ -229,7 +233,7 @@ per Absence). No rounding/target controls anywhere.
 | `FortnightGrid` | Shared BY-CODE grid | mode('fortnight'|'checklist'), days, rows, (+edit or check callbacks) | weekend / absence / today / editing cell / entered cell |
 | `TrackerScreen` | Today | dateLabel, totalLabel, entries, codesById, handlers | empty / full-day |
 | `FortnightScreen` | Fortnight mirror | period, periodLabel, days, rows, onPeriodChange, onEditCell | period 1–15 / 16–31 |
-| `ChecklistScreen` | Enter in T&E | days, rows, checked, onChange, onReset | empty / partial / complete |
+| `ChecklistScreen` | Enter in the timesheet system | days, rows, checked, onChange, onReset | empty / partial / complete |
 | `CodeCatalogScreen` | Code catalog | codes, onImport? | search / results |
 | `SettingsScreen` | Settings | workRhythm, partTime, absences | — |
 
@@ -269,7 +273,7 @@ without touching components.
   --wk-amber: #e8a84b;                    /* uncategorized / needs completing */
   --wk-amber-soft: rgba(232, 168, 75, 0.13);
   --wk-amber-line: rgba(232, 168, 75, 0.38);
-  --wk-green: #3fb68b;                    /* entered into T&E / complete */
+  --wk-green: #3fb68b;                    /* entered into the timesheet system / complete */
   --wk-green-soft: rgba(63, 182, 139, 0.14);
   --wk-danger: #e5644e;
 
@@ -678,12 +682,12 @@ export type ActivityName =
   | 'Communication & Meeting'
   | 'Support';
 
-/** A PwC charge code. `number` is only needed for T&E; `name` (libellé) is the primary label. */
+/** A charge code. `number` is only needed for the timesheet system; `name` (libellé) is the primary label. */
 export interface TimesheetCode {
   id: string;
   number: string;            // e.g. "N9/1042"
   name: string;              // human project name (libellé), e.g. "Paper V4"
-  label: string;             // technical T&E label, e.g. "MNT - PAP V4"
+  label: string;             // technical timesheet label, e.g. "MNT - PAP V4"
   color: string;             // accent dot color (hex)
   activities: ActivityName[];
 }
@@ -699,7 +703,7 @@ export interface Entry {
   description: string;
 }
 
-/** A non-worked day, reflected from T&E (read-only). */
+/** A non-worked day, reflected from the timesheet system (read-only). */
 export interface Absence {
   date: string;              // ISO date
   reason: string;            // "Annual leave", "Public holiday", ...
@@ -727,7 +731,7 @@ export interface FortnightRow {
   minutesByDay: Record<number, number>;
 }
 
-/** Which grid cells have been keyed into T&E. Key = `${rowKey}#${day}`. */
+/** Which grid cells have been keyed into the timesheet system. Key = `${rowKey}#${day}`. */
 export type ChecklistState = Record<string, boolean>;
 
 /** A previously-used task, surfaced as a comment-autocomplete suggestion. */
@@ -901,7 +905,7 @@ interface NavItem { key: Route; label: string; icon: ReactNode; }
 const NAV: NavItem[] = [
   { key: 'tracker', label: 'Today', icon: <IconTracker /> },
   { key: 'fortnight', label: 'Fortnight', icon: <IconFortnight /> },
-  { key: 'checklist', label: 'Enter in T&E', icon: <IconChecklist /> },
+  { key: 'checklist', label: 'Enter in the timesheet system', icon: <IconChecklist /> },
   { key: 'codes', label: 'Code catalog', icon: <IconCatalog /> },
   { key: 'settings', label: 'Settings', icon: <IconSettings /> },
 ];
@@ -934,7 +938,7 @@ export function AppShell({ route, onNavigate, timer, children }: AppShellProps) 
         </nav>
         <div className="wk-sidebar-foot">
           <div className="wk-avatar">JD</div>
-          <div className="wk-foot-meta">Consultant<br />PwC &middot; Advisory</div>
+          <div className="wk-foot-meta">Consultant</div>
         </div>
       </aside>
 
@@ -1264,7 +1268,7 @@ interface ChecklistModeProps extends BaseProps {
 type FortnightGridProps = FortnightModeProps | ChecklistModeProps;
 
 /**
- * Shared BY-CODE grid. `fortnight` cells edit durations; `checklist` cells toggle "entered into T&E".
+ * Shared BY-CODE grid. `fortnight` cells edit durations; `checklist` cells toggle "entered into the timesheet system".
  * The visual geometry is identical so the two screens read 1:1.
  */
 export function FortnightGrid(props: FortnightGridProps) {
@@ -1647,12 +1651,12 @@ interface ChecklistScreenProps {
   days: DayColumn[];
   rows: FortnightRow[];
   checked: ChecklistState;
-  onChange: (next: ChecklistState) => void;   // full next map (entered-into-T&E flags)
+  onChange: (next: ChecklistState) => void;   // full next map (entered-into-timesheet flags)
   onReset: () => void;
 }
 
 /**
- * "Enter in T&E" — tick each grid cell as you key it. Range selection is COLUMN-MAJOR (vertical):
+ * "Enter in the timesheet system" — tick each grid cell as you key it. Range selection is COLUMN-MAJOR (vertical):
  * fill order walks down a day column first, then across — the natural order for entering a full day.
  */
 export function ChecklistScreen({ days, rows, checked, onChange, onReset }: ChecklistScreenProps) {
@@ -1756,7 +1760,7 @@ export function CodeCatalogScreen({ codes, onImport }: CodeCatalogScreenProps) {
       <div className="wk-screen-head">
         <div>
           <div className="wk-screen-title">Code catalog</div>
-          <div className="wk-screen-sub">Your PwC timesheet codes &amp; their activities.</div>
+          <div className="wk-screen-sub">Your timesheet codes &amp; their activities.</div>
         </div>
         <button type="button" className="wk-btn-ghost" onClick={onImport}>⇪ Import from file</button>
       </div>
@@ -1799,7 +1803,7 @@ import type { Absence } from '../types';
 interface SettingsScreenProps {
   workRhythm: string;        // "Mon – Fri"
   partTime: string;          // "None"
-  absences: Absence[];       // reflected from T&E (read-only)
+  absences: Absence[];       // reflected from the timesheet system (read-only)
 }
 
 export function SettingsScreen({ workRhythm, partTime, absences }: SettingsScreenProps) {
@@ -2103,9 +2107,9 @@ export default function App() {
 - **Presentational contract:** every component takes data via props and emits intent via callbacks.
   `App.tsx`'s in-memory store (entries, timer split-on-switch, fortnight aggregation, checklist range)
   is the reference behavior — replace it with your `/api` calls; the components don't change.
-- **Assets:** logo/app-mark and favicon are inline SVG (a sheriff star — the western wink). If you want
-  a Chuck Norris avatar, drop an image into the sidebar footer's `.wk-avatar` slot; kept as an original
-  mark rather than a likeness.
+- **Assets:** logo/app-mark and favicon are inline SVG (a sheriff star — the western wink). To use a
+  custom avatar, drop an image into the sidebar footer's `.wk-avatar` slot; kept as an original mark
+  rather than a likeness.
 - The three core screens (Tracker, Fortnight, Checklist) are fully interactive; Code catalog search and
   Settings are presentational as speced.
 

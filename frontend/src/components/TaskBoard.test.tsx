@@ -269,6 +269,23 @@ describe('TaskBoard', () => {
     expect(onMoveTask).toHaveBeenCalledWith(task, 'in_progress')
   })
 
+  it('collapses and expands the Done column (BIZ-044), keeping its count visible', () => {
+    const tasks = [makeTask({ id: '1', title: 'Shipped thing', status: 'done' })]
+    render(<TaskBoard tasks={tasks} codesById={{}} onOpenTask={vi.fn()} onMoveTask={vi.fn()} />)
+
+    // Expanded by default: the done card is visible.
+    expect(screen.getByText('Shipped thing')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('wk-board-column-toggle-done'))
+    expect(screen.getByTestId('wk-board-column-done')).toHaveClass('is-collapsed')
+    expect(screen.queryByText('Shipped thing')).not.toBeInTheDocument()
+    // Count stays visible while collapsed.
+    expect(within(screen.getByTestId('wk-board-column-done')).getByText('1')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('wk-board-column-toggle-done'))
+    expect(screen.getByText('Shipped thing')).toBeInTheDocument()
+  })
+
   it('shows the linked code and priority on a card', () => {
     const task = makeTask({
       id: '1',
