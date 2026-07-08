@@ -1379,6 +1379,22 @@ html[data-theme='light'] body {
 .wk-picker-code {
   padding: 9px 8px 4px;
 }
+/* Code-only pick target (BIZ-037): the whole code row is one clickable button. */
+.wk-picker-code-pick {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: var(--wk-radius);
+  cursor: pointer;
+}
+.wk-picker-code-pick:hover {
+  background: var(--wk-bg-1);
+}
+.wk-picker-code-pick .wk-picker-code-head {
+  padding-bottom: 4px;
+}
 .wk-picker-code-head {
   display: flex;
   align-items: center;
@@ -1744,6 +1760,20 @@ html[data-theme='light'] body {
   align-items: flex-start;
   overflow-x: auto;
   padding-bottom: var(--wk-space-2);
+}
+/* Project (code) swimlanes (BIZ-036): stacked lanes, each a labelled status board. */
+.wk-board-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wk-space-5);
+}
+.wk-board-lane-head {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  margin-bottom: var(--wk-space-2);
 }
 .wk-board-column {
   flex: 1 1 0;

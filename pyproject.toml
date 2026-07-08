@@ -1,6 +1,6 @@
 [project]
 name = "walker"
-version = "1.1.0"
+version = "1.2.0"
 description = "Personal time tracker that makes filling the Timesheet system painless"
 authors = [{name = "David Pierron", email = "dpierron@gmail.com"}]
 readme = "README.md"
@@ -36,6 +36,7 @@ build-exe = [
 docs = [
     "mkdocs>=1.6.0",
     "mkdocs-material>=9.5.0",
+    "mkdocs-static-i18n>=1.2.0",
 ]
 
 [project.scripts]

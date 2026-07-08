@@ -23,8 +23,16 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   dark/light/system theme (server-persisted, defaults to `prefers-color-scheme`), and a
   fully-functional phone layout (bottom tab bar, day-card Timesheet period grid, touch-capable
   Timer/entry-editing/kanban drag-and-drop). See `.backlog/archive/ADAPTIVE.md`.
+- **PROJECTS** (project/code-centric tasks) — group tasks by their Timesheet code: a "Project (code)"
+  group-by in the list and per-project swimlanes on the kanban, plus the searchable/creatable
+  `CodePicker` on the Task editor (code-only mode). See `.backlog/archive/PROJECTS.md`.
+- **I18N** (bilingual user-facing docs) — the published MkDocs site is bilingual: English primary
+  (default/root/fallback), French secondary with full parity and a language switcher, via
+  `mkdocs-static-i18n`; scope was `docs-site/` only. See `.backlog/archive/I18N.md`, CHR-010.
 
 ## Now — not yet chosen
+
+_(nothing selected)_
 
 ## Forward-looking (not scheduled)
 

@@ -5,6 +5,27 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-08
+
+### Added
+
+- **Group tasks by project (code)** (BIZ-036): the Tasks list gains a "Project (code)" option in its
+  "Group by" control (ordered by code name, "No project" last), and the kanban board splits into one
+  swimlane per project (plus a "No project" lane) when grouped by project. Drag-and-drop stays
+  status-only within a lane — a task's code is changed in the task panel, not by moving cards
+  between lanes.
+- **Searchable, creatable code picker on the Task editor** (BIZ-037): the task's code field is now
+  the same rich picker used when categorizing an entry — search your codes, add one from the
+  reference catalog on the fly, or create a new real/virtual code — instead of a plain dropdown of
+  active codes. The picker runs in a code-only mode (a task has no activity): one click picks the
+  code. "No code (orphan task)" stays available.
+- **French documentation** (CHR-010): the published docs site is now bilingual — English primary
+  (the default, served at the site root, and the fallback), French a fully-translated secondary —
+  with a language switcher in the header, via the `mkdocs-static-i18n` plugin.
+- **Catalog-import documentation page** (CHR-011): a user-facing "Importing your code catalog" page
+  (EN/FR) on the docs site — the two-tier reference/active model, the accepted CSV layouts, and how
+  to import — linked from the day-to-day guide.
+
 ## [1.1.0] - 2026-07-08
 
 ### Added

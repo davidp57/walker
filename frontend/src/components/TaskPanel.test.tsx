@@ -103,7 +103,7 @@ describe('TaskPanel', () => {
     expect(screen.getByTestId('wk-task-tag-suggestion-backend')).toBeInTheDocument()
   })
 
-  it('lets picking a code (real or virtual) or leaving it orphan', () => {
+  it('picks a code via the searchable picker', () => {
     const onSave = vi.fn()
     render(
       <TaskPanel
@@ -116,10 +116,53 @@ describe('TaskPanel', () => {
     )
 
     fireEvent.change(screen.getByTestId('wk-task-title-input'), { target: { value: 'Task' } })
-    fireEvent.change(screen.getByTestId('wk-task-code-select'), { target: { value: '9' } })
+    fireEvent.click(screen.getByTestId('wk-task-code-trigger'))
+    fireEvent.click(screen.getByText('Paper V4')) // code-only pick, no activity step
     fireEvent.click(screen.getByTestId('wk-task-save'))
 
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ codeId: '9' }))
+  })
+
+  it('can clear the code back to an orphan task', () => {
+    const onSave = vi.fn()
+    render(
+      <TaskPanel
+        task={makeTask({ codeId: '9' })}
+        codes={[CODE]}
+        tagSuggestions={[]}
+        onSave={onSave}
+        onClose={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-task-code-clear'))
+    fireEvent.click(screen.getByTestId('wk-task-save'))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ codeId: null }))
+  })
+
+  it('offers creating a real or virtual code from the task code picker', () => {
+    const onCreateNew = vi.fn()
+    const onCreateNewVirtual = vi.fn()
+    render(
+      <TaskPanel
+        task={null}
+        codes={[]}
+        tagSuggestions={[]}
+        onSave={vi.fn()}
+        onClose={vi.fn()}
+        onCreateNew={onCreateNew}
+        onCreateNewVirtual={onCreateNewVirtual}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-task-code-trigger'))
+    fireEvent.change(screen.getByPlaceholderText('Search code or activity…'), {
+      target: { value: 'New thing' },
+    })
+
+    fireEvent.click(screen.getByText('➕ Create a new code'))
+    expect(onCreateNew).toHaveBeenCalledWith('New thing')
   })
 
   it('calls onDelete then onClose when Delete is clicked', () => {

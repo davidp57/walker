@@ -4,7 +4,7 @@ import { IconPlay } from '../components/icons'
 import { TaskBoard } from '../components/TaskBoard'
 
 export type TaskSortField = 'status' | 'priority' | 'due' | 'title'
-export type TaskGroupField = 'none' | 'status' | 'priority' | 'due'
+export type TaskGroupField = 'none' | 'status' | 'priority' | 'due' | 'code'
 export type TaskViewMode = 'list' | 'board'
 
 interface TasksScreenProps {
@@ -58,7 +58,14 @@ function compareTasks(a: Task, b: Task, field: TaskSortField): number {
   }
 }
 
-function groupKeyFor(task: Task, field: TaskGroupField, today: string): string {
+const NO_PROJECT = 'No project'
+
+function groupKeyFor(
+  task: Task,
+  field: TaskGroupField,
+  today: string,
+  codesById: Record<string, TimesheetCode>,
+): string {
   switch (field) {
     case 'status':
       return STATUS_LABEL[task.status]
@@ -66,6 +73,8 @@ function groupKeyFor(task: Task, field: TaskGroupField, today: string): string {
       return task.priority ? task.priority[0].toUpperCase() + task.priority.slice(1) : 'No priority'
     case 'due':
       return dueGroupLabel(task.dueDate, today)
+    case 'code':
+      return task.codeId ? (codesById[task.codeId]?.name ?? task.codeId) : NO_PROJECT
     default:
       return ''
   }
@@ -108,13 +117,23 @@ export function TasksScreen({
     if (group === 'none') return [{ label: null as string | null, items: sorted }]
     const byKey = new Map<string, Task[]>()
     for (const task of sorted) {
-      const key = groupKeyFor(task, group, today)
+      const key = groupKeyFor(task, group, today, codesById)
       const list = byKey.get(key) ?? []
       list.push(task)
       byKey.set(key, list)
     }
-    return [...byKey.entries()].map(([label, items]) => ({ label, items }))
-  }, [sorted, group, today])
+    const entries = [...byKey.entries()].map(([label, items]) => ({ label, items }))
+    // Grouping by project (code) orders lanes by code name ascending, "No project" last (BIZ-036);
+    // the other groupings keep first-appearance order.
+    if (group === 'code') {
+      entries.sort((a, b) => {
+        if (a.label === NO_PROJECT) return 1
+        if (b.label === NO_PROJECT) return -1
+        return a.label.localeCompare(b.label)
+      })
+    }
+    return entries
+  }, [sorted, group, today, codesById])
 
   const sortHeader = (field: TaskSortField, label: string) => (
     <th
@@ -229,35 +248,34 @@ export function TasksScreen({
           </button>
         </div>
         {view === 'list' && (
-          <>
-            <label>
-              Sort by
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as TaskSortField)}
-                data-testid="wk-task-sort-select"
-              >
-                <option value="due">Due date</option>
-                <option value="status">Status</option>
-                <option value="priority">Priority</option>
-                <option value="title">Title</option>
-              </select>
-            </label>
-            <label>
-              Group by
-              <select
-                value={group}
-                onChange={(e) => setGroup(e.target.value as TaskGroupField)}
-                data-testid="wk-task-group-select"
-              >
-                <option value="none">None</option>
-                <option value="status">Status</option>
-                <option value="priority">Priority</option>
-                <option value="due">Due date</option>
-              </select>
-            </label>
-          </>
+          <label>
+            Sort by
+            <select
+              value={sort}
+              onChange={(e) => setSort(e.target.value as TaskSortField)}
+              data-testid="wk-task-sort-select"
+            >
+              <option value="due">Due date</option>
+              <option value="status">Status</option>
+              <option value="priority">Priority</option>
+              <option value="title">Title</option>
+            </select>
+          </label>
         )}
+        <label>
+          Group by
+          <select
+            value={group}
+            onChange={(e) => setGroup(e.target.value as TaskGroupField)}
+            data-testid="wk-task-group-select"
+          >
+            <option value="none">None</option>
+            <option value="code">Project (code)</option>
+            <option value="status">Status</option>
+            <option value="priority">Priority</option>
+            <option value="due">Due date</option>
+          </select>
+        </label>
       </div>
 
       {loading ? (
@@ -268,6 +286,7 @@ export function TasksScreen({
         <TaskBoard
           tasks={tasks}
           codesById={codesById}
+          groupByCode={group === 'code'}
           onOpenTask={onOpenTask}
           onMoveTask={onMoveTask ?? (() => {})}
         />

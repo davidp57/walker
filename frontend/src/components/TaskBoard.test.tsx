@@ -1,7 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
 import { TaskBoard } from './TaskBoard'
-import type { Task } from '../types'
+import type { Task, TimesheetCode } from '../types'
+
+function makeCode(id: string, name: string, number = `N/${id}`): TimesheetCode {
+  return {
+    id,
+    number,
+    name,
+    label: 'MNT',
+    color: '#5b9cf6',
+    activities: [],
+    isVirtual: false,
+    realCodeId: null,
+    realCodeNumber: null,
+  }
+}
 
 const STATUS_COLUMN_ORDER = ['todo', 'in_progress', 'waiting', 'test', 'done']
 
@@ -185,6 +199,74 @@ describe('TaskBoard', () => {
     expect(screen.getByTestId('wk-board-column-in_progress')).toHaveClass('is-drop-target')
 
     fireEvent.keyDown(handle, { code: 'Escape' })
+  })
+
+  it('splits into one swimlane per project plus a "No project" lane when groupByCode', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4'), '5': makeCode('5', 'Alpha') }
+    const tasks = [
+      makeTask({ id: '1', title: 'Paper task', codeId: '9', status: 'todo' }),
+      makeTask({ id: '2', title: 'Alpha task', codeId: '5', status: 'todo' }),
+      makeTask({ id: '3', title: 'Orphan task', codeId: null, status: 'todo' }),
+    ]
+    render(
+      <TaskBoard
+        groupByCode
+        tasks={tasks}
+        codesById={codesById}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+
+    const lanes = [...document.querySelectorAll('[data-testid^="wk-board-lane-"]')].map((el) =>
+      el.getAttribute('data-testid'),
+    )
+    // Lanes ordered by code name ascending, "No project" last.
+    expect(lanes).toEqual(['wk-board-lane-5', 'wk-board-lane-9', 'wk-board-lane-none'])
+    expect(
+      within(screen.getByTestId('wk-board-lane-9')).getByText('Paper task'),
+    ).toBeInTheDocument()
+    expect(
+      within(screen.getByTestId('wk-board-lane-none')).getByText('Orphan task'),
+    ).toBeInTheDocument()
+  })
+
+  it('keeps the five status columns inside each lane', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4') }
+    const tasks = [makeTask({ id: '1', title: 'Paper task', codeId: '9' })]
+    render(
+      <TaskBoard
+        groupByCode
+        tasks={tasks}
+        codesById={codesById}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+
+    const lane = screen.getByTestId('wk-board-lane-9')
+    for (const status of STATUS_COLUMN_ORDER) {
+      expect(within(lane).getByTestId(`wk-board-column-${status}`)).toBeInTheDocument()
+    }
+  })
+
+  it('a move control inside a lane still calls onMoveTask with the new status only', () => {
+    const onMoveTask = vi.fn()
+    const codesById = { '9': makeCode('9', 'Paper V4') }
+    const task = makeTask({ id: '1', title: 'Paper task', codeId: '9', status: 'todo' })
+    render(
+      <TaskBoard
+        groupByCode
+        tasks={[task]}
+        codesById={codesById}
+        onOpenTask={vi.fn()}
+        onMoveTask={onMoveTask}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-board-card-move-next-1'))
+
+    expect(onMoveTask).toHaveBeenCalledWith(task, 'in_progress')
   })
 
   it('shows the linked code and priority on a card', () => {

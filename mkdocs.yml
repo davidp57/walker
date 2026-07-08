@@ -36,6 +36,27 @@ markdown_extensions:
 
 plugins:
   - search
+  # Bilingual site (CHR-010): English is the default (served at the root, and the fallback for any
+  # not-yet-translated page); French pages live beside their English source with a `.fr.md` suffix.
+  # mkdocs-material renders a language switcher in the header from the alternates this plugin injects.
+  - i18n:
+      docs_structure: suffix
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: fr
+          name: Français
+          build: true
+          nav_translations:
+            Home: Accueil
+            Getting Started: Prise en main
+            Self-hosting: Auto-hébergement
+            Standalone .exe: Exécutable autonome (.exe)
+            Configuring SSO: Configurer le SSO
+            Day-to-day Guide: Guide au quotidien
+            Importing codes: Importer les codes
 
 nav:
   - Home: index.md
@@ -46,3 +67,4 @@ nav:
       - Standalone .exe: self-hosting/standalone-exe.md
       - Configuring SSO: self-hosting/sso.md
   - Day-to-day Guide: guide.md
+  - Importing codes: catalog-import.md
