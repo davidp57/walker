@@ -12,7 +12,6 @@ source of truth for **scope and status**.
 
 | Lot | Status |
 |-----|--------|
-| [I18N](I18N/PRD.md) — Bilingual user-facing documentation (EN primary, FR secondary) | ⬜ |
 | [TECH](TECH/PRD.md) — Cross-cutting technical debt (living lot; tickets added/resolved individually) | 🔄 |
 
 ## Archived lots
@@ -26,6 +25,7 @@ source of truth for **scope and status**.
 | [SHIP](archive/SHIP.md) — Professionalize Walker into a shareable app: generic vocabulary, configurable Timesheet period, Organization-scoped catalog + SSO, docs site, CI, Docker + `.exe` CD | ✅ |
 | [ADAPTIVE](archive/ADAPTIVE.md) — Theme toggle (dark/light, server-persisted) + a fully-functional responsive phone layout | ✅ |
 | [PROJECTS](archive/PROJECTS.md) — Project (code)-centric task grouping (list group + kanban swimlanes) + unified searchable/creatable code picker on the Task editor | ✅ |
+| [I18N](archive/I18N.md) — Bilingual user-facing documentation site (EN primary, FR secondary) via `mkdocs-static-i18n` | ✅ |
 
 ## ID prefixes & priorities
 
