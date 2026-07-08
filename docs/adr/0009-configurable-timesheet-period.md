@@ -1,6 +1,6 @@
 # Timesheet period becomes a per-user setting; "Fortnight" is genericized
 
-Walker's period concept was hardcoded to PwC's own scheme: `fortnight_bounds()`
+Walker's period concept was hardcoded to the original semi-monthly scheme: `fortnight_bounds()`
 (`services/fortnight.py`) always splits a month into 1st–15th and 16th–end, with no parameter. As part
 of professionalizing Walker into a general-purpose, shareable app (the RELEASE-lot work), this needed
 to become a choice, not a constant — and the name "Fortnight" needed to stop implying "always two

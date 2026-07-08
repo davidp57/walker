@@ -23,8 +23,8 @@ bilingual EN/FR, covering:
 
 Wire it into the nav (+ `nav_translations`), and cross-link it from the guide's charge-codes section.
 
-**Explicitly generic**: no organization-internal specifics (e.g. a particular employer's SAP/Datahub
-SQL query). That detail stays in the internal `docs/catalog-import.md`, which is not published.
+**Explicitly generic**: no organization-internal specifics (e.g. an organization-internal SQL query).
+That detail stays in the internal `docs/catalog-import.md`, which is not published.
 
 ## Acceptance criteria
 

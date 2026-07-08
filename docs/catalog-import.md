@@ -17,37 +17,27 @@ The importer (`walker.services.catalog.parse_catalog_csv`) accepts two CSV layou
 
 Import upserts by `code_number` (re-importing is idempotent); colors are auto-assigned from a palette.
 
-## Source query (Datahub)
+## Example source query
 
-Regenerate the catalog with this query, then export the result to CSV and import it via
-**Code catalog → Import from file**. The four output columns line up 1:1 with the headerless format
-above, so no header row or post-processing is needed.
+The exact query depends on your own system; the one below is **illustrative only** — adjust the
+table and column names to match your catalog. It produces the four headerless columns above, in
+order, ready to export to CSV and import via **Code catalog → Import from file**.
 
 ```sql
+-- Illustrative example only — will not run as-is; adapt names to your own system.
 SELECT
-    w.Code            AS CodeTimesheet,
-    w.Text            AS LibelleWbs,
-    a.CodeActivite,
-    a.LibelleActivite
-FROM TS.Wbs w
-INNER JOIN (
-    SELECT POSKI, VORNR AS CodeActivite, MIN(LTXA1) AS LibelleActivite
-    FROM SAP.AFVC
-    WHERE ISNULL(LOEKZ,'') <> 'X'
-      AND LTXA1 NOT LIKE '%do not use%'
-    GROUP BY POSKI, VORNR
-) a ON a.POSKI = w.Code
-WHERE w.LockDate >= CAST(GETDATE() AS date)
-  AND w.Code LIKE 'N[1,9]/%'
-ORDER BY w.Code, a.CodeActivite;
+    w.wbs_code        AS code_number,
+    w.wbs_text        AS code_label,
+    a.activity_code,
+    a.activity_label
+FROM erp_wbs w
+JOIN erp_activities a ON a.wbs_code = w.wbs_code
+WHERE w.locked = 'N'
+ORDER BY w.wbs_code, a.activity_code;
 ```
 
 Notes:
 
-- `w.Code LIKE 'N[1,9]/%'` keeps `N1/…` and `N9/…` charge codes and **excludes** the `N0/…` training
-  catalog (`Attend-…` codes with event-date "activities"), which alone runs to ~50k rows. `w.LockDate
-  >= today` keeps active codes.
-- Even filtered this is a firm-wide catalog (~9k codes / ~16k rows). Walker's Code catalog and the
-  code-picker render a capped slice and rely on **search**, so large imports stay responsive; import
-  is a couple of seconds. Narrow the `WHERE` clause further if you only ever charge to a handful of
-  engagements.
+- Filter to just the codes you actually charge to — a firm-wide catalog can run to thousands of
+  codes and rows. Walker's Code catalog and code-picker render a capped slice and rely on **search**,
+  so even large imports stay responsive; import is a couple of seconds.
