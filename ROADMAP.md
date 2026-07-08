@@ -35,6 +35,8 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 - **POLISH / BIZ-038** — show the running Timer as a live, read-only row in the Activity view (it
   currently only appears in the TimerBar and the Timesheet period grid). See `.backlog/POLISH/PRD.md`.
+- **POLISH / BIZ-039** — add an absence over a date range (from → to), not just a single day; fans
+  out to one absence per day. See `.backlog/POLISH/PRD.md`.
 
 ## Forward-looking (not scheduled)
 
