@@ -18,7 +18,7 @@ archival); this file keeps the ticket table for reference.
 | BIZ-002 | Edit & import the Code catalog | P1 | ✅ done |
 | BIZ-003 | Track an entry end-to-end (Timer + entries) | P1 | ✅ done |
 | BIZ-004 | Fortnight view from real entries | P1 | ✅ done |
-| BIZ-005 | Entry checklist (T&E entry mode) | P2 | ✅ done |
+| BIZ-005 | Entry checklist (timesheet entry mode) | P2 | ✅ done |
 | BIZ-006 | Settings (work rhythm, density, absences) | P2 | ✅ done |
 
 ## Verified against

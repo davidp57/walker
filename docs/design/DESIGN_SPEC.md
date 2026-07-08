@@ -1,11 +1,12 @@
 # Walker — Design Spec (engineering handoff)
 
-Walker is a personal **Timer** + timesheet helper. You track work during the day against real PwC
-**Timesheet codes**; at the end of each **Fortnight** Walker shows exactly what to key into T&E.
+Walker is a personal **Timer** + timesheet helper. You track work during the day against real
+**Timesheet codes**; at the end of each **Fortnight** Walker shows exactly what to key into the
+timesheet system.
 
-**Non-goals (do not build):** no T&E automation / "submit to T&E", no rounding controls, no enforced
-daily/fortnight totals. Walker shows **real, to-the-minute** durations only. Rounding to the quarter
-hour and hitting 8h/day is the user's job inside T&E.
+**Non-goals (do not build):** no timesheet automation / "submit to the timesheet system", no rounding
+controls, no enforced daily/fortnight totals. Walker shows **real, to-the-minute** durations only.
+Rounding to the quarter hour and hitting 8h/day is the user's job inside the timesheet system.
 
 Desktop-first (99% usage: work PC, browser). Responsive is a bonus, not a requirement.
 Dark theme by default. Subtle western personality — a wink in the logo, empty states and microcopy
@@ -15,13 +16,14 @@ Dark theme by default. Subtle western personality — a wink in the logo, empty 
 
 ## Vocabulary (use these exact labels in the UI)
 - **Entry** — a tracked period of work. Can be empty/**uncategorized**; always editable.
-- **Timesheet code** (a.k.a. *code*) — a PwC charge code: a number (`N9/…`) + a technical label
+- **Timesheet code** (a.k.a. *code*) — a charge code: a number (`N9/…`) + a technical label
   (`MNT - PAP V4`) + a human **project name** (the *libellé*, e.g. "Paper V4"). The project name is
-  the primary identifier the user reads; the number is only needed for T&E.
+  the primary identifier the user reads; the number is only needed for the timesheet system.
 - **Activity** — a code's sub-category: `Bug fixing`, `Change request`, `Communication & Meeting`,
   `Support`.
 - **Fortnight** — the period 1st–15th, then 16th–end of month.
-- **Absence** — a non-worked day (leave, public holiday, part-time). Reflected from T&E; read-only.
+- **Absence** — a non-worked day (leave, public holiday, part-time). Reflected from the timesheet
+  system; read-only.
 - **Timer** — the persistent, always-visible running clock.
 - **Code catalog** — browse/search codes & activities; import from a file.
 
@@ -30,8 +32,8 @@ Dark theme by default. Subtle western personality — a wink in the logo, empty 
 ## Global layout & navigation
 
 `AppShell` = fixed left **Sidebar** (238px) + main column.
-- **Sidebar:** logo (star badge + "Walker" wordmark + `time → T&E` tagline), nav, user footer.
-- **Nav routes:** `Today` (Tracker) · `Fortnight` · `Enter in T&E` (Checklist) · `Code catalog` ·
+- **Sidebar:** logo (star badge + "Walker" wordmark + `time → timesheet` tagline), nav, user footer.
+- **Nav routes:** `Today` (Tracker) · `Fortnight` · `Enter in the timesheet system` (Checklist) · `Code catalog` ·
   `Settings`.
 - **Main column:** the **persistent Timer bar** (76px, visible on every route) above the routed screen.
 
@@ -106,14 +108,14 @@ spans; amber pill brightens on hover; resume/delete affordances change color on 
 
 ## Screen: Fortnight (`Fortnight` — "by code")
 
-**Purpose:** a 1:1 **visual mirror of T&E's BY-CODE grid**, so re-keying is a straight visual match.
+**Purpose:** a 1:1 **visual mirror of the timesheet system's BY-CODE grid**, so re-keying is a straight visual match.
 
 **Layout:** sticky-left "Code · Activity" column; one column per day of the period; a right **Total**
 column; a footer **Daily total** row + grand total.
 - Period switcher: segmented `1–15` / `16–31` + period label ("1 – 15 July 2026").
 - **Rows** = Timesheet code × Activity. **Cells** = real duration `H:MM` for that code/activity/day.
-- **Weekend** columns greyed. **Absence** columns striped (read-only, reflected from T&E). **Today**
-  column marked.
+- **Weekend** columns greyed. **Absence** columns striped (read-only, reflected from the timesheet
+  system). **Today** column marked.
 - Row header shows code number (mono) + activity. Row Total and Daily totals are informational.
 
 **States/interaction**
@@ -122,13 +124,15 @@ column; a footer **Daily total** row + grand total.
 
 ---
 
-## Screen: Checklist (`Enter in T&E`)
+## Screen: Checklist (`Enter in the timesheet system`)
 
-**Purpose:** track progress while keying the Fortnight grid into T&E — tick each cell as it's entered.
+**Purpose:** track progress while keying the Fortnight grid into the timesheet system — tick each cell
+as it's entered.
 
 **Layout:** same grid geometry as Fortnight (identical column order, so it reads 1:1), plus:
-- Header: "Enter into T&E" + instruction ("Tick each cell as you key it into T&E. Shift-click for a
-  range, ⌘/Ctrl-click to toggle one."), an `X / Y lines entered` counter, and **Reset**.
+- Header: "Enter into the timesheet system" + instruction ("Tick each cell as you key it into the
+  timesheet system. Shift-click for a range, ⌘/Ctrl-click to toggle one."), an `X / Y lines entered`
+  counter, and **Reset**.
 - A thin green **progress bar** (`done/total`).
 - Each row header carries a small **`done/total` badge** (click to mark the whole row entered; turns
   green when complete).
@@ -137,7 +141,7 @@ column; a footer **Daily total** row + grand total.
 - **Plain click:** toggle that cell entered/not; sets the range anchor.
 - **Shift-click:** mark the range **from anchor to target as entered**. Range order is **column-major**
   (vertical): traversal goes *down a day column first, then to the next column* — the natural order for
-  entering a full day into T&E.
+  entering a full day into the timesheet system.
 - **⌘/Ctrl-click:** toggle a single cell without disturbing the anchor.
 - Entered cells: green wash, green text, corner ✓.
 
@@ -165,8 +169,8 @@ Search box (filters by number, project name, technical label, or activity) + "�
 ## Screen: Settings
 
 Fortnight-view personalization (read-only presentational cards in v1): **Work rhythm** (Mon–Fri),
-**Part-time** (recurring non-worked day), **Absences this fortnight** (reflected from T&E, striped chip
-per Absence). No rounding/target controls anywhere.
+**Part-time** (recurring non-worked day), **Absences this fortnight** (reflected from the timesheet
+system, striped chip per Absence). No rounding/target controls anywhere.
 
 ---
 
@@ -183,7 +187,7 @@ per Absence). No rounding/target controls anywhere.
 | `FortnightGrid` | Shared BY-CODE grid | mode('fortnight'|'checklist'), days, rows, (+edit or check callbacks) | weekend / absence / today / editing cell / entered cell |
 | `TrackerScreen` | Today | dateLabel, totalLabel, entries, codesById, handlers | empty / full-day |
 | `FortnightScreen` | Fortnight mirror | period, periodLabel, days, rows, onPeriodChange, onEditCell | period 1–15 / 16–31 |
-| `ChecklistScreen` | Enter in T&E | days, rows, checked, onChange, onReset | empty / partial / complete |
+| `ChecklistScreen` | Enter in the timesheet system | days, rows, checked, onChange, onReset | empty / partial / complete |
 | `CodeCatalogScreen` | Code catalog | codes, onImport? | search / results |
 | `SettingsScreen` | Settings | workRhythm, partTime, absences | — |
 

@@ -5,6 +5,12 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the remaining employer-specific references (and the app's naming-origin note) from the
+  README, docs, ADRs, and internal notes, so the repository reads as a generic, shareable product.
+  Added a link to the published documentation site from the README.
+
 ## [1.2.0] - 2026-07-08
 
 ### Added
@@ -104,12 +110,12 @@ All notable changes to Walker are documented here. Format loosely follows
   pure function with no database dependency, and changing the scheme reshapes the Timesheet period view
   immediately (no reload). Existing users on the default scheme see byte-for-byte identical boundaries
   (1st–15th / 16th–end of month). See ADR-0009.
-- **Remove PwC branding; optional User display name** (CHR-004): the shell footer no longer hardcodes
-  "Consultant" / "PwC · Advisory" — it shows the `User`'s optional `name` when set, falling back to
+- **Remove employer branding; optional User display name** (CHR-004): the shell footer no longer
+  hardcodes a role/employer line — it shows the `User`'s optional `name` when set, falling back to
   `username`, with no role/employer line at all. `User` gains a nullable `name` column, surfaced via a
-  new `GET /api/user` endpoint. Remaining standalone "PwC" mentions in docs and code comments (not part
-  of the "T&E"/"Time & Expenses" wording handled separately) are also gone.
-- **"T&E"/"Time & Expenses" → "Timesheet system" rename** (CHR-003): mechanical rename across code,
+  new `GET /api/user` endpoint. Remaining standalone employer mentions in docs and code comments (not
+  part of the timesheet-system wording handled separately) are also gone.
+- **Old timesheet-system name → "Timesheet system" rename** (CHR-003): mechanical rename across code,
   API strings/labels, UI copy, and docs, completing the vocabulary shift started by BIZ-027. No
   behavior change.
 - **Organization model + domain-based auto-join** (BIZ-028): a new `Organization` entity groups Users
@@ -152,13 +158,13 @@ All notable changes to Walker are documented here. Format loosely follows
   click-to-move as the primary way to change a Task's status.
 - **UX lot shipped**: post-MVP UX improvements surfaced by a review of the running app — frontend-only,
   no API/schema/domain change (durations still recorded and aggregated exactly as before, ADR-0005).
-  - **Unified Fortnight grid** (BIZ-007): Fortnight and "Enter in T&E" merged into one screen with a
-    Review / Enter in T&E header toggle (default Review); the standalone "Enter in T&E" nav item and
-    route are gone (nav 5 → 4). Same grid — Review groups by code (virtual codes as their own rows),
-    Enter in T&E resolves to the real code (ADR-0008) — sharing day columns, the Total column
+  - **Unified Fortnight grid** (BIZ-007): Fortnight and "Enter in the timesheet system" merged into one
+    screen with a Review / Enter header toggle (default Review); the standalone "Enter in the timesheet
+    system" nav item and route are gone (nav 5 → 4). Same grid — Review groups by code (virtual codes as
+    their own rows), Enter resolves to the real code (ADR-0008) — sharing day columns, the Total column
     (row/daily/grand), weekend/absence styling, and the tinted read-only running-Timer cell; switching
     modes keeps period and data in place.
-  - **Enter-in-T&E checkbox affordance** (BIZ-008): each filled working cell shows a checkbox beside its
+  - **Enter checkbox affordance** (BIZ-008): each filled working cell shows a checkbox beside its
     duration at rest; ticked turns green with a check, matching the existing tick/shift-click/⌘-click/
     row-badge interactions.
   - **Keyboard-driven timer loop** (BIZ-009): Enter in the description field starts a Timer with that
@@ -169,8 +175,8 @@ All notable changes to Walker are documented here. Format loosely follows
   - **Entry mutation safety** (BIZ-011): deleting an Entry is now undoable (6s window, recreates via the
     existing create endpoint); "+ Add entry" persists nothing until Save; row actions (edit/resume/
     delete) have clearer icons and larger click targets.
-  - **Copy the T&E code** (BIZ-016): a copy icon beside the row header's T&E code number in the Fortnight
-    grid copies it to the clipboard with visible confirmation.
+  - **Copy the timesheet code** (BIZ-016): a copy icon beside the row header's timesheet code number in
+    the Fortnight grid copies it to the clipboard with visible confirmation.
   - **Timer midnight fix** (TEC-001): the running Timer's elapsed time is derived from the Entry's real
     start instead of local midnight, so it stays correct across a midnight boundary.
   - **Visible API errors + loading feedback** (TEC-002): a toast surfaces failed saves/loads instead of
@@ -189,13 +195,13 @@ All notable changes to Walker are documented here. Format loosely follows
   against a shared fixture (`tests/fixtures/virtual_code_resolution.json`) via a pytest test and a
   Vitest test, so a change to one rule that isn't mirrored in the other fails a test. No behavior
   change.
-- **VCODE lot shipped**: virtual codes (ADR-0008) — user-created codes backed by exactly one real T&E
-  code, for finer classification than T&E offers.
+- **VCODE lot shipped**: virtual codes (ADR-0008) — user-created codes backed by exactly one real
+  timesheet code, for finer classification than the timesheet system offers.
   - A virtual code borrows its real code's number, technical label, and Activities, and owns its own
     name and colour; `POST/PUT /api/codes/virtual` (create/edit), reusing `DELETE /api/codes/{id}`.
   - Two-level aggregation: the Fortnight/Review grid shows a virtual code as its own row; the
-    Enter-in-T&E checklist resolves virtual codes to their real code, collapsing several virtual codes
-    sharing one real code into a single T&E line.
+    Enter checklist resolves virtual codes to their real code, collapsing several virtual codes
+    sharing one real code into a single timesheet line.
   - Code catalog: virtual codes listed among real ones with a "virtual" badge and backing real code;
     "New virtual code" and per-card edit/delete (delete guard when an Entry or a virtual code depends
     on it).
@@ -208,7 +214,7 @@ All notable changes to Walker are documented here. Format loosely follows
   - Timer & entries: `POST /api/timer/start|switch|stop` (at most one running Entry per user, atomic
     switch), full CRUD on `/api/entries`; real to-the-minute durations, no rounding (ADR-0005).
   - Fortnight view: `GET /api/fortnight/{date}` aggregates Entries into the Code × Activity × Day
-    T&E-shaped matrix (1st–15th / 16th–end boundaries).
+    timesheet-shaped matrix (1st–15th / 16th–end boundaries).
   - Entry checklist: `GET/PATCH/DELETE /api/fortnight/{date}/checklist`, derived from the fortnight
     grid, idempotent toggling, progress tracking.
   - Settings: `GET/PUT /api/settings` (work rhythm, density) and `POST/DELETE /api/settings/absences`,

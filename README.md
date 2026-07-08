@@ -5,14 +5,16 @@ track your time during the day against the real charge codes; at the end of each
 Walker shows you exactly what to enter into the Timesheet system — a Timesheet-system-shaped grid plus
 a tick-as-you-go checklist.
 
-The name is a nod to *Walker, Texas Ranger* (the previous internal tool was called "Texas").
-
 > Status: **POC**, single user. Web app (FastAPI JSON API + React SPA), dockerized, SQLite.
+
+📖 **Documentation site:** <https://davidp57.github.io/Walker/> — getting started, day-to-day guide,
+self-hosting, and importing your code catalog (available in English and French).
 
 ## Documentation
 
 | Topic | Document |
 |---|---|
+| User documentation (published site) | <https://davidp57.github.io/Walker/> |
 | Ubiquitous language (glossary) | [CONTEXT.md](CONTEXT.md) |
 | Architecture decisions | [docs/adr/](docs/adr/) |
 | UI design brief (handoff) | [docs/design/handoff.md](docs/design/handoff.md) |
