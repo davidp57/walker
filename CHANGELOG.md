@@ -17,6 +17,9 @@ All notable changes to Walker are documented here. Format loosely follows
   reference catalog on the fly, or create a new real/virtual code — instead of a plain dropdown of
   active codes. The picker runs in a code-only mode (a task has no activity): one click picks the
   code. "No code (orphan task)" stays available.
+- **French documentation** (CHR-010): the published docs site is now bilingual — English primary
+  (the default, served at the site root, and the fallback), French a fully-translated secondary —
+  with a language switcher in the header, via the `mkdocs-static-i18n` plugin.
 
 ## [1.1.0] - 2026-07-08
 
