@@ -12,6 +12,7 @@ source of truth for **scope and status**.
 
 | Lot | Status |
 |-----|--------|
+| [POLISH](POLISH/PRD.md) — Incremental UX polish (living lot; small tracker/UI improvements) | 🔄 |
 | [DOCS](DOCS/PRD.md) — User-facing documentation-site content (living lot; bilingual EN/FR pages) | 🔄 |
 | [TECH](TECH/PRD.md) — Cross-cutting technical debt (living lot; tickets added/resolved individually) | 🔄 |
 

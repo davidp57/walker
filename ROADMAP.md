@@ -33,7 +33,8 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 ## Now — not yet chosen
 
-_(nothing selected)_
+- **POLISH / BIZ-038** — show the running Timer as a live, read-only row in the Activity view (it
+  currently only appears in the TimerBar and the Timesheet period grid). See `.backlog/POLISH/PRD.md`.
 
 ## Forward-looking (not scheduled)
 
