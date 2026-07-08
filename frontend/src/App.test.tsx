@@ -1,13 +1,22 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import type { Entry, TimesheetCode } from './types'
+import type { Entry, Theme, TimesheetCode } from './types'
 import * as api from './lib/api'
 
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
 })
+
+/**
+ * Clicks a nav destination by label, scoped to the sidebar (BIZ-033 also renders a bottom tab bar
+ * with the same labels, so an unscoped query would be ambiguous).
+ */
+async function clickNav(label: string): Promise<void> {
+  const nav = await screen.findByRole('navigation', { name: /main navigation/i })
+  fireEvent.click(within(nav).getByText(label))
+}
 
 const realCode: TimesheetCode = {
   id: '1',
@@ -43,13 +52,14 @@ const uncategorizedEntry: Entry = {
   description: '',
 }
 
-function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
+function mockBaseApi(codes: TimesheetCode[], entries: Entry[], theme: Theme = 'system') {
   vi.spyOn(api, 'fetchCodes').mockResolvedValue(codes)
   vi.spyOn(api, 'fetchEntriesRange').mockResolvedValue(entries)
   vi.spyOn(api, 'fetchSettings').mockResolvedValue({
     workdays: [false, true, true, true, true, true, false],
     density: 'comfortable',
     periodScheme: 'semi_monthly',
+    theme,
     absences: [],
   })
   vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
@@ -170,6 +180,7 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
       periodScheme: 'semi_monthly',
+      theme: 'system',
       absences: [],
     })
     vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
@@ -206,6 +217,7 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
       periodScheme: 'semi_monthly',
+      theme: 'system',
       absences: [],
     })
     vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
@@ -377,7 +389,7 @@ describe('App — Timesheet period screen (BIZ-007)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Timesheet period'))
+    await clickNav('Timesheet period')
 
     expect(await screen.findByRole('button', { name: 'Review' })).toHaveClass('is-active')
     expect(
@@ -400,13 +412,17 @@ describe('App — Timesheet period screen (BIZ-007)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Timesheet period'))
+    await clickNav('Timesheet period')
     fireEvent.click(await screen.findByRole('button', { name: 'Enter in Timesheet system' }))
-    await screen.findByText('Paper V4')
+    await screen.findAllByText('Paper V4')
 
     // The running entry is on the virtual code; resolved to the real code (ADR-0008) its cell must
     // still be tinted/read-only — "Timer running" title only appears on the resolved real-code row.
-    expect(await screen.findByTitle('Timer running — stop it to edit')).toBeInTheDocument()
+    // PeriodGrid (BIZ-034) renders both the table and the phone day-card list from the same data,
+    // so this title can now appear twice — asserting at least one is enough for this check.
+    expect((await screen.findAllByTitle('Timer running — stop it to edit')).length).toBeGreaterThan(
+      0,
+    )
   })
 })
 
@@ -441,7 +457,7 @@ describe('App — start a Timer from a Task (BIZ-023)', () => {
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Tasks'))
+    await clickNav('Tasks')
     fireEvent.click(await screen.findByTestId('wk-task-start-7'))
 
     // The picker opens scoped to the task's code — only its activity remains to be picked.
@@ -495,12 +511,13 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
       periodScheme: 'monthly',
+      theme: 'system',
       absences: [],
     })
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Settings'))
+    await clickNav('Settings')
     await waitFor(() => expect(fetchPeriod).toHaveBeenCalled())
     const callsBeforeChange = fetchPeriod.mock.calls.length
 
@@ -509,7 +526,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
     // The period view recomputes with no reload: a fresh grid fetch fires for the new scheme.
     await waitFor(() => expect(fetchPeriod.mock.calls.length).toBeGreaterThan(callsBeforeChange))
 
-    fireEvent.click(await screen.findByText('Timesheet period'))
+    await clickNav('Timesheet period')
 
     // A full calendar month's worth of columns now render (semi-monthly would cap at 15/16).
     const dayHeaders = document.querySelectorAll('.wk-day-num')
@@ -523,12 +540,13 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
       periodScheme: 'weekly',
+      theme: 'system',
       absences: [],
     })
 
     render(<App />)
 
-    fireEvent.click(await screen.findByText('Settings'))
+    await clickNav('Settings')
     fireEvent.click(await screen.findByRole('button', { name: 'Weekly' }))
 
     await waitFor(() =>
@@ -536,8 +554,108 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
         [false, true, true, true, true, true, false],
         'comfortable',
         'weekly',
+        'system',
       ),
     )
+  })
+})
+
+describe('App — theme preference applied to the document (BIZ-032)', () => {
+  const matchMediaMock = (matches: boolean) => {
+    const listeners = new Set<() => void>()
+    const mql = {
+      matches,
+      media: '(prefers-color-scheme: dark)',
+      addEventListener: (_event: string, listener: () => void) => listeners.add(listener),
+      removeEventListener: (_event: string, listener: () => void) => listeners.delete(listener),
+    }
+    vi.stubGlobal('matchMedia', vi.fn().mockReturnValue(mql as unknown as MediaQueryList))
+    return {
+      setMatches: (value: boolean) => {
+        mql.matches = value
+      },
+      fire: () => listeners.forEach((l) => l()),
+    }
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    delete document.documentElement.dataset.theme
+    window.localStorage.clear()
+  })
+
+  it('sets data-theme="dark" when the stored preference is "dark"', async () => {
+    matchMediaMock(false)
+    mockBaseApi([realCode], [], 'dark')
+
+    render(<App />)
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'))
+  })
+
+  it('sets data-theme="light" when the stored preference is "light"', async () => {
+    matchMediaMock(true)
+    mockBaseApi([realCode], [], 'light')
+
+    render(<App />)
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'))
+  })
+
+  it('resolves "system" to "dark" when the OS prefers dark', async () => {
+    matchMediaMock(true)
+    mockBaseApi([realCode], [], 'system')
+
+    render(<App />)
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'))
+  })
+
+  it('resolves "system" to "light" when the OS prefers light', async () => {
+    matchMediaMock(false)
+    mockBaseApi([realCode], [], 'system')
+
+    render(<App />)
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'))
+  })
+
+  it('updates the rendered theme live when the OS preference changes while "system" is selected', async () => {
+    const media = matchMediaMock(false)
+    mockBaseApi([realCode], [], 'system')
+
+    render(<App />)
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'))
+
+    // Flip the OS preference to dark and fire the mocked media-query change listener.
+    media.setMatches(true)
+    media.fire()
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('dark'))
+  })
+
+  // Regression: the theme-applying effect runs on first render, before `fetchSettings` resolves.
+  // With a hardcoded "system" starting state, an explicit "light" preference on an OS that prefers
+  // dark would flash dark for one render, then correct itself once settings loaded — exactly the
+  // flash BIZ-032's acceptance criteria rule out. Seeding `theme` state from the cached preference
+  // (written by a previous visit) avoids that window entirely.
+  it('never renders the wrong theme while settings are still loading, using the cached preference', async () => {
+    matchMediaMock(true) // OS prefers dark
+    window.localStorage.setItem('wk-last-theme-preference', 'light')
+    vi.spyOn(api, 'fetchCodes').mockResolvedValue([realCode])
+    vi.spyOn(api, 'fetchEntriesRange').mockResolvedValue([])
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+    vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
+    vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
+    vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
+    // `fetchSettings` deliberately never resolves in this test — it stands in for the real network
+    // delay the effect above must survive without ever painting the wrong theme in between.
+    vi.spyOn(api, 'fetchSettings').mockReturnValue(new Promise(() => {}))
+
+    render(<App />)
+
+    await waitFor(() => expect(document.documentElement.dataset.theme).toBe('light'))
   })
 })
 

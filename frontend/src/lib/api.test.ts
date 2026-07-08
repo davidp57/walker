@@ -411,11 +411,12 @@ describe('fetchChecklist', () => {
 describe('fetchSettings', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  it('maps the settings payload (work rhythm, density, period scheme, absences)', async () => {
+  it('maps the settings payload (work rhythm, density, period scheme, theme, absences)', async () => {
     const payload = {
       workdays: [false, true, true, true, true, true, false],
       density: 'compact',
       period_scheme: 'monthly',
+      theme: 'light',
       absences: [{ date: '2026-07-14', reason: 'Annual leave' }],
     }
     vi.stubGlobal(
@@ -430,6 +431,7 @@ describe('fetchSettings', () => {
       workdays: [false, true, true, true, true, true, false],
       density: 'compact',
       periodScheme: 'monthly',
+      theme: 'light',
       absences: [{ date: '2026-07-14', reason: 'Annual leave' }],
     })
   })
@@ -443,6 +445,7 @@ describe('updateSettings', () => {
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
       period_scheme: 'weekly',
+      theme: 'system',
       absences: [],
     }
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }))
@@ -470,6 +473,7 @@ describe('updateSettings', () => {
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
       period_scheme: 'semi_monthly',
+      theme: 'system',
       absences: [],
     }
     const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }))
@@ -480,6 +484,51 @@ describe('updateSettings', () => {
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     const body = JSON.parse(init.body as string) as Record<string, unknown>
     expect('period_scheme' in body).toBe(false)
+  })
+
+  it('sends the theme and maps it back from the response', async () => {
+    const payload = {
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      period_scheme: 'semi_monthly',
+      theme: 'light',
+      absences: [],
+    }
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const settings = await updateSettings(
+      [false, true, true, true, true, true, false],
+      'comfortable',
+      undefined,
+      'light',
+    )
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(JSON.parse(init.body as string)).toEqual({
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      theme: 'light',
+    })
+    expect(settings.theme).toBe('light')
+  })
+
+  it('omits theme when not provided, leaving the server-side theme unchanged', async () => {
+    const payload = {
+      workdays: [false, true, true, true, true, true, false],
+      density: 'comfortable',
+      period_scheme: 'semi_monthly',
+      theme: 'system',
+      absences: [],
+    }
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await updateSettings([false, true, true, true, true, true, false], 'comfortable')
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    const body = JSON.parse(init.body as string) as Record<string, unknown>
+    expect('theme' in body).toBe(false)
   })
 })
 

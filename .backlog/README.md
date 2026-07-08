@@ -23,6 +23,7 @@ source of truth for **scope and status**.
 | [UX](archive/UX.md) — Post-MVP UX improvements: daily-loop keyboard flow, uncategorized count, delete undo, WCAG-AA contrast, label consistency, error/loading feedback, unified Fortnight grid (Review / Enter in T&E) | ✅ |
 | [TASKS](archive/TASKS.md) — Task manager: Tasks (markdown, status, priority, due, tags, optional code), list + kanban views, start-timer-from-task, Stop\|Complete, recurrence, kanban drag-and-drop | ✅ |
 | [SHIP](archive/SHIP.md) — Professionalize Walker into a shareable app: generic vocabulary, configurable Timesheet period, Organization-scoped catalog + SSO, docs site, CI, Docker + `.exe` CD | ✅ |
+| [ADAPTIVE](archive/ADAPTIVE.md) — Theme toggle (dark/light, server-persisted) + a fully-functional responsive phone layout | ✅ |
 
 ## ID prefixes & priorities
 

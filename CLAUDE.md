@@ -80,6 +80,15 @@ Per-lot markdown under `.backlog/`.
 - `CHANGELOG.md` = shipped work; `.backlog/` = planned work — an item never lives in both. Move closed
   lots to `.backlog/archive/<LOT-ID>.md`.
 
+## Ideas inbox (`IDEAS.md`)
+
+Raw, unsorted improvement/fix ideas the user mentions in conversation go straight into `IDEAS.md`
+at the repo root — one dated bullet per idea, no triage, no ticket formatting, no acting on it
+immediately. It's a capture point, not a backlog: periodically it gets reviewed and worked ideas
+get turned into real `.backlog/` tickets (or an ADR, or just closed as wontfix), then removed from
+the file. An idea never lives in both `IDEAS.md` and `.backlog/` at once — same non-duplication
+rule as `CHANGELOG.md` vs `.backlog/`.
+
 ## Domain & decisions
 
 - **Ubiquitous language**: `CONTEXT.md` (glossary). Use those exact terms in code, API, and UI.

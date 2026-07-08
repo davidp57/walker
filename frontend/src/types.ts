@@ -94,6 +94,9 @@ export interface TaskSuggestion {
 
 export type Density = 'comfortable' | 'compact'
 
+/** A User's theme preference (ADAPTIVE lot); `"system"` follows the OS's `prefers-color-scheme`. */
+export type Theme = 'dark' | 'light' | 'system'
+
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`
 
 /** The Task status workflow: To-do -> In-progress -> Waiting -> Test -> Done (Waiting/Test skippable). */

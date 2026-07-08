@@ -39,12 +39,17 @@ function contrastRatio(hexA: string, hexB: string): number {
   return (lighter + 0.05) / (darker + 0.05)
 }
 
-/** Extract `--token: #hex;` values straight from tokens.css — the source of truth. */
+/**
+ * Extract `--token: #hex;` values straight from tokens.css's dark-theme `:root { ... }` block only
+ * (the source of truth for the tests below) — scoped so a later `:root[data-theme="light"]` block
+ * reusing the same token names (BIZ-032) can never shadow these dark values.
+ */
 function readTokens(): Record<string, string> {
   const tokens: Record<string, string> = {}
+  const rootBlock = /:root\s*\{([^}]*)\}/.exec(tokensCss)?.[1] ?? ''
   const re = /(--wk-[a-z0-9-]+):\s*(#[0-9a-fA-F]{6})/g
   let match: RegExpExecArray | null
-  while ((match = re.exec(tokensCss)) !== null) {
+  while ((match = re.exec(rootBlock)) !== null) {
     tokens[match[1]] = match[2]
   }
   return tokens

@@ -5,6 +5,19 @@
 * {
   box-sizing: border-box;
 }
+/* Tells the browser the page itself is dark/light (native scrollbars, form controls, etc. — TEC-006),
+   driven by the resolved theme (BIZ-032). `:not([data-theme="light"])` covers both the default (no
+   attribute yet, before the first paint sets it) and an explicit `data-theme="dark"`. */
+html:not([data-theme='light']),
+html:not([data-theme='light']) body {
+  color-scheme: dark;
+  background: var(--wk-bg-0);
+}
+html[data-theme='light'],
+html[data-theme='light'] body {
+  color-scheme: light;
+  background: var(--wk-bg-0);
+}
 .wk-app,
 .wk-app * {
   font-family: var(--wk-font-ui);
@@ -155,6 +168,64 @@
 .wk-outlet {
   flex: 1;
   overflow: auto;
+}
+
+/* ---------- Bottom tab bar (BIZ-033) ----------
+   Phone-portrait replacement for .wk-sidebar: same 5 sections, same Route/onNavigate contract.
+   Hidden by default (desktop); swapped in below --wk-bp-phone (see media query at file end). */
+.wk-tabbar {
+  display: none;
+  flex-shrink: 0;
+  background: var(--wk-bg-1);
+  border-top: 1px solid var(--wk-line);
+}
+.wk-tabbar-item {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px 10px;
+  cursor: pointer;
+  font-size: var(--wk-fs-10);
+  font-weight: var(--wk-fw-medium);
+  color: var(--wk-text-mid);
+  background: transparent;
+  border: none;
+}
+.wk-tabbar-item.is-active {
+  color: var(--wk-accent);
+  font-weight: var(--wk-fw-semibold);
+}
+.wk-tabbar-ico {
+  width: 20px;
+  display: flex;
+  justify-content: center;
+  opacity: 0.85;
+}
+.wk-tabbar-label {
+  line-height: 1.1;
+}
+.wk-tabbar-badge {
+  position: absolute;
+  top: 4px;
+  right: calc(50% - 22px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--wk-radius-pill);
+  background: var(--wk-amber-soft);
+  border: 1px solid var(--wk-amber-line);
+  color: var(--wk-amber);
+  font-family: var(--wk-font-mono);
+  font-size: 9px;
+  font-weight: var(--wk-fw-semibold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 /* ---------- Logo badge ---------- */
@@ -978,6 +1049,134 @@
   background: var(--wk-bg-2);
   border-top: 1px solid var(--wk-line);
   border-left: 1px solid var(--wk-line);
+  font-weight: var(--wk-fw-semibold);
+}
+
+/* ---------- Grid — phone day-card layout (BIZ-034) ----------
+   Below --wk-bp-phone (640px, hardcoded here — custom properties can't be used inside @media
+   conditions), the Code x Activity x Day table reflows to one card per day; above it (including a
+   phone in landscape) the table stays as-is. Both read the exact same aggregated grid data — this
+   block only toggles which representation is visible. */
+.wk-daycards {
+  display: none;
+}
+@media (max-width: 640px) {
+  .wk-grid-wrap {
+    overflow: visible;
+    border: none;
+    background: none;
+  }
+  .wk-daycards {
+    display: block;
+  }
+  .wk-grid {
+    display: none;
+  }
+}
+
+.wk-daycard {
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-lg);
+  background: var(--wk-bg-1);
+  margin-bottom: var(--wk-space-3);
+  overflow: hidden;
+}
+.wk-daycard.is-weekend {
+  background: var(--wk-weekend);
+}
+.wk-daycard.is-absence {
+  background: repeating-linear-gradient(45deg, #171a20, #171a20 4px, #1b1f27 4px, #1b1f27 8px);
+}
+.wk-daycard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--wk-space-2) var(--wk-space-3);
+  background: var(--wk-bg-2);
+  border-bottom: 1px solid var(--wk-line);
+}
+.wk-daycard-date {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: var(--wk-font-mono);
+}
+.wk-daycard-weekday {
+  font-size: var(--wk-fs-11);
+  letter-spacing: 0.5px;
+  color: var(--wk-text-mid);
+}
+.wk-daycard-num {
+  font-size: var(--wk-fs-15);
+  color: var(--wk-text-hi);
+  font-weight: var(--wk-fw-medium);
+}
+.wk-daycard-total {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-13);
+  color: var(--wk-accent);
+  font-variant-numeric: tabular-nums;
+}
+.wk-daycard-lines {
+  display: flex;
+  flex-direction: column;
+}
+.wk-daycard-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: var(--wk-space-2) var(--wk-space-3);
+  border-bottom: 1px solid var(--wk-line-soft);
+  cursor: default;
+}
+.wk-daycard-line:last-child {
+  border-bottom: none;
+}
+.wk-daycard-line.is-clickable {
+  cursor: pointer;
+}
+.wk-daycard-line.is-running {
+  background: var(--wk-accent-soft);
+}
+.wk-daycard-line-body {
+  min-width: 0;
+  flex: 1;
+}
+.wk-daycard-line-label {
+  font-size: var(--wk-fs-13);
+  font-weight: var(--wk-fw-medium);
+  color: var(--wk-text-hi);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wk-daycard-line-act {
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-mid);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+.wk-daycard-line-dur {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-hi);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.wk-daycards-grandtotal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--wk-space-3);
+  margin-top: var(--wk-space-2);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-lg);
+  background: var(--wk-bg-2);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-13);
+  color: var(--wk-accent);
   font-weight: var(--wk-fw-semibold);
 }
 
@@ -1844,4 +2043,19 @@
   justify-content: center;
   text-decoration: none;
   width: 100%;
+}
+
+/* ---------- Phone-portrait layout (BIZ-033) ----------
+   Below --wk-bp-phone (640px, hardcoded here — see the token's comment in tokens.css for why),
+   swap the sidebar for the bottom tab bar. Nothing else about the layout or state changes. */
+@media (max-width: 640px) {
+  .wk-app {
+    flex-direction: column;
+  }
+  .wk-sidebar {
+    display: none;
+  }
+  .wk-tabbar {
+    display: flex;
+  }
 }
