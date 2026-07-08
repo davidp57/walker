@@ -1,7 +1,7 @@
 # BIZ-047 — Explain the Review vs Enter modes in the Timesheet period view
 
 ID: BIZ-047
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 

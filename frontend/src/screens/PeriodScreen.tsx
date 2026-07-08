@@ -108,8 +108,8 @@ export function PeriodScreen({
           </div>
           <div className="wk-screen-sub">
             {mode === 'review'
-              ? 'A 1:1 mirror of the Timesheet system. Real durations — round in the Timesheet system, not here.'
-              : 'Tick each cell as you key it into the Timesheet system. Shift-click for a range, ⌘/Ctrl-click to toggle one.'}
+              ? 'Your time by the code you tracked on — virtual codes shown as their own rows. Real durations; round in the Timesheet system, not here.'
+              : 'Organized as the Timesheet system expects — virtual codes resolved to their real code. Tick each cell as you key it in; Shift-click for a range, ⌘/Ctrl-click to toggle one.'}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -117,6 +117,7 @@ export function PeriodScreen({
             <button
               type="button"
               className={`wk-seg${mode === 'review' ? ' is-active' : ''}`}
+              title="Your time by the code you tracked on — virtual codes shown as their own rows"
               onClick={() => setMode('review')}
             >
               Review
@@ -124,6 +125,7 @@ export function PeriodScreen({
             <button
               type="button"
               className={`wk-seg${mode === 'enter' ? ' is-active' : ''}`}
+              title="Resolved to the real code the Timesheet system expects — virtual codes merged into it"
               onClick={() => setMode('enter')}
             >
               Enter in Timesheet system
@@ -179,6 +181,12 @@ export function PeriodScreen({
       {mode === 'enter' && (
         <div className="wk-progress">
           <div className="wk-progress-bar" style={{ width: `${pct}%` }} />
+        </div>
+      )}
+
+      {reviewRows.length === 0 && (
+        <div className="wk-modal-empty" style={{ marginBottom: 12 }}>
+          Nothing tracked in this period yet — the grid fills in as you track time.
         </div>
       )}
 

@@ -1,7 +1,7 @@
 # BIZ-043 — Change a task's status inline from the list view
 
 ID: BIZ-043
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 

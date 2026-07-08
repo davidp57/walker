@@ -237,6 +237,42 @@ describe('TasksScreen', () => {
     expect(onMoveTask).toHaveBeenCalledWith(task, 'in_progress')
   })
 
+  it('shows priority and due as inline pills only when set (BIZ-041)', () => {
+    const tasks = [
+      makeTask({ id: '1', title: 'Urgent', priority: 'high', dueDate: '2026-08-01' }),
+      makeTask({ id: '2', title: 'Someday' }),
+    ]
+    render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    expect(screen.getByText('high')).toBeInTheDocument()
+    expect(screen.getByText('2026-08-01')).toBeInTheDocument()
+    // Only the task with a priority shows a pill — no empty priority filler on the other row.
+    expect(screen.getAllByText('high')).toHaveLength(1)
+    expect(document.querySelectorAll('.wk-task-priority')).toHaveLength(1)
+  })
+
+  it('changes a task status inline without opening the panel (BIZ-043)', () => {
+    const onMoveTask = vi.fn()
+    const onOpenTask = vi.fn()
+    const task = makeTask({ id: '5', title: 'Triage me', status: 'todo' })
+    render(
+      <TasksScreen
+        tasks={[task]}
+        codesById={{}}
+        onNew={vi.fn()}
+        onOpenTask={onOpenTask}
+        onMoveTask={onMoveTask}
+      />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-status-select-5'), {
+      target: { value: 'in_progress' },
+    })
+
+    expect(onMoveTask).toHaveBeenCalledWith(task, 'in_progress')
+    expect(onOpenTask).not.toHaveBeenCalled()
+  })
+
   it('shows the linked code name and tags on a row', () => {
     const task = makeTask({
       id: '1',

@@ -422,10 +422,14 @@ export async function updateSettings(
 }
 
 /** Add (or update the reason of) an absence. */
-export async function addAbsence(date: string, reason: string): Promise<SettingsData> {
-  return mapSettings(
-    await sendJson<ApiSettings>('/api/settings/absences', 'POST', { date, reason }),
-  )
+export async function addAbsence(
+  date: string,
+  reason: string,
+  end?: string | null,
+): Promise<SettingsData> {
+  // `end` (optional) adds an absence per day across the inclusive range [date, end] (BIZ-039).
+  const body = end ? { date, end, reason } : { date, reason }
+  return mapSettings(await sendJson<ApiSettings>('/api/settings/absences', 'POST', body))
 }
 
 /** Remove an absence for a date. */

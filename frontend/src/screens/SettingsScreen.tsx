@@ -11,7 +11,7 @@ interface SettingsScreenProps {
   theme: Theme
   onThemeChange: (theme: Theme) => void
   absences: Absence[] // manually managed in the POC
-  onAddAbsence: (date: string, reason: string) => void
+  onAddAbsence: (date: string, reason: string, end?: string | null) => void
   onRemoveAbsence: (date: string) => void
 }
 
@@ -59,12 +59,16 @@ export function SettingsScreen({
   onRemoveAbsence,
 }: SettingsScreenProps) {
   const [newDate, setNewDate] = useState('')
+  const [newEndDate, setNewEndDate] = useState('')
   const [newReason, setNewReason] = useState('')
 
   const addAbsence = () => {
     if (!newDate) return
-    onAddAbsence(newDate, newReason.trim() || 'Absence')
+    // An empty or earlier "to" means a single day; otherwise add the whole range (BIZ-039).
+    const end = newEndDate && newEndDate >= newDate ? newEndDate : null
+    onAddAbsence(newDate, newReason.trim() || 'Absence', end)
     setNewDate('')
+    setNewEndDate('')
     setNewReason('')
   }
 
@@ -218,8 +222,20 @@ export function SettingsScreen({
               className="wk-input"
               type="date"
               value={newDate}
-              style={{ width: 170 }}
+              style={{ width: 150 }}
+              aria-label="Absence start date"
               onChange={(e) => setNewDate(e.target.value)}
+            />
+            <span className="wk-screen-sub">to</span>
+            <input
+              className="wk-input"
+              type="date"
+              value={newEndDate}
+              min={newDate || undefined}
+              style={{ width: 150 }}
+              aria-label="Absence end date (optional)"
+              title="Optional — leave empty for a single day"
+              onChange={(e) => setNewEndDate(e.target.value)}
             />
             <input
               className="wk-input"

@@ -17,6 +17,11 @@ interface EntryRowProps {
   onOpenEditor: () => void // open the full editor (date, times, duration)
   onResume: () => void
   onDelete: () => void
+  // BIZ-038: this row is the live running Timer — read-only, live duration, no inline controls.
+  running?: boolean
+  liveMinutes?: number // live elapsed minutes, used when `running`
+  // BIZ-042: longest entry duration in this day group, for the proportion bar (omit to hide it).
+  maxMinutes?: number
 }
 
 type Field = 'start' | 'end' | 'dur' | 'desc'
@@ -29,11 +34,22 @@ export function EntryRow({
   onOpenEditor,
   onResume,
   onDelete,
+  running = false,
+  liveMinutes,
+  maxMinutes,
 }: EntryRowProps) {
   const [editing, setEditing] = useState<Field | null>(null)
   const [buffer, setBuffer] = useState('')
+  const [rowHover, setRowHover] = useState(false)
+  const [descFocus, setDescFocus] = useState(false)
   const flagged = !entry.codeId
-  const duration = Math.max(0, (entry.end ?? entry.start) - entry.start)
+  const duration = running
+    ? Math.max(0, liveMinutes ?? 0)
+    : Math.max(0, (entry.end ?? entry.start) - entry.start)
+  const barColor = flagged ? 'var(--wk-amber)' : (code?.color ?? 'var(--wk-text-lo)')
+  // BIZ-042: proportion of the day group's longest entry (only when a scale is provided).
+  const barPct =
+    maxMinutes && maxMinutes > 0 ? Math.min(100, Math.round((duration / maxMinutes) * 100)) : 0
 
   const begin = (field: Field) => {
     setEditing(field)
@@ -62,50 +78,83 @@ export function EntryRow({
     if (e.key === 'Escape') setEditing(null)
   }
 
-  return (
-    <div className={`wk-entry-row${flagged ? ' is-flagged' : ''}`}>
-      <span
-        className="wk-dot"
-        style={{ background: flagged ? 'var(--wk-amber)' : (code?.color ?? 'var(--wk-text-lo)') }}
-      />
+  const bar =
+    maxMinutes !== undefined ? (
+      <div className="wk-dur-bar" aria-hidden="true">
+        <div className="wk-dur-bar-fill" style={{ width: `${barPct}%`, background: barColor }} />
+      </div>
+    ) : null
 
-      {/* time range (military inline edit) */}
+  const className = ['wk-entry-row', flagged ? 'is-flagged' : '', running ? 'is-running' : '']
+    .filter(Boolean)
+    .join(' ')
+
+  return (
+    <div
+      className={className}
+      onMouseEnter={() => setRowHover(true)}
+      onMouseLeave={() => setRowHover(false)}
+    >
+      <span className="wk-dot" style={{ background: barColor }} />
+
+      {/* time range — read-only while running (stop the Timer from the bar to edit) */}
       <div className="wk-time">
-        {editing === 'start' ? (
-          <input
-            className="wk-input-inline"
-            autoFocus
-            value={buffer}
-            onFocus={selectOnFocus}
-            onChange={(e) => setBuffer(e.target.value)}
-            onKeyDown={onKey}
-            onBlur={commit}
-          />
+        {running ? (
+          <>
+            <span className="wk-time-span">{formatClock(entry.start)}</span>
+            <span className="wk-time-sep">–</span>
+            <span className="wk-time-span wk-time-now">
+              now
+              <span className="wk-cell-live" />
+            </span>
+          </>
         ) : (
-          <span className="wk-time-span" onClick={() => begin('start')}>
-            {formatClock(entry.start)}
-          </span>
-        )}
-        <span className="wk-time-sep">–</span>
-        {editing === 'end' ? (
-          <input
-            className="wk-input-inline"
-            autoFocus
-            value={buffer}
-            onFocus={selectOnFocus}
-            onChange={(e) => setBuffer(e.target.value)}
-            onKeyDown={onKey}
-            onBlur={commit}
-          />
-        ) : (
-          <span className="wk-time-span" onClick={() => begin('end')}>
-            {formatClock(entry.end ?? entry.start)}
-          </span>
+          <>
+            {editing === 'start' ? (
+              <input
+                className="wk-input-inline"
+                autoFocus
+                value={buffer}
+                onFocus={selectOnFocus}
+                onChange={(e) => setBuffer(e.target.value)}
+                onKeyDown={onKey}
+                onBlur={commit}
+              />
+            ) : (
+              <span className="wk-time-span" onClick={() => begin('start')}>
+                {formatClock(entry.start)}
+              </span>
+            )}
+            <span className="wk-time-sep">–</span>
+            {editing === 'end' ? (
+              <input
+                className="wk-input-inline"
+                autoFocus
+                value={buffer}
+                onFocus={selectOnFocus}
+                onChange={(e) => setBuffer(e.target.value)}
+                onKeyDown={onKey}
+                onBlur={commit}
+              />
+            ) : (
+              <span className="wk-time-span" onClick={() => begin('end')}>
+                {formatClock(entry.end ?? entry.start)}
+              </span>
+            )}
+          </>
         )}
       </div>
 
       <div className="wk-dur">
-        {editing === 'dur' ? (
+        {running || editing !== 'dur' ? (
+          <span
+            className="wk-time-span"
+            onClick={running ? undefined : () => begin('dur')}
+            title={running ? undefined : 'Edit duration (keeps the start time)'}
+          >
+            {formatDuration(duration)}
+          </span>
+        ) : (
           <input
             className="wk-input-inline"
             autoFocus
@@ -115,25 +164,22 @@ export function EntryRow({
             onKeyDown={onKey}
             onBlur={commit}
           />
-        ) : (
-          <span
-            className="wk-time-span"
-            onClick={() => begin('dur')}
-            title="Edit duration (keeps the start time)"
-          >
-            {formatDuration(duration)}
-          </span>
         )}
+        {bar}
       </div>
 
       {/* project · code · activity — or the uncategorized flag */}
       <div style={{ minWidth: 0 }}>
         {flagged ? (
-          <span className="wk-pill-add" onClick={onCategorize}>
-            ⚑ Add code &amp; activity
-          </span>
+          running ? (
+            <span className="wk-pill-add is-static">⚑ Uncategorized</span>
+          ) : (
+            <span className="wk-pill-add" onClick={onCategorize}>
+              ⚑ Add code &amp; activity
+            </span>
+          )
         ) : (
-          <div className="wk-code-cell" onClick={onCategorize}>
+          <div className="wk-code-cell" onClick={running ? undefined : onCategorize}>
             <div className="wk-code-name-row">
               <span className="wk-dot" style={{ background: code?.color }} />
               <span className="wk-code-name">{code?.name}</span>
@@ -146,9 +192,11 @@ export function EntryRow({
         )}
       </div>
 
-      {/* description (inline edit) */}
+      {/* description (inline edit; the empty invite reveals on hover/focus — BIZ-040) */}
       <div style={{ minWidth: 0 }}>
-        {editing === 'desc' ? (
+        {running ? (
+          <div className="wk-desc">{entry.description}</div>
+        ) : editing === 'desc' ? (
           <input
             className="wk-desc-edit"
             autoFocus
@@ -158,43 +206,63 @@ export function EntryRow({
             onKeyDown={onKey}
             onBlur={commit}
           />
+        ) : entry.description ? (
+          <div className="wk-desc" onClick={() => begin('desc')}>
+            {entry.description}
+          </div>
         ) : (
           <div
-            className={`wk-desc${entry.description ? '' : ' is-empty'}`}
+            className="wk-desc is-empty"
+            tabIndex={0}
             onClick={() => begin('desc')}
+            onFocus={() => setDescFocus(true)}
+            onBlur={() => setDescFocus(false)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') begin('desc')
+            }}
           >
-            {entry.description || 'Add a description…'}
+            {rowHover || descFocus ? 'Add a description…' : '—'}
           </div>
         )}
       </div>
 
-      <button
-        type="button"
-        className="wk-row-action"
-        title="Edit entry (date, times, duration)"
-        aria-label="Edit entry"
-        onClick={onOpenEditor}
-      >
-        <IconEdit />
-      </button>
-      <button
-        type="button"
-        className="wk-row-action"
-        title="Resume this task"
-        aria-label="Resume this task"
-        onClick={onResume}
-      >
-        <IconPlay size={12} />
-      </button>
-      <button
-        type="button"
-        className="wk-row-action wk-row-action-danger"
-        title="Delete entry"
-        aria-label="Delete entry"
-        onClick={onDelete}
-      >
-        <IconTrash />
-      </button>
+      {running ? (
+        <>
+          <span />
+          <span />
+          <span />
+        </>
+      ) : (
+        <>
+          <button
+            type="button"
+            className="wk-row-action"
+            title="Edit entry (date, times, duration)"
+            aria-label="Edit entry"
+            onClick={onOpenEditor}
+          >
+            <IconEdit />
+          </button>
+          <button
+            type="button"
+            className="wk-row-action"
+            title="Resume this task"
+            aria-label="Resume this task"
+            onClick={onResume}
+          >
+            <IconPlay size={12} />
+          </button>
+          <button
+            type="button"
+            className="wk-row-action wk-row-action-danger"
+            title="Delete entry"
+            aria-label="Delete entry"
+            onClick={onDelete}
+          >
+            <IconTrash />
+          </button>
+        </>
+      )}
     </div>
   )
 }

@@ -108,3 +108,48 @@ def test_add_and_remove_absence(client: TestClient) -> None:
     removed = client.delete("/api/settings/absences/2026-07-14")
     assert removed.status_code == 200
     assert removed.json()["absences"] == []
+
+
+def test_add_absence_range_fans_out_per_day_including_weekend(client: TestClient) -> None:
+    # 2026-07-10 (Fri) → 2026-07-13 (Mon) inclusive spans Sat 11 + Sun 12.
+    added = client.post(
+        "/api/settings/absences",
+        json={"date": "2026-07-10", "end": "2026-07-13", "reason": "Annual leave"},
+    )
+    assert added.status_code == 200
+    dates = [a["date"] for a in added.json()["absences"]]
+    assert dates == ["2026-07-10", "2026-07-11", "2026-07-12", "2026-07-13"]
+    assert all(a["reason"] == "Annual leave" for a in added.json()["absences"])
+
+
+def test_add_absence_without_end_adds_single_day(client: TestClient) -> None:
+    added = client.post("/api/settings/absences", json={"date": "2026-07-14", "reason": "Leave"})
+    assert added.status_code == 200
+    assert added.json()["absences"] == [{"date": "2026-07-14", "reason": "Leave"}]
+
+
+def test_add_absence_range_is_idempotent_and_updates_reason(client: TestClient) -> None:
+    client.post("/api/settings/absences", json={"date": "2026-07-14", "reason": "Leave"})
+    # Overlapping range re-posts the 14th and adds 15th, no duplicate for the 14th, reason updated.
+    body = client.post(
+        "/api/settings/absences",
+        json={"date": "2026-07-14", "end": "2026-07-15", "reason": "Holiday"},
+    ).json()
+    assert [a["date"] for a in body["absences"]] == ["2026-07-14", "2026-07-15"]
+    assert all(a["reason"] == "Holiday" for a in body["absences"])
+
+
+def test_add_absence_range_rejects_end_before_start(client: TestClient) -> None:
+    resp = client.post(
+        "/api/settings/absences",
+        json={"date": "2026-07-15", "end": "2026-07-10", "reason": "Leave"},
+    )
+    assert resp.status_code == 422
+
+
+def test_add_absence_range_rejects_too_long_a_range(client: TestClient) -> None:
+    resp = client.post(
+        "/api/settings/absences",
+        json={"date": "2026-01-01", "end": "2027-06-01", "reason": "Leave"},
+    )
+    assert resp.status_code == 422

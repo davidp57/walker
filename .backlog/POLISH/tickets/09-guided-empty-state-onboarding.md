@@ -1,7 +1,7 @@
 # BIZ-046 — Guided first-run empty states (lightweight onboarding)
 
 ID: BIZ-046
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 

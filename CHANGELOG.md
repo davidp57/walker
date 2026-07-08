@@ -5,8 +5,34 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- **Running Timer shown in the Activity view** (BIZ-038): the in-progress entry now appears as a
+  live, read-only row pinned to the top of Today (not only in the Timer bar and period grid), and
+  the day's total folds in its live minutes.
+- **Add an absence over a date range** (BIZ-039): the Settings absence form takes an optional "to"
+  date and fans out to one absence per day across the inclusive range (weekends included); the API
+  accepts an optional `end` and validates it.
+- **Time-proportion bars in the Activity list** (BIZ-042): each entry row shows a thin bar in the
+  code's color, proportional to the longest entry that day, for an at-a-glance sense of where time
+  went.
+- **Change a task's status inline from the list** (BIZ-043): the Tasks list status cell is now a
+  selector — retriage without opening the board or the panel.
+- **Review vs Enter explainer** (BIZ-047): the Timesheet period toggle now explains that Review is
+  by the code you tracked on (virtual codes as their own rows) while Enter resolves to the real code.
+
 ### Changed
 
+- **Tidier Activity descriptions** (BIZ-040): an entry with no description shows a discreet `—` at
+  rest; the "Add a description…" invite reveals on hover/focus.
+- **Tasks list: priority & due as inline pills** (BIZ-041): the always-empty Priority/Due columns are
+  gone; priority and due render as inline pills only when set.
+- **Kanban Done column is collapsible** (BIZ-044): collapse Done to a slim rail (count kept visible)
+  to tame the horizontal scroll; columns are slightly tighter.
+- **Code catalog activities collapse behind a count** (BIZ-045): a code with several activities shows
+  "N activities ▸", expandable — so more codes fit on screen.
+- **Guided first-run empty states** (BIZ-046): the Code catalog empty state explains the
+  reference/active two-tier model and links the docs; the period view notes it fills in as you track.
 - Removed the remaining employer-specific references (and the app's naming-origin note) from the
   README, docs, ADRs, and internal notes, so the repository reads as a generic, shareable product.
   Added a link to the published documentation site from the README.

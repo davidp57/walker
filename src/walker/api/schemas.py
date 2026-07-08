@@ -264,9 +264,15 @@ class SettingsUpdate(BaseModel):
 
 
 class AbsenceWrite(BaseModel):
-    """Payload to add/update an absence."""
+    """Payload to add/update an absence.
 
-    date: date
+    ``end`` is optional: when omitted (or equal to ``date``) a single day is added; when set it adds
+    one absence per day across the inclusive range ``[date, end]`` (BIZ-039).
+    """
+
+    # Qualified `datetime.date` avoids the field name `date` shadowing the type in this class scope.
+    date: datetime.date
+    end: datetime.date | None = None
     reason: str
 
 

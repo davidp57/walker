@@ -94,4 +94,36 @@ describe('CodeCatalogScreen', () => {
     expect(onEditVirtual).toHaveBeenCalledWith(virtualCode)
     expect(onEdit).not.toHaveBeenCalled()
   })
+
+  it('collapses a multi-activity code behind a count, expandable on click (BIZ-045)', () => {
+    const multi: TimesheetCode = {
+      ...realCode,
+      id: '3',
+      name: 'Multi',
+      activities: [
+        { code: '1', label: 'Alpha' },
+        { code: '2', label: 'Beta' },
+        { code: '3', label: 'Gamma' },
+      ],
+    }
+    renderScreen([multi])
+
+    expect(screen.getByText(/3 activities/)).toBeInTheDocument()
+    expect(screen.queryByText('Alpha')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText(/3 activities/))
+    expect(screen.getByText('Alpha')).toBeInTheDocument()
+    expect(screen.getByText('Gamma')).toBeInTheDocument()
+  })
+
+  it('guides the two-tier model and links the docs in the empty state (BIZ-046)', () => {
+    renderScreen([])
+
+    expect(screen.getByText('No codes yet.')).toBeInTheDocument()
+    expect(screen.getByText(/two tiers/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Importing your code catalog/ })).toHaveAttribute(
+      'href',
+      'https://davidp57.github.io/Walker/catalog-import/',
+    )
+  })
 })

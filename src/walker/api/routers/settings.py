@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from walker.api.dependencies import get_current_user
 from walker.api.schemas import AbsenceWrite, SettingsRead, SettingsUpdate
 from walker.db import get_session
+from walker.exceptions import ValidationError
 from walker.models import User
 from walker.services import settings as settings_service
 from walker.services.settings import SettingsView
@@ -49,8 +50,11 @@ def add_absence(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> SettingsView:
-    """Add (or update the reason of) an absence."""
-    return settings_service.add_absence(session, user.id, body.date, body.reason)
+    """Add (or update the reason of) an absence — a single day, or a range when ``end`` is set."""
+    try:
+        return settings_service.add_absence(session, user.id, body.date, body.reason, end=body.end)
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
 
 @router.delete("/settings/absences/{on_date}", response_model=SettingsRead)
