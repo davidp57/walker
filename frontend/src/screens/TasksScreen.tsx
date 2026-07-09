@@ -1,7 +1,8 @@
-import { Fragment, useMemo, useState } from 'react'
-import type { Task, TaskStatus, TimesheetCode, ViewPreferences } from '../types'
+import { Fragment, useCallback, useMemo, useState } from 'react'
+import type { Task, TaskState, TaskStatus, TimesheetCode, ViewPreferences } from '../types'
+import { DEFAULT_TASK_STATES } from '../types'
 import { IconPlay } from '../components/icons'
-import { TaskBoard } from '../components/TaskBoard'
+import { TaskBoard, type TaskStateEdits } from '../components/TaskBoard'
 
 export type TaskSortField = 'status' | 'priority' | 'due' | 'title'
 export type TaskGroupField = 'none' | 'status' | 'priority' | 'due' | 'code'
@@ -16,6 +17,8 @@ type TaskViewPrefs = Pick<
 interface TasksScreenProps {
   tasks: Task[]
   codesById: Record<string, TimesheetCode>
+  taskStates?: TaskState[] // the user's ordered states (BIZ-056); defaults to the five built-ins
+  stateEdits?: TaskStateEdits // in-kanban column editing (BIZ-057); omit to hide the controls
   loading?: boolean
   onNew: () => void
   onOpenTask: (task: Task) => void
@@ -30,14 +33,6 @@ interface TasksScreenProps {
   onPreferencesChange?: (patch: Partial<ViewPreferences>) => void
 }
 
-const STATUS_LABEL: Record<Task['status'], string> = {
-  todo: 'To-do',
-  in_progress: 'In progress',
-  waiting: 'Waiting',
-  test: 'Test',
-  done: 'Done',
-}
-const STATUS_ORDER: Task['status'][] = ['todo', 'in_progress', 'waiting', 'test', 'done']
 const PRIORITY_ORDER: Record<string, number> = { high: 0, medium: 1, low: 2 }
 
 function dueGroupLabel(dueDate: string | null, today: string): string {
@@ -47,12 +42,17 @@ function dueGroupLabel(dueDate: string | null, today: string): string {
   return 'Upcoming'
 }
 
-function compareTasks(a: Task, b: Task, field: TaskSortField): number {
+function compareTasks(
+  a: Task,
+  b: Task,
+  field: TaskSortField,
+  statusIndex: (id: string) => number,
+): number {
   switch (field) {
     case 'title':
       return a.title.localeCompare(b.title)
     case 'status':
-      return STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
+      return statusIndex(a.status) - statusIndex(b.status)
     case 'priority': {
       const pa = a.priority ? (PRIORITY_ORDER[a.priority] ?? 3) : 3
       const pb = b.priority ? (PRIORITY_ORDER[b.priority] ?? 3) : 3
@@ -75,10 +75,11 @@ function groupKeyFor(
   field: TaskGroupField,
   today: string,
   codesById: Record<string, TimesheetCode>,
+  statusLabel: (id: string) => string,
 ): string {
   switch (field) {
     case 'status':
-      return STATUS_LABEL[task.status]
+      return statusLabel(task.status)
     case 'priority':
       return task.priority ? task.priority[0].toUpperCase() + task.priority.slice(1) : 'No priority'
     case 'due':
@@ -97,6 +98,8 @@ function groupKeyFor(
 export function TasksScreen({
   tasks,
   codesById,
+  taskStates = DEFAULT_TASK_STATES,
+  stateEdits,
   loading = false,
   onNew,
   onOpenTask,
@@ -105,6 +108,20 @@ export function TasksScreen({
   preferences,
   onPreferencesChange,
 }: TasksScreenProps) {
+  // Positional helpers over the user's state list (BIZ-056): label + order by id. An unknown id
+  // (e.g. a Task briefly out of sync after a state delete) falls back to the id and sorts last.
+  // useCallback keeps them stable so the sort/group memos below don't recompute every render.
+  const statusLabel = useCallback(
+    (id: string) => taskStates.find((s) => s.id === id)?.label ?? id,
+    [taskStates],
+  )
+  const statusIndex = useCallback(
+    (id: string) => {
+      const i = taskStates.findIndex((s) => s.id === id)
+      return i === -1 ? taskStates.length : i
+    },
+    [taskStates],
+  )
   // BIZ-053: controlled by the parent (persisted) when `preferences`+`onPreferencesChange` are
   // supplied; otherwise the screen keeps this state locally, so it still works standalone (tests).
   const [local, setLocal] = useState({
@@ -135,22 +152,24 @@ export function TasksScreen({
   }
 
   const sorted = useMemo(
-    () => [...tasks].sort((a, b) => (sortDir === 'asc' ? 1 : -1) * compareTasks(a, b, sort)),
-    [tasks, sort, sortDir],
+    () =>
+      [...tasks].sort(
+        (a, b) => (sortDir === 'asc' ? 1 : -1) * compareTasks(a, b, sort, statusIndex),
+      ),
+    [tasks, sort, sortDir, statusIndex],
   )
 
   const groups = useMemo(() => {
     if (group === 'none') return [{ label: null as string | null, items: sorted }]
     const byKey = new Map<string, Task[]>()
     for (const task of sorted) {
-      const key = groupKeyFor(task, group, today, codesById)
+      const key = groupKeyFor(task, group, today, codesById, statusLabel)
       const list = byKey.get(key) ?? []
       list.push(task)
       byKey.set(key, list)
     }
     const entries = [...byKey.entries()].map(([label, items]) => ({ label, items }))
-    // Grouping by project (code) orders lanes by code name ascending, "No project" last (BIZ-036);
-    // the other groupings keep first-appearance order.
+    // Grouping by project (code) orders lanes by code name ascending, "No project" last (BIZ-036).
     if (group === 'code') {
       entries.sort((a, b) => {
         if (a.label === NO_PROJECT) return 1
@@ -158,8 +177,13 @@ export function TasksScreen({
         return a.label.localeCompare(b.label)
       })
     }
+    // Grouping by status follows the user's state order (BIZ-057), not first-appearance.
+    if (group === 'status') {
+      const rank = (label: string) => taskStates.findIndex((s) => s.label === label)
+      entries.sort((a, b) => rank(a.label ?? '') - rank(b.label ?? ''))
+    }
     return entries
-  }, [sorted, group, today, codesById])
+  }, [sorted, group, today, codesById, statusLabel, taskStates])
 
   const sortHeader = (field: TaskSortField, label: string) => (
     <th
@@ -177,9 +201,11 @@ export function TasksScreen({
   const showCode = group !== 'code'
   const columnCount = 2 + (showCode ? 1 : 0) + (onStartTask ? 1 : 0)
 
+  // The terminal (last) state — a task there is "done", so it's never flagged overdue (ADR-0011).
+  const terminalId = taskStates[taskStates.length - 1]?.id
   const renderRow = (task: Task) => {
     const code = task.codeId ? (codesById[task.codeId] ?? null) : null
-    const overdue = task.dueDate !== null && task.dueDate < today && task.status !== 'done'
+    const overdue = task.dueDate !== null && task.dueDate < today && task.status !== terminalId
     return (
       <tr
         key={task.id}
@@ -212,20 +238,20 @@ export function TasksScreen({
           {/* Inline status change (BIZ-043) — reuses the same move path as the board. */}
           {onMoveTask ? (
             <select
-              className={`wk-task-status-select is-${task.status}`}
+              className="wk-task-status-select"
               value={task.status}
               data-testid={`wk-task-status-select-${task.id}`}
               onClick={(e) => e.stopPropagation()}
-              onChange={(e) => onMoveTask(task, e.target.value as TaskStatus)}
+              onChange={(e) => onMoveTask(task, e.target.value)}
             >
-              {STATUS_ORDER.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABEL[s]}
+              {taskStates.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.label}
                 </option>
               ))}
             </select>
           ) : (
-            <span className={`wk-task-status is-${task.status}`}>{STATUS_LABEL[task.status]}</span>
+            <span className="wk-task-status">{statusLabel(task.status)}</span>
           )}
         </td>
         {showCode && (
@@ -329,12 +355,13 @@ export function TasksScreen({
 
       {loading ? (
         <div className="wk-loading">Loading…</div>
-      ) : tasks.length === 0 ? (
-        <div className="wk-modal-empty">No tasks yet. Use “New task” to capture one.</div>
       ) : view === 'board' ? (
+        // Shown even with no tasks so columns can still be edited from the kanban (BIZ-057).
         <TaskBoard
           tasks={tasks}
           codesById={codesById}
+          states={taskStates}
+          stateEdits={group === 'code' ? undefined : stateEdits}
           groupByCode={group === 'code'}
           onOpenTask={onOpenTask}
           onMoveTask={onMoveTask ?? (() => {})}
@@ -346,6 +373,8 @@ export function TasksScreen({
               : undefined
           }
         />
+      ) : tasks.length === 0 ? (
+        <div className="wk-modal-empty">No tasks yet. Use “New task” to capture one.</div>
       ) : (
         // BIZ-051: one table with per-group section rows, so columns stay aligned across groups.
         <table className="wk-task-table" data-testid="wk-task-table">
