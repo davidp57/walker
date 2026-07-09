@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { Fragment, useMemo, useState } from 'react'
 import type { Task, TaskStatus, TimesheetCode } from '../types'
 import { IconPlay } from '../components/icons'
 import { TaskBoard } from '../components/TaskBoard'
@@ -146,6 +146,11 @@ export function TasksScreen({
     </th>
   )
 
+  // BIZ-051: when grouped by project (code), the code is already the section header — drop the
+  // now-redundant Code column (header + each row's cell); other groupings keep it.
+  const showCode = group !== 'code'
+  const columnCount = 2 + (showCode ? 1 : 0) + (onStartTask ? 1 : 0)
+
   const renderRow = (task: Task) => {
     const code = task.codeId ? (codesById[task.codeId] ?? null) : null
     const overdue = task.dueDate !== null && task.dueDate < today && task.status !== 'done'
@@ -197,16 +202,18 @@ export function TasksScreen({
             <span className={`wk-task-status is-${task.status}`}>{STATUS_LABEL[task.status]}</span>
           )}
         </td>
-        <td>
-          {code ? (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <span className="wk-dot" style={{ width: 8, height: 8, background: code.color }} />
-              {code.name}
-            </span>
-          ) : (
-            '—'
-          )}
-        </td>
+        {showCode && (
+          <td>
+            {code ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span className="wk-dot" style={{ width: 8, height: 8, background: code.color }} />
+                {code.name}
+              </span>
+            ) : (
+              '—'
+            )}
+          </td>
+        )}
         {onStartTask && (
           <td>
             <button
@@ -307,22 +314,31 @@ export function TasksScreen({
           onMoveTask={onMoveTask ?? (() => {})}
         />
       ) : (
-        groups.map((g) => (
-          <div className="wk-task-group" key={g.label ?? 'all'}>
-            {g.label && <div className="wk-task-group-title">{g.label}</div>}
-            <table className="wk-task-table" data-testid="wk-task-table">
-              <thead>
-                <tr>
-                  {sortHeader('title', 'Title')}
-                  {sortHeader('status', 'Status')}
-                  <th>Code</th>
-                  {onStartTask && <th />}
-                </tr>
-              </thead>
-              <tbody>{g.items.map(renderRow)}</tbody>
-            </table>
-          </div>
-        ))
+        // BIZ-051: one table with per-group section rows, so columns stay aligned across groups.
+        <table className="wk-task-table" data-testid="wk-task-table">
+          <thead>
+            <tr>
+              {sortHeader('title', 'Title')}
+              {sortHeader('status', 'Status')}
+              {showCode && <th>Code</th>}
+              {onStartTask && <th />}
+            </tr>
+          </thead>
+          <tbody>
+            {groups.map((g) => (
+              <Fragment key={g.label ?? 'all'}>
+                {g.label && (
+                  <tr className="wk-task-group-row">
+                    <td colSpan={columnCount}>
+                      <div className="wk-task-group-title">{g.label}</div>
+                    </td>
+                  </tr>
+                )}
+                {g.items.map(renderRow)}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   )

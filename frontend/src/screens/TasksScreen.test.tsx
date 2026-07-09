@@ -305,4 +305,29 @@ describe('TasksScreen', () => {
     expect(screen.getByText('urgent')).toBeInTheDocument()
     expect(screen.getByText('backend')).toBeInTheDocument()
   })
+
+  it('renders a single table with section rows when grouped, not one table per group (BIZ-051)', () => {
+    const tasks = [
+      makeTask({ id: '1', title: 'Todo task', status: 'todo' }),
+      makeTask({ id: '2', title: 'Done task', status: 'done' }),
+    ]
+    render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
+
+    expect(screen.getAllByTestId('wk-task-table')).toHaveLength(1)
+    expect(document.querySelectorAll('.wk-task-group-row')).toHaveLength(2)
+  })
+
+  it('drops the Code column when grouped by project (code), keeps it otherwise (BIZ-051)', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4') }
+    const tasks = [makeTask({ id: '1', title: 'Paper task', codeId: '9' })]
+    render(<TasksScreen tasks={tasks} codesById={codesById} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    expect(screen.getByRole('columnheader', { name: 'Code' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'code' } })
+
+    expect(screen.queryByRole('columnheader', { name: 'Code' })).not.toBeInTheDocument()
+  })
 })
