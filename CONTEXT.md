@@ -99,8 +99,9 @@ _Avoid_: "stopwatch" (canonical = Timer).
 A unit of work to do or being done, identified by its **title** — the same notion as the *comment* on
 an Entry. A Task saved in the **task list** carries metadata: a markdown **description**, a status, and
 an optional **Timesheet code** (real or virtual). Starting a **Timer** from a listed Task opens an
-**Entry** whose description is the Task's title and whose code is the Task's code (the **Activity** is
-still chosen). Time tracked without a listed Task — just a description typed on the Timer — is the same
+**Entry** whose description is the Task's title and whose code is the Task's code — in **one click**
+(capture-first): the **Activity** is auto-filled when the code has a single one, otherwise left to
+categorize later. Time tracked without a listed Task — just a description typed on the Timer — is the same
 notion, simply **not saved** in the list.
 _Avoid_: "ticket", "issue"; "todo" for a listed Task (that word leans to the Entry checklist's sense).
 

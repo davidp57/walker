@@ -13,7 +13,8 @@ ADR-0010 conflated "the catalog" — the redundant-import problem it solved is r
 redundancy without forcing a shared activated set. Needs a new ADR superseding ADR-0010 + a
 migration (`ReferenceCode.user_id`→`organization_id`, active real `TimesheetCode.organization_id`→
 `user_id`) + glossary updates. Separate lot — decoupled from the colour-automation feature.
-- 2026.07.09 - ajouter une fléche de reprise (comme sur "activity") pour démarrer un timer à partir d'une task
 - 2026.07.09 - le lien vers la doc (readme et root FR) est faux : [https://davidp57.github.io/Walker/](https://davidp57.github.io/Walker/) (c'est [https://davidp57.github.io/walker/ pour le root EN)](https://davidp57.github.io/Walker/)
+- 2026.07.09 - persister les réglages UX dans le profil user (également le profil user *virtuel* de la version .exe) ; par exemple le groupage des tasks, le dernier mode utilisé dans les écrans multimode (tasks, timesheet period)
+-  
 
  
