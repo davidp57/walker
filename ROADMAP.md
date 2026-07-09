@@ -44,9 +44,9 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   status, time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty
   states, Review/Enter explainer). Ready next: BIZ-050 (one-click start-timer arrow on tasks, list +
   board), BIZ-051 (grouped task list as a single aligned table), BIZ-052 (flag overlapping
-  entries + one-click trim), BIZ-053 (persist per-user view preferences), and BIZ-054 (edit the
-  running entry inline + Timer description affordance). Lot stays open for future UX polish. See
-  `.backlog/POLISH/PRD.md`.
+  entries + one-click trim), BIZ-053 (persist per-user view preferences), BIZ-054 (edit the
+  running entry inline + Timer description affordance), and BIZ-055 (Cmd/Ctrl+click to open links in
+  the task description). Lot stays open for future UX polish. See `.backlog/POLISH/PRD.md`.
 
 ## Forward-looking (not scheduled)
 

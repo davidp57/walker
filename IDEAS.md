@@ -13,6 +13,5 @@ ADR-0010 conflated "the catalog" — the redundant-import problem it solved is r
 redundancy without forcing a shared activated set. Needs a new ADR superseding ADR-0010 + a  
 migration (`ReferenceCode.user_id`→`organization_id`, active real `TimesheetCode.organization_id`→  
 `user_id`) + glossary updates. Separate lot — decoupled from the colour-automation feature.
-- 2026.07.09 - les liens stockés en md dans les tasks ne sont pas cliquables
 
  
