@@ -128,4 +128,46 @@ describe('CodePicker', () => {
 
     expect(screen.getByText('No-activity code')).toBeInTheDocument()
   })
+
+  // BIZ-049 — tiered search.
+  it('sorts Tier-1 results by project name, not by number', () => {
+    const zebra: TimesheetCode = { ...realCode, id: '10', name: 'Zebra', number: 'A1' }
+    const apple: TimesheetCode = { ...realCode, id: '11', name: 'Apple', number: 'Z9' }
+    const { container } = render(
+      <CodePicker
+        codeOnly
+        title="Task code"
+        codes={[zebra, apple]}
+        onPick={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    )
+    const names = Array.from(container.querySelectorAll('.wk-picker-name')).map(
+      (n) => n.textContent,
+    )
+    expect(names).toEqual(['Apple', 'Zebra'])
+  })
+
+  it('excludes virtual codes from Tier 1 when realOnly', () => {
+    renderPicker({ codeOnly: true, realOnly: true })
+    expect(screen.getByText('Paper V4')).toBeInTheDocument()
+    expect(screen.queryByText('Workday contact info')).not.toBeInTheDocument()
+  })
+
+  it('activates a Tier-2 reference code through onActivateReference', async () => {
+    const onActivateReference = vi.fn()
+    const ref = { id: 'r1', number: 'N9/9', name: 'Ref Project', label: 'REF', activities: [] }
+    renderPicker({
+      codes: [],
+      onSearchReference: async () => [ref],
+      onActivateReference,
+    })
+
+    fireEvent.change(screen.getByPlaceholderText('Search code or activity…'), {
+      target: { value: 'ref' },
+    })
+
+    fireEvent.click(await screen.findByText('Ref Project'))
+    expect(onActivateReference).toHaveBeenCalledWith(ref)
+  })
 })

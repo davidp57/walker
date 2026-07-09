@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import type { TimesheetCode } from '../types'
+import type { ReferenceCode, TimesheetCode } from '../types'
 import { ColorPicker } from './ColorPicker'
+import { CodePicker } from './CodePicker'
 import { suggestColor } from '../lib/palette'
 
 interface VirtualCodeEditorProps {
@@ -10,6 +11,11 @@ interface VirtualCodeEditorProps {
   onSave: (input: { realCodeId: string; name: string; color: string }) => Promise<void>
   onDelete?: () => void // omitted when the code can't be deleted (new, or in use)
   onClose: () => void
+  // Backing-code selection via the shared CodePicker (BIZ-049). Optional so the editor still works
+  // without them (e.g. in isolation tests).
+  onSearchReference?: (q: string) => Promise<ReferenceCode[]> // search the reference catalog
+  // Activate a reference code through the code editor (BIZ-049); `onActivated` selects it as backing.
+  onActivateReference?: (ref: ReferenceCode, onActivated: (code: TimesheetCode) => void) => void
 }
 
 /** Modal to create/edit a virtual code: pick the backing real code, name it, give it a colour (ADR-0008). */
@@ -20,6 +26,8 @@ export function VirtualCodeEditor({
   onSave,
   onDelete,
   onClose,
+  onSearchReference,
+  onActivateReference,
 }: VirtualCodeEditorProps) {
   // Avoid/mark the other codes' colours; exclude this code so its own reads as selected (BIZ-048).
   const otherCodes = codes
@@ -30,9 +38,11 @@ export function VirtualCodeEditor({
   const [color, setColor] = useState(
     () => code?.color ?? suggestColor(otherCodes.map((c) => c.color)),
   )
+  const [backingPickerOpen, setBackingPickerOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const selectedReal = realCodes.find((c) => c.id === realCodeId) ?? null
   const canSave = realCodeId !== '' && name.trim().length > 0 && !saving
 
   const save = () => {
@@ -59,49 +69,56 @@ export function VirtualCodeEditor({
         </div>
 
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {realCodes.length === 0 ? (
-            <div className="wk-modal-empty">
-              Add a real code first — a virtual code needs one to back it.
+          <div>
+            <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
+              Real code
             </div>
-          ) : (
-            <>
-              <label>
-                <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
-                  Real code
-                </div>
-                <select
-                  className="wk-input"
-                  value={realCodeId}
-                  onChange={(e) => setRealCodeId(e.target.value)}
-                >
-                  {realCodes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.number} · {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+            {/* BIZ-049: searchable backing selector (real codes + reference catalog), not a bare select. */}
+            <button
+              type="button"
+              className="wk-input wk-task-code-trigger"
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+              data-testid="wk-virtual-backing-trigger"
+              onClick={() => setBackingPickerOpen(true)}
+            >
+              {selectedReal ? (
+                <>
+                  <span className="wk-dot" style={{ background: selectedReal.color }} />
+                  <span>
+                    {selectedReal.number} · {selectedReal.name}
+                  </span>
+                </>
+              ) : (
+                <span className="wk-screen-sub">Pick a real code…</span>
+              )}
+            </button>
+          </div>
 
-              <label>
-                <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
-                  Name
-                </div>
-                <input
-                  className="wk-input"
-                  value={name}
-                  placeholder="Workday contact info"
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </label>
+          <label>
+            <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
+              Name
+            </div>
+            <input
+              className="wk-input"
+              value={name}
+              placeholder="Workday contact info"
+              onChange={(e) => setName(e.target.value)}
+            />
+          </label>
 
-              <div>
-                <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
-                  Color
-                </div>
-                <ColorPicker value={color} onChange={setColor} otherCodes={otherCodes} />
-              </div>
-            </>
-          )}
+          <div>
+            <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
+              Color
+            </div>
+            <ColorPicker value={color} onChange={setColor} otherCodes={otherCodes} />
+          </div>
 
           {error && (
             <div className="wk-modal-empty" style={{ color: 'var(--wk-red, #e5644e)' }}>
@@ -149,6 +166,29 @@ export function VirtualCodeEditor({
           </div>
         </div>
       </div>
+
+      {backingPickerOpen && (
+        <CodePicker
+          codeOnly
+          realOnly
+          title="Backing real code"
+          codes={realCodes}
+          onPick={(id) => {
+            setRealCodeId(id)
+            setBackingPickerOpen(false)
+          }}
+          onClose={() => setBackingPickerOpen(false)}
+          onSearchReference={onSearchReference}
+          onActivateReference={
+            onActivateReference &&
+            ((ref) =>
+              onActivateReference(ref, (created) => {
+                setRealCodeId(created.id)
+                setBackingPickerOpen(false)
+              }))
+          }
+        />
+      )}
     </div>
   )
 }

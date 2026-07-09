@@ -4,7 +4,7 @@ import './styles/walker.css'
 import { AppShell, type Route, type ShellUser } from './components/AppShell'
 import { TimerBar } from './components/TimerBar'
 import { CodePicker } from './components/CodePicker'
-import { CodeEditor } from './components/CodeEditor'
+import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
 import { CellEntriesModal } from './components/CellEntriesModal'
@@ -24,6 +24,7 @@ import type {
   Entry,
   PeriodRow,
   PeriodScheme,
+  ReferenceCode,
   Task,
   TaskSuggestion,
   Theme,
@@ -45,7 +46,6 @@ import { ToastProvider } from './lib/toast'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
-  addCodeFromReference as apiAddCodeFromReference,
   ApiError,
   completeTimer as apiCompleteTimer,
   createCode as apiCreateCode,
@@ -247,9 +247,15 @@ function AppInner() {
   const [matrix, setMatrix] = useState<Record<string, Record<number, number>>>({})
   const [checked, setChecked] = useState<ChecklistState>({})
   const [picker, setPicker] = useState<{ target: 'timer' | string } | null>(null)
-  const [editor, setEditor] = useState<{ code: TimesheetCode | null; initialName?: string } | null>(
-    null,
-  )
+  // `prefill` populates the editor from a reference-catalog entry being activated (BIZ-049);
+  // `onActivated` is the continuation run after the real code is saved (e.g. select it as a virtual
+  // code's backing, or set a task's code).
+  const [editor, setEditor] = useState<{
+    code: TimesheetCode | null
+    initialName?: string
+    prefill?: CodePrefill
+    onActivated?: (code: TimesheetCode) => void
+  } | null>(null)
   // `reopenPicker` is set when the virtual-code editor was opened from CodePicker's "create on the
   // fly" action (BIZ-013): on save, the picker reopens on the same target so the newly created
   // virtual code can be picked in one more click ("used immediately" — see saveVirtualCode below).
@@ -629,12 +635,30 @@ function AppInner() {
       color: code.color,
       activities: code.activities,
     }
+    // Captured now: `setEditor(null)` (in the editor's onClose) runs before this promise resolves.
+    const onActivated = editor?.onActivated
     const op = codes.some((c) => c.id === code.id)
       ? apiUpdateCode(code.id, payload)
       : apiCreateCode(payload)
-    op.then(reloadCodes).catch((err: unknown) =>
-      notifyError(errorMessage(err, 'Could not save the code.')),
-    )
+    op.then(async (saved) => {
+      await reloadCodes()
+      onActivated?.(saved)
+    }).catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the code.')))
+  }
+  // Activate a reference-catalog code through the editor so it gets a deliberate colour (BIZ-049).
+  // Idempotent: if the number is already an active real code, open it in edit mode instead of
+  // re-creating; `onActivated` (if any) runs once the code is saved.
+  const activateReference = (ref: ReferenceCode, onActivated?: (code: TimesheetCode) => void) => {
+    const existing = codes.find((c) => !c.isVirtual && c.number === ref.number)
+    if (existing) {
+      setEditor({ code: existing, onActivated })
+      return
+    }
+    setEditor({
+      code: null,
+      prefill: { number: ref.number, label: ref.label, name: ref.name, activities: ref.activities },
+      onActivated,
+    })
   }
   const deleteCode = (code: TimesheetCode) => {
     apiDeleteCode(code.id)
@@ -1122,11 +1146,7 @@ function AppInner() {
           onImport={importCatalogFile}
           importStatus={importMessage}
           onSearchReference={searchReference}
-          onAddCode={(number) =>
-            apiAddCodeFromReference(number)
-              .then(reloadCodes)
-              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the code.')))
-          }
+          onActivateReference={(ref) => activateReference(ref)}
         />
       )}
       {route === 'settings' && (
@@ -1173,11 +1193,7 @@ function AppInner() {
             setVirtualEditor({ code: null, reopenPicker })
           }}
           onSearchReference={searchReference}
-          onAddFromReference={(number) =>
-            apiAddCodeFromReference(number)
-              .then(reloadCodes)
-              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the code.')))
-          }
+          onActivateReference={(ref) => activateReference(ref)}
           onPick={(codeId, activity) => {
             // This picker always chooses an activity (never code-only, BIZ-037); the guard narrows
             // `activity` to a string for the entry/timer paths below.
@@ -1218,19 +1234,6 @@ function AppInner() {
         />
       )}
 
-      {editor && (
-        <CodeEditor
-          code={editor.code}
-          initialName={editor.initialName}
-          codes={codes}
-          onSave={saveCode}
-          onDelete={
-            editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
-          }
-          onClose={() => setEditor(null)}
-        />
-      )}
-
       {virtualEditor && (
         <VirtualCodeEditor
           code={virtualEditor.code}
@@ -1243,6 +1246,8 @@ function AppInner() {
               : undefined
           }
           onClose={() => setVirtualEditor(null)}
+          onSearchReference={searchReference}
+          onActivateReference={activateReference}
         />
       )}
 
@@ -1276,12 +1281,7 @@ function AppInner() {
           onDelete={taskPanel.task ? () => deleteTask(taskPanel.task!) : undefined}
           onClose={() => setTaskPanel(null)}
           onSearchReference={searchReference}
-          onAddFromReference={(number) =>
-            apiAddCodeFromReference(number).then((added) => {
-              void reloadCodes()
-              return added
-            })
-          }
+          onActivateReference={activateReference}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
           onCreateNewVirtual={() => setVirtualEditor({ code: null, reopenPicker: null })}
         />
@@ -1311,6 +1311,22 @@ function AppInner() {
             if (found) deleteEntryWithUndo(found, refreshCell)
           }}
           onClose={() => setCellDrill(null)}
+        />
+      )}
+
+      {/* Rendered last so it stacks above any modal that opened it — including the code picker inside
+          TaskPanel / VirtualCodeEditor when activating a reference code (BIZ-049). */}
+      {editor && (
+        <CodeEditor
+          code={editor.code}
+          initialName={editor.initialName}
+          prefill={editor.prefill}
+          codes={codes}
+          onSave={saveCode}
+          onDelete={
+            editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
+          }
+          onClose={() => setEditor(null)}
         />
       )}
 
