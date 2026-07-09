@@ -57,6 +57,7 @@ arrow's tooltip is "Start a timer from this task".
 
 - [ ] ▶ appears on **both** the list rows and the board cards; clicking it starts a Timer with no
       picker.
+- [ ] The started Entry's **description is the Task's title** and its **code is the Task's code**.
 - [ ] Activity resolution follows the four cases above (none / code-only / auto-single / deferred).
 - [ ] Clicking while a Timer runs switches (re-tag empty stub in place, else close + open new).
 - [ ] A `todo` task moves to `in_progress` on start; other statuses are unchanged.
