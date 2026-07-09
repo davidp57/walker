@@ -1,7 +1,7 @@
 # BIZ-054 — Edit the running entry inline; make the Timer's description field look editable
 
 ID: BIZ-054
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
