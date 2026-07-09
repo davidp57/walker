@@ -1,7 +1,7 @@
 # BIZ-059 — Form modals don't dismiss on an outside click
 
 ID: BIZ-059
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Priority: P3
 
