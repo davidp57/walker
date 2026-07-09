@@ -167,7 +167,7 @@ export function CodeCatalogScreen({
                 Your catalog has two tiers: import your full reference catalog once (
                 <span className="wk-accent">Import reference</span>), then search above to add the
                 handful of codes you actually charge to. See{' '}
-                <a href="https://davidp57.github.io/Walker/catalog-import/">
+                <a href="https://davidp57.github.io/walker/catalog-import/">
                   Importing your code catalog
                 </a>
                 .
