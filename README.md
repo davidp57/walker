@@ -7,14 +7,14 @@ a tick-as-you-go checklist.
 
 > Status: **POC**, single user. Web app (FastAPI JSON API + React SPA), dockerized, SQLite.
 
-📖 **Documentation site:** <https://davidp57.github.io/Walker/> — getting started, day-to-day guide,
+📖 **Documentation site:** <https://davidp57.github.io/walker/> — getting started, day-to-day guide,
 self-hosting, and importing your code catalog (available in English and French).
 
 ## Documentation
 
 | Topic | Document |
 |---|---|
-| User documentation (published site) | <https://davidp57.github.io/Walker/> |
+| User documentation (published site) | <https://davidp57.github.io/walker/> |
 | Ubiquitous language (glossary) | [CONTEXT.md](CONTEXT.md) |
 | Architecture decisions | [docs/adr/](docs/adr/) |
 | UI design brief (handoff) | [docs/design/handoff.md](docs/design/handoff.md) |

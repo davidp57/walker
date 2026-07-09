@@ -123,7 +123,7 @@ describe('CodeCatalogScreen', () => {
     expect(screen.getByText(/two tiers/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Importing your code catalog/ })).toHaveAttribute(
       'href',
-      'https://davidp57.github.io/Walker/catalog-import/',
+      'https://davidp57.github.io/walker/catalog-import/',
     )
   })
 })

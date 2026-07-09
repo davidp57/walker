@@ -1,6 +1,6 @@
 site_name: Walker
 site_description: A personal time tracker that prepares your timesheet for re-entry into your company's timesheet system.
-site_url: https://davidp57.github.io/Walker/
+site_url: https://davidp57.github.io/walker/
 repo_url: https://github.com/davidp57/Walker
 repo_name: davidp57/Walker
 docs_dir: docs-site
