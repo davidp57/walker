@@ -157,6 +157,77 @@ describe('VirtualCodeEditor', () => {
     await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce())
   })
 
+  // BIZ-049 — searchable backing selector replacing the bare <select>.
+  it('opens the backing picker and selecting a real code updates the trigger', () => {
+    render(
+      <VirtualCodeEditor
+        code={null}
+        realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onClose={vi.fn()}
+      />,
+    )
+
+    // Defaults to the first real code.
+    expect(screen.getByTestId('wk-virtual-backing-trigger')).toHaveTextContent('N9/1042 · Paper V4')
+
+    fireEvent.click(screen.getByTestId('wk-virtual-backing-trigger'))
+    expect(screen.getByText('Backing real code')).toBeInTheDocument()
+    fireEvent.click(screen.getByText('Other'))
+
+    expect(screen.getByTestId('wk-virtual-backing-trigger')).toHaveTextContent('N9/2000 · Other')
+  })
+
+  it('activates a reference code as the backing once it is created (the modal chain)', async () => {
+    const created: TimesheetCode = {
+      ...realCode,
+      id: '99',
+      number: 'N9/9999',
+      name: 'Activated',
+    }
+    const ref = { id: 'r1', number: 'N9/9999', name: 'Activated', label: 'ACT', activities: [] }
+    // Stand in for App: activation resolves synchronously to the created real code.
+    const onActivateReference = vi.fn((_ref, onActivated: (c: TimesheetCode) => void) =>
+      onActivated(created),
+    )
+    const { rerender } = render(
+      <VirtualCodeEditor
+        code={null}
+        realCodes={[realCode]}
+        codes={[realCode]}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onClose={vi.fn()}
+        onSearchReference={async () => [ref]}
+        onActivateReference={onActivateReference}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-virtual-backing-trigger'))
+    fireEvent.change(screen.getByPlaceholderText('Search code or activity…'), {
+      target: { value: 'act' },
+    })
+    fireEvent.click(await screen.findByText('Activated'))
+
+    expect(onActivateReference).toHaveBeenCalledWith(ref, expect.any(Function))
+
+    // App reloads codes after the create — the new real code is now among realCodes.
+    rerender(
+      <VirtualCodeEditor
+        code={null}
+        realCodes={[realCode, created]}
+        codes={[realCode, created]}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onClose={vi.fn()}
+        onSearchReference={async () => [ref]}
+        onActivateReference={onActivateReference}
+      />,
+    )
+    expect(screen.getByTestId('wk-virtual-backing-trigger')).toHaveTextContent(
+      'N9/9999 · Activated',
+    )
+  })
+
   it('keeps the modal open and shows an error when onSave rejects', async () => {
     const onSave = vi.fn().mockRejectedValue(new Error('name already exists'))
     const onClose = vi.fn()

@@ -66,7 +66,8 @@ interface TaskPanelProps {
   // Code selection via the shared CodePicker (BIZ-037). All optional so the panel still works
   // read-only without them; App wires them exactly as it does for the entry flow.
   onSearchReference?: (q: string) => Promise<ReferenceCode[]> // search the reference catalog
-  onAddFromReference?: (number: string) => Promise<TimesheetCode> // add a ref code; returns it
+  // Activate a reference code through the code editor (BIZ-049); `onActivated` selects it here.
+  onActivateReference?: (ref: ReferenceCode, onActivated: (code: TimesheetCode) => void) => void
   onCreateNew?: (query: string) => void // open the real-code editor prefilled with the query
   onCreateNewVirtual?: (query: string) => void // open the virtual-code editor
 }
@@ -94,7 +95,7 @@ export function TaskPanel({
   onDelete,
   onClose,
   onSearchReference,
-  onAddFromReference,
+  onActivateReference,
   onCreateNew,
   onCreateNewVirtual,
 }: TaskPanelProps) {
@@ -537,14 +538,13 @@ export function TaskPanel({
             })
           }
           onSearchReference={onSearchReference}
-          onAddFromReference={
-            onAddFromReference &&
-            ((number) => {
-              void onAddFromReference(number).then((added) => {
-                setCodeId(added.id)
+          onActivateReference={
+            onActivateReference &&
+            ((ref) =>
+              onActivateReference(ref, (created) => {
+                setCodeId(created.id)
                 setCodePickerOpen(false)
-              })
-            })
+              }))
           }
         />
       )}

@@ -45,7 +45,7 @@ function renderScreen(
       onDelete={vi.fn()}
       isCodeInUse={() => false}
       onSearchReference={async () => []}
-      onAddCode={vi.fn()}
+      onActivateReference={vi.fn()}
     />,
   )
 }

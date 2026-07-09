@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReferenceCode, TimesheetCode } from '../types'
+import { sortReferenceByName } from '../lib/codeSearch'
 
 interface CodeCatalogScreenProps {
   codes: TimesheetCode[]
@@ -14,7 +15,8 @@ interface CodeCatalogScreenProps {
   onImport?: () => void // import the reference catalog from a file
   importStatus?: string | null // result/error of the last import
   onSearchReference: (q: string) => Promise<ReferenceCode[]>
-  onAddCode: (number: string) => void
+  // Activate a reference code through the code editor so it gets a deliberate colour (BIZ-049).
+  onActivateReference: (ref: ReferenceCode) => void
 }
 
 export function CodeCatalogScreen({
@@ -29,11 +31,13 @@ export function CodeCatalogScreen({
   onImport,
   importStatus,
   onSearchReference,
-  onAddCode,
+  onActivateReference,
 }: CodeCatalogScreenProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ReferenceCode[]>([])
   const activeNumbers = new Set(codes.map((c) => c.number))
+  // Name-sorted, already-active codes dropped (BIZ-049).
+  const suggestions = sortReferenceByName(results, activeNumbers)
 
   // Debounced autocomplete over the reference catalog.
   useEffect(() => {
@@ -54,8 +58,8 @@ export function CodeCatalogScreen({
     }
   }, [query, onSearchReference])
 
-  const add = (number: string) => {
-    onAddCode(number)
+  const activate = (ref: ReferenceCode) => {
+    onActivateReference(ref)
     setQuery('')
     setResults([])
   }
@@ -108,7 +112,7 @@ export function CodeCatalogScreen({
           placeholder="Add a code — search your catalog by number, project, or label…"
           onChange={(e) => setQuery(e.target.value)}
         />
-        {results.length > 0 && (
+        {suggestions.length > 0 && (
           <div
             className="wk-suggest"
             style={{
@@ -120,28 +124,22 @@ export function CodeCatalogScreen({
               marginTop: 4,
             }}
           >
-            {results.map((r) => {
-              const already = activeNumbers.has(r.number)
-              return (
-                <button
-                  key={r.id}
-                  type="button"
-                  className="wk-suggest-item"
-                  disabled={already}
-                  style={already ? { opacity: 0.5, cursor: 'default' } : undefined}
-                  onClick={() => add(r.number)}
-                >
-                  <span className="wk-suggest-body">
-                    <span className="wk-suggest-desc">{r.name}</span>
-                    <span className="wk-suggest-meta">
-                      {r.number} · {r.label}
-                      {already ? ' · already added' : ''}
-                    </span>
+            {suggestions.map((r) => (
+              <button
+                key={r.id}
+                type="button"
+                className="wk-suggest-item"
+                onClick={() => activate(r)}
+              >
+                <span className="wk-suggest-body">
+                  <span className="wk-suggest-desc">{r.name}</span>
+                  <span className="wk-suggest-meta">
+                    {r.number} · {r.label}
                   </span>
-                  {!already && <span className="wk-suggest-key">+ add</span>}
-                </button>
-              )
-            })}
+                </span>
+                <span className="wk-suggest-key">+ add</span>
+              </button>
+            ))}
           </div>
         )}
       </div>

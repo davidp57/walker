@@ -3,9 +3,18 @@ import type { Activity, TimesheetCode } from '../types'
 import { ColorPicker } from './ColorPicker'
 import { suggestColor } from '../lib/palette'
 
+/** Fields borrowed from a reference-catalog entry when activating it through the editor (BIZ-049). */
+export interface CodePrefill {
+  number: string
+  label: string
+  name: string
+  activities: Activity[]
+}
+
 interface CodeEditorProps {
   code: TimesheetCode | null // null = create a new code
   initialName?: string // prefill (e.g. the search query from the picker)
+  prefill?: CodePrefill // prefill number/label/name/activities (activating a reference code, BIZ-049)
   codes: TimesheetCode[] // all visible codes — for the colour picker's avoidance + used markers
   onSave: (code: TimesheetCode) => void
   onDelete?: () => void // omitted when the code can't be deleted (new, or in use)
@@ -16,6 +25,7 @@ interface CodeEditorProps {
 export function CodeEditor({
   code,
   initialName,
+  prefill,
   codes,
   onSave,
   onDelete,
@@ -26,17 +36,16 @@ export function CodeEditor({
   const otherCodes = codes
     .filter((c) => c.id !== code?.id)
     .map((c) => ({ color: c.color, name: c.name }))
-  const [number, setNumber] = useState(code?.number ?? '')
-  const [name, setName] = useState(code?.name ?? initialName ?? '')
-  const [label, setLabel] = useState(code?.label ?? '')
+  const [number, setNumber] = useState(code?.number ?? prefill?.number ?? '')
+  const [name, setName] = useState(code?.name ?? prefill?.name ?? initialName ?? '')
+  const [label, setLabel] = useState(code?.label ?? prefill?.label ?? '')
   const [color, setColor] = useState(
     () => code?.color ?? suggestColor(otherCodes.map((c) => c.color)),
   )
-  const [activities, setActivities] = useState<Activity[]>(
-    code?.activities.length
-      ? code.activities.map((a) => ({ ...a }))
-      : [{ code: '0001', label: '' }],
-  )
+  const [activities, setActivities] = useState<Activity[]>(() => {
+    const source = code?.activities.length ? code.activities : prefill?.activities
+    return source?.length ? source.map((a) => ({ ...a })) : [{ code: '0001', label: '' }]
+  })
 
   const setAct = (i: number, patch: Partial<Activity>) =>
     setActivities((list) => list.map((a, j) => (j === i ? { ...a, ...patch } : a)))

@@ -284,11 +284,6 @@ export async function searchReference(q: string, limit = 20): Promise<ReferenceC
   return refs.map((r) => ({ ...r, id: String(r.id) }))
 }
 
-/** Copy a reference code (by number) into the user's active codes. */
-export async function addCodeFromReference(number: string): Promise<TimesheetCode> {
-  return mapCode(await sendJson<ApiCode>('/api/codes/from-reference', 'POST', { number }))
-}
-
 /** Import a catalog CSV into the reference catalog; upserts by number. Returns created/updated. */
 export async function importCatalog(file: File): Promise<{ created: number; updated: number }> {
   const form = new FormData()
