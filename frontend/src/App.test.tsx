@@ -722,3 +722,50 @@ describe('App — SSO sign-in gate (BIZ-029 frontend)', () => {
     expect(await screen.findByPlaceholderText('What are you working on?')).toBeInTheDocument()
   })
 })
+
+describe('App — editing the running Timer (BIZ-058)', () => {
+  const otherCode: TimesheetCode = {
+    id: '3',
+    number: 'N9/2000',
+    label: 'MNT - OTHER',
+    name: 'Other project',
+    color: '#3fb68b',
+    activities: [{ code: '0002', label: 'Design' }],
+    isVirtual: false,
+    realCodeId: null,
+    realCodeNumber: null,
+  }
+
+  it('changing the code on a categorized running Timer edits the entry in place, not a switch', async () => {
+    const runningEntry: Entry = {
+      id: '30',
+      date: new Date().toISOString().slice(0, 10),
+      start: 540,
+      end: null,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: 'writing spec',
+    }
+    mockBaseApi([realCode, otherCode], [runningEntry])
+    const patchEntry = vi
+      .spyOn(api, 'patchEntry')
+      .mockResolvedValue({ ...runningEntry, codeId: otherCode.id, activity: 'Design' })
+    const switchTimer = vi.spyOn(api, 'switchTimer')
+
+    render(<App />)
+    await screen.findByPlaceholderText('What are you working on?')
+
+    // Open the code picker for the running timer and pick a different code's activity.
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    fireEvent.click(await screen.findByText('Design'))
+
+    await waitFor(() =>
+      expect(patchEntry).toHaveBeenCalledWith(
+        '30',
+        expect.objectContaining({ codeId: otherCode.id, activity: 'Design' }),
+      ),
+    )
+    // In place — the running entry is corrected, no new segment opened.
+    expect(switchTimer).not.toHaveBeenCalled()
+  })
+})

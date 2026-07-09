@@ -119,7 +119,7 @@ describe('App — keyboard-driven timer loop (BIZ-009)', () => {
     expect(startTimer).not.toHaveBeenCalled()
   })
 
-  it('a global shortcut opens the task switcher', async () => {
+  it('a global shortcut opens the code picker', async () => {
     mockBaseApi([realCode], [])
 
     render(<App />)
@@ -127,6 +127,6 @@ describe('App — keyboard-driven timer loop (BIZ-009)', () => {
 
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
 
-    expect(await screen.findByText('Switch task')).toBeInTheDocument()
+    expect(await screen.findByText('Change code')).toBeInTheDocument()
   })
 })
