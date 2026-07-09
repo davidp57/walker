@@ -33,6 +33,12 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 ## Now — not yet chosen
 
+- **CODEUX** (code colour automation + unified code-selection UX) — a single 64-colour palette
+  (mirrored back/front, contract-tested) with a least-used-first random suggestion and a rich colour
+  picker (BIZ-048), then a unified tiered code search (grouped by tier, sorted by name) applied to
+  every picker, replacing the virtual-code backing `<select>` and routing reference activation through
+  `CodeEditor` (BIZ-049). Sequenced BIZ-048 → BIZ-049. Model-agnostic w.r.t. the parked catalog
+  re-scoping (see `IDEAS.md`). See `.backlog/CODEUX/PRD.md`.
 - **POLISH** (living lot of small UX improvements) — first batch shipped (BIZ-038 … BIZ-047: running
   Timer in Activity, absence date range, description de-noise, task priority/due pills + inline
   status, time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty

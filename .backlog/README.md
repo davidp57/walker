@@ -12,6 +12,7 @@ source of truth for **scope and status**.
 
 | Lot | Status |
 |-----|--------|
+| [CODEUX](CODEUX/PRD.md) — Code colour automation (64-colour palette, least-used-first suggestion, rich picker) + unified tiered code-selection UX (BIZ-048, BIZ-049) | ⬜ |
 | [POLISH](POLISH/PRD.md) — Incremental UX polish (living lot; small tracker/UI improvements) | 🔄 |
 | [DOCS](DOCS/PRD.md) — User-facing documentation-site content (living lot; bilingual EN/FR pages) | 🔄 |
 | [TECH](TECH/PRD.md) — Cross-cutting technical debt (living lot; tickets added/resolved individually) | 🔄 |
