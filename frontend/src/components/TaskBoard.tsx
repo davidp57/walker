@@ -14,12 +14,14 @@ import {
   type KeyboardCoordinateGetter,
 } from '@dnd-kit/core'
 import type { Task, TaskStatus, TimesheetCode } from '../types'
+import { IconPlay } from './icons'
 
 interface StatusBoardProps {
   tasks: Task[]
   codesById: Record<string, TimesheetCode>
   onOpenTask: (task: Task) => void
   onMoveTask: (task: Task, status: TaskStatus) => void
+  onStartTask?: (task: Task) => void
 }
 
 export interface TaskBoardProps extends StatusBoardProps {
@@ -122,10 +124,19 @@ interface BoardCardProps {
   nextStatus: TaskStatus | null
   onOpenTask: (task: Task) => void
   onMoveTask: (task: Task, status: TaskStatus) => void
+  onStartTask?: (task: Task) => void
 }
 
 /** A Task card, also a `@dnd-kit` draggable — the drag handle keeps click-to-move controls intact. */
-function BoardCard({ task, code, prevStatus, nextStatus, onOpenTask, onMoveTask }: BoardCardProps) {
+function BoardCard({
+  task,
+  code,
+  prevStatus,
+  nextStatus,
+  onOpenTask,
+  onMoveTask,
+  onStartTask,
+}: BoardCardProps) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } =
     useDraggable({
       id: task.id,
@@ -163,6 +174,18 @@ function BoardCard({ task, code, prevStatus, nextStatus, onOpenTask, onMoveTask 
         >
           {task.title}
         </div>
+        {/* BIZ-050: one-click start-timer, mirroring the drag handle on the opposite corner. */}
+        {onStartTask && (
+          <button
+            type="button"
+            className="wk-board-card-start"
+            title="Start a timer from this task"
+            data-testid={`wk-board-card-start-${task.id}`}
+            onClick={() => onStartTask(task)}
+          >
+            <IconPlay />
+          </button>
+        )}
       </div>
       <div className="wk-board-card-meta">
         {task.priority && (
@@ -225,7 +248,7 @@ function BoardCard({ task, code, prevStatus, nextStatus, onOpenTask, onMoveTask 
  * sensor also makes the drag path itself operable without a pointer: focus a card's drag handle,
  * Space to lift, arrow keys to move between columns, Space to drop (Escape cancels).
  */
-function StatusBoard({ tasks, codesById, onOpenTask, onMoveTask }: StatusBoardProps) {
+function StatusBoard({ tasks, codesById, onOpenTask, onMoveTask, onStartTask }: StatusBoardProps) {
   const [overStatus, setOverStatus] = useState<TaskStatus | null>(null)
   // BIZ-044: Done can be collapsed to a narrow rail to tame the horizontal scroll (session state).
   const [doneCollapsed, setDoneCollapsed] = useState(false)
@@ -302,6 +325,7 @@ function StatusBoard({ tasks, codesById, onOpenTask, onMoveTask }: StatusBoardPr
                     nextStatus={nextStatus}
                     onOpenTask={onOpenTask}
                     onMoveTask={onMoveTask}
+                    onStartTask={onStartTask}
                   />
                 )
               })}
@@ -351,6 +375,7 @@ export function TaskBoard({
   codesById,
   onOpenTask,
   onMoveTask,
+  onStartTask,
   groupByCode = false,
 }: TaskBoardProps) {
   if (!groupByCode) {
@@ -360,6 +385,7 @@ export function TaskBoard({
         codesById={codesById}
         onOpenTask={onOpenTask}
         onMoveTask={onMoveTask}
+        onStartTask={onStartTask}
       />
     )
   }
@@ -374,6 +400,7 @@ export function TaskBoard({
             codesById={codesById}
             onOpenTask={onOpenTask}
             onMoveTask={onMoveTask}
+            onStartTask={onStartTask}
           />
         </div>
       ))}

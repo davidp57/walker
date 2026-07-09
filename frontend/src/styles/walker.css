@@ -1947,6 +1947,21 @@ html[data-theme='light'] body {
   align-items: center;
   gap: 6px;
 }
+/* BIZ-050: one-click start-timer on a board card, pinned to the head's right edge. */
+.wk-board-card-start {
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--wk-text-lo);
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+}
+.wk-board-card-start:hover {
+  color: var(--wk-accent);
+}
 .wk-board-drag-handle {
   flex: 0 0 auto;
   border: none;

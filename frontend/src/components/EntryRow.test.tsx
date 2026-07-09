@@ -66,13 +66,13 @@ describe('EntryRow row actions', () => {
   it('exposes an unambiguous accessible name for each row action', () => {
     renderRow()
     expect(screen.getByRole('button', { name: 'Edit entry' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Resume this task' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resume this entry' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete entry' })).toBeInTheDocument()
   })
 
   it('gives row actions an adequately sized click target (at least 24x24 CSS px)', () => {
     renderRow()
-    for (const name of ['Edit entry', 'Resume this task', 'Delete entry']) {
+    for (const name of ['Edit entry', 'Resume this entry', 'Delete entry']) {
       const button = screen.getByRole('button', { name })
       expect(button.className).toContain('wk-row-action')
     }
@@ -84,7 +84,7 @@ describe('EntryRow row actions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit entry' }))
     expect(handlers.onOpenEditor).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Resume this task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Resume this entry' }))
     expect(handlers.onResume).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }))

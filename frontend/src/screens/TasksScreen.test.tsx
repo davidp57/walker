@@ -306,6 +306,25 @@ describe('TasksScreen', () => {
     expect(screen.getByText('backend')).toBeInTheDocument()
   })
 
+  it('starts a timer from a board card (BIZ-050)', () => {
+    const onStartTask = vi.fn()
+    const task = makeTask({ id: '1', title: 'Board task', status: 'todo' })
+    render(
+      <TasksScreen
+        tasks={[task]}
+        codesById={{}}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+        onStartTask={onStartTask}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-task-view-board'))
+    fireEvent.click(screen.getByTestId('wk-board-card-start-1'))
+
+    expect(onStartTask).toHaveBeenCalledWith(task)
+  })
+
   it('renders a single table with section rows when grouped, not one table per group (BIZ-051)', () => {
     const tasks = [
       makeTask({ id: '1', title: 'Todo task', status: 'todo' }),

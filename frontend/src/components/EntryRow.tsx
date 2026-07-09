@@ -251,8 +251,8 @@ export function EntryRow({
           <button
             type="button"
             className="wk-row-action"
-            title="Resume this task"
-            aria-label="Resume this task"
+            title="Resume this entry"
+            aria-label="Resume this entry"
             onClick={onResume}
           >
             <IconPlay size={12} />
