@@ -1,11 +1,17 @@
 import { Fragment, useMemo, useState } from 'react'
-import type { Task, TaskStatus, TimesheetCode } from '../types'
+import type { Task, TaskStatus, TimesheetCode, ViewPreferences } from '../types'
 import { IconPlay } from '../components/icons'
 import { TaskBoard } from '../components/TaskBoard'
 
 export type TaskSortField = 'status' | 'priority' | 'due' | 'title'
 export type TaskGroupField = 'none' | 'status' | 'priority' | 'due' | 'code'
 export type TaskViewMode = 'list' | 'board'
+type SortDir = 'asc' | 'desc'
+/** The view-preference keys this screen owns (BIZ-053). */
+type TaskViewPrefs = Pick<
+  ViewPreferences,
+  'task_view' | 'task_sort' | 'task_sort_dir' | 'task_group'
+>
 
 interface TasksScreenProps {
   tasks: Task[]
@@ -18,6 +24,10 @@ interface TasksScreenProps {
   onStartTask?: (task: Task) => void
   /** Called when a Task is moved to another column on the board (BIZ-022). */
   onMoveTask?: (task: Task, status: TaskStatus) => void
+  // BIZ-053: persisted view preferences. Supply both to control view/group/sort + Done collapse;
+  // omit them and the screen keeps that state locally (standalone / tests).
+  preferences?: ViewPreferences
+  onPreferencesChange?: (patch: Partial<ViewPreferences>) => void
 }
 
 const STATUS_LABEL: Record<Task['status'], string> = {
@@ -92,24 +102,40 @@ export function TasksScreen({
   onOpenTask,
   onStartTask,
   onMoveTask,
+  preferences,
+  onPreferencesChange,
 }: TasksScreenProps) {
-  const [view, setView] = useState<TaskViewMode>('list')
-  const [sort, setSort] = useState<TaskSortField>('due')
-  const [sortDir, setSortDir] = useState<1 | -1>(1)
-  const [group, setGroup] = useState<TaskGroupField>('none')
+  // BIZ-053: controlled by the parent (persisted) when `preferences`+`onPreferencesChange` are
+  // supplied; otherwise the screen keeps this state locally, so it still works standalone (tests).
+  const [local, setLocal] = useState({
+    task_view: 'list' as TaskViewMode,
+    task_sort: 'due' as TaskSortField,
+    task_sort_dir: 'asc' as SortDir,
+    task_group: 'none' as TaskGroupField,
+  })
+  const patchPrefs = (patch: Partial<TaskViewPrefs>) => {
+    if (onPreferencesChange) onPreferencesChange(patch)
+    else setLocal((l) => ({ ...l, ...patch }))
+  }
+  const view = (preferences?.task_view ?? local.task_view) as TaskViewMode
+  const sort = (preferences?.task_sort ?? local.task_sort) as TaskSortField
+  const sortDir = (preferences?.task_sort_dir ?? local.task_sort_dir) as SortDir
+  const group = (preferences?.task_group ?? local.task_group) as TaskGroupField
+  const setView = (v: TaskViewMode) => patchPrefs({ task_view: v })
+  const setSort = (s: TaskSortField) => patchPrefs({ task_sort: s })
+  const setGroup = (g: TaskGroupField) => patchPrefs({ task_group: g })
   const today = new Date().toISOString().slice(0, 10)
 
   const toggleSort = (field: TaskSortField) => {
     if (field === sort) {
-      setSortDir((d) => (d === 1 ? -1 : 1))
+      patchPrefs({ task_sort_dir: sortDir === 'asc' ? 'desc' : 'asc' })
     } else {
-      setSort(field)
-      setSortDir(1)
+      patchPrefs({ task_sort: field, task_sort_dir: 'asc' })
     }
   }
 
   const sorted = useMemo(
-    () => [...tasks].sort((a, b) => sortDir * compareTasks(a, b, sort)),
+    () => [...tasks].sort((a, b) => (sortDir === 'asc' ? 1 : -1) * compareTasks(a, b, sort)),
     [tasks, sort, sortDir],
   )
 
@@ -142,7 +168,7 @@ export function TasksScreen({
       data-testid={`wk-task-sort-${field}`}
     >
       {label}
-      {sort === field ? (sortDir === 1 ? ' ▲' : ' ▼') : ''}
+      {sort === field ? (sortDir === 'asc' ? ' ▲' : ' ▼') : ''}
     </th>
   )
 
@@ -313,6 +339,12 @@ export function TasksScreen({
           onOpenTask={onOpenTask}
           onMoveTask={onMoveTask ?? (() => {})}
           onStartTask={onStartTask}
+          doneCollapsed={preferences?.done_collapsed}
+          onDoneCollapsedChange={
+            onPreferencesChange
+              ? (collapsed) => onPreferencesChange({ done_collapsed: collapsed })
+              : undefined
+          }
         />
       ) : (
         // BIZ-051: one table with per-group section rows, so columns stay aligned across groups.

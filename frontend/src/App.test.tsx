@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Entry, Theme, TimesheetCode } from './types'
+import { DEFAULT_VIEW_PREFERENCES } from './types'
 import * as api from './lib/api'
 
 afterEach(() => {
@@ -61,6 +62,7 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[], theme: Theme = 's
     periodScheme: 'semi_monthly',
     theme,
     absences: [],
+    viewPreferences: DEFAULT_VIEW_PREFERENCES,
   })
   vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
@@ -182,6 +184,7 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       periodScheme: 'semi_monthly',
       theme: 'system',
       absences: [],
+      viewPreferences: DEFAULT_VIEW_PREFERENCES,
     })
     vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
@@ -219,6 +222,7 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       periodScheme: 'semi_monthly',
       theme: 'system',
       absences: [],
+      viewPreferences: DEFAULT_VIEW_PREFERENCES,
     })
     vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
@@ -513,6 +517,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
       periodScheme: 'monthly',
       theme: 'system',
       absences: [],
+      viewPreferences: DEFAULT_VIEW_PREFERENCES,
     })
 
     render(<App />)
@@ -542,6 +547,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
       periodScheme: 'weekly',
       theme: 'system',
       absences: [],
+      viewPreferences: DEFAULT_VIEW_PREFERENCES,
     })
 
     render(<App />)

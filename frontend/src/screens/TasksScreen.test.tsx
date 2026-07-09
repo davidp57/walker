@@ -306,6 +306,35 @@ describe('TasksScreen', () => {
     expect(screen.getByText('backend')).toBeInTheDocument()
   })
 
+  it('is controlled by view preferences and reports changes (BIZ-053)', () => {
+    const onPreferencesChange = vi.fn()
+    const preferences = {
+      task_view: 'list' as const,
+      task_group: 'none' as const,
+      task_sort: 'due' as const,
+      task_sort_dir: 'asc' as const,
+      period_mode: 'review' as const,
+      done_collapsed: false,
+    }
+    const tasks = [makeTask({ id: '1', title: 'A' })]
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={{}}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+        preferences={preferences}
+        onPreferencesChange={onPreferencesChange}
+      />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
+    expect(onPreferencesChange).toHaveBeenCalledWith({ task_group: 'status' })
+
+    fireEvent.change(screen.getByTestId('wk-task-sort-select'), { target: { value: 'title' } })
+    expect(onPreferencesChange).toHaveBeenCalledWith({ task_sort: 'title' })
+  })
+
   it('starts a timer from a board card (BIZ-050)', () => {
     const onStartTask = vi.fn()
     const task = makeTask({ id: '1', title: 'Board task', status: 'todo' })

@@ -6,6 +6,9 @@ import { PeriodGrid } from '../components/PeriodGrid'
 type PeriodScreenMode = 'review' | 'enter'
 
 interface PeriodScreenProps {
+  // BIZ-053: controlled Review/Enter mode (persisted). Omit both to keep the mode local (tests).
+  mode?: PeriodScreenMode
+  onModeChange?: (mode: PeriodScreenMode) => void
   periodLabel: string // "1 – 15 July 2026"
   days: DayColumn[]
   reviewRows: PeriodRow[] // grouped by code — virtual codes are their own rows (Review)
@@ -33,6 +36,8 @@ interface PeriodScreenProps {
  * reloads data, it only changes which row set and controls are rendered.
  */
 export function PeriodScreen({
+  mode: modeProp,
+  onModeChange,
   periodLabel,
   days,
   reviewRows,
@@ -49,7 +54,11 @@ export function PeriodScreen({
   onChecklistChange,
   onChecklistReset,
 }: PeriodScreenProps) {
-  const [mode, setMode] = useState<PeriodScreenMode>('review')
+  // Controlled when the parent supplies `mode`+`onModeChange` (persisted, BIZ-053); else local.
+  const [localMode, setLocalMode] = useState<PeriodScreenMode>('review')
+  const mode = modeProp ?? localMode
+  const setMode = (next: PeriodScreenMode) =>
+    onModeChange ? onModeChange(next) : setLocalMode(next)
   const lastIndex = useRef<number | null>(null)
 
   // Column-major fill order over interactive (filled, non-weekend, non-absence, non-running) cells —

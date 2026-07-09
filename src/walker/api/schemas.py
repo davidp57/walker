@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -242,8 +243,41 @@ class AbsenceRead(BaseModel):
     reason: str
 
 
+TaskView = Literal["list", "board"]
+TaskGroup = Literal["none", "status", "priority", "due", "code"]
+TaskSort = Literal["due", "status", "priority", "title"]
+SortDir = Literal["asc", "desc"]
+PeriodMode = Literal["review", "enter"]
+
+
+class ViewPreferencesRead(BaseModel):
+    """Per-user view preferences (BIZ-053) — always a full, resolved set."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    task_view: TaskView
+    task_group: TaskGroup
+    task_sort: TaskSort
+    task_sort_dir: SortDir
+    period_mode: PeriodMode
+    done_collapsed: bool
+
+
+class ViewPreferencesUpdate(BaseModel):
+    """Partial patch of view preferences — only the provided keys are merged (BIZ-053)."""
+
+    task_view: TaskView | None = None
+    task_group: TaskGroup | None = None
+    task_sort: TaskSort | None = None
+    task_sort_dir: SortDir | None = None
+    period_mode: PeriodMode | None = None
+    done_collapsed: bool | None = None
+
+
 class SettingsRead(BaseModel):
-    """The user's settings: work rhythm (Sun..Sat), density, period scheme, theme, and absences."""
+    """The user's settings: work rhythm (Sun..Sat), density, period scheme, theme, absences, and
+    the per-user view preferences (BIZ-053).
+    """
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -252,6 +286,7 @@ class SettingsRead(BaseModel):
     period_scheme: PeriodScheme
     theme: Theme
     absences: list[AbsenceRead]
+    view_preferences: ViewPreferencesRead
 
 
 class SettingsUpdate(BaseModel):
