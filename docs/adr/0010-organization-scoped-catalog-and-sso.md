@@ -1,5 +1,10 @@
 # Organization-scoped code catalog, SSO for the hosted instance only
 
+> **Revisited by ADR-0012 (deferred):** the catalog-scoping decision below (activated real codes
+> Organization-scoped) is superseded — when a hosted multi-user instance is actually built — by
+> reference-per-Organization + activated-codes-per-User. It remains in force until then. The
+> Organization/SSO/auto-join parts of this ADR stand.
+
 The RELEASE-lot plan to share one hosted Walker instance among colleagues raised two questions ADR-0007
 left for "a later layer": how users authenticate, and whether data stays fully per-user once several
 real people share an instance.

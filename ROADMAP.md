@@ -63,4 +63,6 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 - Shared TS types generated from the OpenAPI spec (ADR-0003).
 - "Tracked vs theoretical hours" visual cue (default 8h, customizable) — nice-to-have.
 - Multi-user: add an auth layer over the already user-scoped data (ADR-0007).
+- Hosted multi-user catalog re-scope — reference per-Organization, activated codes per-User (ADR-0012,
+  deferred; a functional no-op until a real multi-user instance exists).
 - Switch SQLite → external DBMS (PostgreSQL / SQL Server) when hosted (ADR-0004).
