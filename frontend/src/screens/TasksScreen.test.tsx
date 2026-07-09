@@ -378,4 +378,54 @@ describe('TasksScreen', () => {
 
     expect(screen.queryByRole('columnheader', { name: 'Code' })).not.toBeInTheDocument()
   })
+
+  // BIZ-057 — dynamic states from the user's list.
+  const CUSTOM = [
+    { id: 'x', label: 'Icebox' },
+    { id: 'y', label: 'Active' },
+    { id: 'z', label: 'Shipped' },
+  ]
+
+  it('renders the inline status dropdown from the custom state list', () => {
+    const tasks = [makeTask({ id: '1', status: 'y' })]
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={{}}
+        taskStates={CUSTOM}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    const select = screen.getByTestId('wk-task-status-select-1') as HTMLSelectElement
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      'Icebox',
+      'Active',
+      'Shipped',
+    ])
+    expect(select.value).toBe('y')
+  })
+
+  it('orders status groups by the custom state order, not first appearance', () => {
+    const tasks = [
+      makeTask({ id: '1', title: 'Shipped one', status: 'z' }),
+      makeTask({ id: '2', title: 'Icebox one', status: 'x' }),
+    ]
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={{}}
+        taskStates={CUSTOM}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+      />,
+    )
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
+    const headers = Array.from(document.querySelectorAll('.wk-task-group-title')).map(
+      (n) => n.textContent,
+    )
+    // Icebox (x) precedes Shipped (z) despite Shipped's task appearing first in the input.
+    expect(headers).toEqual(['Icebox', 'Shipped'])
+  })
 })

@@ -1925,6 +1925,49 @@ html[data-theme='light'] body {
   font-family: var(--wk-font-mono);
   color: var(--wk-text-lo);
 }
+/* BIZ-057: in-kanban column editing. */
+.wk-board-column-role {
+  color: var(--wk-accent, var(--wk-text-lo));
+  font-weight: 600;
+}
+.wk-board-column-rename {
+  font: inherit;
+  padding: 2px 6px;
+  height: auto;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.wk-board-column-tools {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--wk-line);
+  background: var(--wk-bg-2);
+}
+.wk-board-column-tools .wk-btn-icon {
+  font-size: var(--wk-fs-11);
+  padding: 2px 6px;
+}
+.wk-board-add-column {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  min-width: 120px;
+  border: 1px dashed var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  background: transparent;
+  color: var(--wk-text-lo);
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.wk-board-add-column:hover {
+  color: var(--wk-text);
+  border-color: var(--wk-text-lo);
+}
 .wk-board-column-body {
   display: flex;
   flex-direction: column;

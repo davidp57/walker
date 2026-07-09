@@ -26,12 +26,13 @@ import type {
   PeriodScheme,
   ReferenceCode,
   Task,
+  TaskState,
   TaskSuggestion,
   Theme,
   TimesheetCode,
   ViewPreferences,
 } from './types'
-import { DEFAULT_VIEW_PREFERENCES } from './types'
+import { DEFAULT_TASK_STATES, DEFAULT_VIEW_PREFERENCES } from './types'
 import { resolveChecklistRows } from './lib/checklist'
 import { elapsedSecondsSince, formatDuration } from './lib/time'
 import {
@@ -46,6 +47,7 @@ import { ToastProvider } from './lib/toast'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
+  addTaskState as apiAddTaskState,
   ApiError,
   completeTimer as apiCompleteTimer,
   createCode as apiCreateCode,
@@ -55,6 +57,7 @@ import {
   deleteCode as apiDeleteCode,
   deleteEntry as apiDeleteEntry,
   deleteTask as apiDeleteTask,
+  deleteTaskState as apiDeleteTaskState,
   fetchChecklist,
   fetchCodes,
   fetchEntriesRange,
@@ -68,6 +71,8 @@ import {
   patchEntry as apiPatchEntry,
   patchViewPreferences as apiPatchViewPreferences,
   removeAbsence as apiRemoveAbsence,
+  renameTaskState as apiRenameTaskState,
+  reorderTaskStates as apiReorderTaskStates,
   resetChecklist as apiResetChecklist,
   searchReference,
   startTimer as apiStartTimer,
@@ -300,6 +305,9 @@ function AppInner() {
   // with the defaults; the settings fetch below replaces them. Writes are optimistic + debounced.
   const [viewPreferences, setViewPreferences] = useState<ViewPreferences>(DEFAULT_VIEW_PREFERENCES)
   const viewPrefsTimer = useRef<number | null>(null)
+  // BIZ-056/057: the user's ordered task states. Seeded with the defaults for the first paint; the
+  // settings fetch replaces them, and every CRUD op returns the fresh list.
+  const [taskStates, setTaskStates] = useState<TaskState[]>(DEFAULT_TASK_STATES)
 
   useEffect(() => {
     document.documentElement.dataset.density = density === 'compact' ? 'compact' : ''
@@ -333,6 +341,7 @@ function AppInner() {
         setPeriodScheme(s.periodScheme)
         setTheme(s.theme)
         setViewPreferences(s.viewPreferences)
+        setTaskStates(s.taskStates)
         writeCachedThemePreference(s.theme)
         setAbsences(s.absences)
       })
@@ -469,7 +478,9 @@ function AppInner() {
     apply
       .then(() => Promise.all([reload(), reloadTasks()]))
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not start the timer.')))
-    if (task.status === 'todo') moveTask(task, 'in_progress')
+    // Optimistic mirror of the backend's positional nudge (ADR-0011): a Task in the first
+    // (initial) state moves to the second when a timer starts on it.
+    if (task.status === taskStates[0]?.id && taskStates[1]) moveTask(task, taskStates[1].id)
   }
   const cancelTimer = () => {
     if (running) {
@@ -738,6 +749,30 @@ function AppInner() {
     })
       .then(reloadTasks)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not move the task.')))
+  }
+
+  // In-kanban state editing (BIZ-057): each op returns the fresh settings; a delete-with-reassign
+  // also retags Tasks server-side, so reload them too.
+  const stateEdits = {
+    onAdd: (label: string) =>
+      apiAddTaskState(label)
+        .then((s) => setTaskStates(s.taskStates))
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the column.'))),
+    onRename: (id: string, label: string) =>
+      apiRenameTaskState(id, label)
+        .then((s) => setTaskStates(s.taskStates))
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not rename the column.'))),
+    onReorder: (orderedIds: string[]) =>
+      apiReorderTaskStates(orderedIds)
+        .then((s) => setTaskStates(s.taskStates))
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not reorder the columns.'))),
+    onDelete: (id: string, reassignTo?: string) =>
+      apiDeleteTaskState(id, reassignTo)
+        .then((s) => {
+          setTaskStates(s.taskStates)
+          return reloadTasks()
+        })
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the column.'))),
   }
 
   // BIZ-053: apply a view-preference change optimistically, then persist it debounced (fire-and-
@@ -1124,6 +1159,8 @@ function AppInner() {
         <TasksScreen
           tasks={tasks}
           codesById={codesById}
+          taskStates={taskStates}
+          stateEdits={stateEdits}
           loading={tasksLoading}
           onNew={() => setTaskPanel({ task: null })}
           onOpenTask={(task) => setTaskPanel({ task })}
@@ -1276,6 +1313,7 @@ function AppInner() {
         <TaskPanel
           task={taskPanel.task}
           codes={codes}
+          taskStates={taskStates}
           tagSuggestions={taskTags}
           onSave={saveTask}
           onDelete={taskPanel.task ? () => deleteTask(taskPanel.task!) : undefined}

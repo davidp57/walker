@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Entry, TimesheetCode } from './types'
-import { DEFAULT_VIEW_PREFERENCES } from './types'
+import { DEFAULT_TASK_STATES, DEFAULT_VIEW_PREFERENCES } from './types'
 import * as api from './lib/api'
 
 afterEach(() => {
@@ -42,6 +42,7 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
     theme: 'system',
     absences: [],
     viewPreferences: DEFAULT_VIEW_PREFERENCES,
+    taskStates: DEFAULT_TASK_STATES,
   })
   vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})

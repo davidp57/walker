@@ -8,6 +8,7 @@ import type {
   RecurrenceRule,
   Task,
   TaskPriority,
+  TaskState,
   TaskStatus,
   Theme,
   TimesheetCode,
@@ -375,6 +376,7 @@ interface ApiSettings {
   theme: Theme
   absences: { date: string; reason: string }[]
   view_preferences: ViewPreferences
+  task_states: TaskState[]
 }
 
 /** The user's settings as used by the SPA. */
@@ -385,6 +387,7 @@ export interface SettingsData {
   theme: Theme
   absences: { date: string; reason: string }[]
   viewPreferences: ViewPreferences
+  taskStates: TaskState[]
 }
 
 function mapSettings(settings: ApiSettings): SettingsData {
@@ -395,7 +398,39 @@ function mapSettings(settings: ApiSettings): SettingsData {
     theme: settings.theme,
     absences: settings.absences,
     viewPreferences: settings.view_preferences,
+    taskStates: settings.task_states,
   }
+}
+
+/** Add a task state (inserted before the terminal one, BIZ-056); returns full settings. */
+export async function addTaskState(label: string): Promise<SettingsData> {
+  return mapSettings(await sendJson<ApiSettings>('/api/task-states', 'POST', { label }))
+}
+
+/** Rename a task state's label (its id, and Tasks, are untouched). */
+export async function renameTaskState(id: string, label: string): Promise<SettingsData> {
+  return mapSettings(await sendJson<ApiSettings>(`/api/task-states/${id}`, 'PATCH', { label }))
+}
+
+/** Reorder the task states — a permutation of every existing id; re-points the initial/terminal roles. */
+export async function reorderTaskStates(orderedIds: string[]): Promise<SettingsData> {
+  return mapSettings(
+    await sendJson<ApiSettings>('/api/task-states/order', 'PUT', { ordered_ids: orderedIds }),
+  )
+}
+
+/** Delete a task state (blocked at 2); a non-empty state's Tasks move to `reassignTo`. */
+export async function deleteTaskState(id: string, reassignTo?: string): Promise<SettingsData> {
+  const query = reassignTo ? `?reassign_to=${encodeURIComponent(reassignTo)}` : ''
+  const response = await fetch(`/api/task-states/${id}${query}`, { method: 'DELETE' })
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((b: { detail?: string }) => b.detail)
+      .catch(() => undefined)
+    throw new Error(detail ?? `${response.status} ${response.statusText}`)
+  }
+  return mapSettings((await response.json()) as ApiSettings)
 }
 
 /** Merge a partial view-preferences patch server-side (BIZ-053); returns the full updated settings. */

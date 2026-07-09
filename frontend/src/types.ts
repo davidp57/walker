@@ -123,8 +123,27 @@ export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
 
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`
 
-/** The Task status workflow: To-do -> In-progress -> Waiting -> Test -> Done (Waiting/Test skippable). */
-export type TaskStatus = 'todo' | 'in_progress' | 'waiting' | 'test' | 'done'
+/**
+ * A Task's status is an **opaque id** from the user's per-user, ordered state list (BIZ-056,
+ * ADR-0011) — no longer a fixed enum. Roles are positional (first = initial, last = terminal), so
+ * the UI reads order + labels from `TaskState[]`, never from hardcoded values.
+ */
+export type TaskStatus = string
+
+/** One user-defined task state: an opaque stable id + an editable label (BIZ-056). */
+export interface TaskState {
+  id: string
+  label: string
+}
+
+/** The five built-in defaults, for the first paint before the settings fetch resolves (BIZ-057). */
+export const DEFAULT_TASK_STATES: TaskState[] = [
+  { id: 'todo', label: 'To-do' },
+  { id: 'in_progress', label: 'In progress' },
+  { id: 'waiting', label: 'Waiting' },
+  { id: 'test', label: 'Test' },
+  { id: 'done', label: 'Done' },
+]
 
 export type TaskPriority = 'low' | 'medium' | 'high'
 
