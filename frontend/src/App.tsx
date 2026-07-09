@@ -978,10 +978,12 @@ function AppInner() {
       .sort()
       .reverse()
       .map((date) => {
+        // BIZ-060: newest first within the day (oldest last), matching the days' most-recent-first
+        // order — the running entry is still pinned to the very top below.
         const dayEntries = byDate
           .get(date)!
           .slice()
-          .sort((a, b) => a.start - b.start)
+          .sort((a, b) => b.start - a.start)
         // Pin the running entry to the top of its day (it's the current activity).
         const runningIdx = dayEntries.findIndex((e) => e.id === runningId)
         if (runningIdx > 0) {

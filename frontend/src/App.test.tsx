@@ -736,6 +736,34 @@ describe('App — editing the running Timer (BIZ-058)', () => {
     realCodeNumber: null,
   }
 
+  it("lists a day's entries newest-first, oldest last (BIZ-060)", async () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const older: Entry = {
+      id: '1',
+      date: today,
+      start: 540, // 09:00
+      end: 570,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: 'older one',
+    }
+    const newer: Entry = {
+      id: '2',
+      date: today,
+      start: 600, // 10:00
+      end: 630,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: 'newer one',
+    }
+    mockBaseApi([realCode], [older, newer])
+
+    render(<App />)
+
+    const descriptions = await screen.findAllByText(/^(older one|newer one)$/)
+    expect(descriptions.map((d) => d.textContent)).toEqual(['newer one', 'older one'])
+  })
+
   it('changing the code on a categorized running Timer edits the entry in place, not a switch', async () => {
     const runningEntry: Entry = {
       id: '30',

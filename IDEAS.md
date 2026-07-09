@@ -4,9 +4,6 @@ Raw, unsorted improvement/fix ideas — captured here as they come up in convers
 acted on immediately. Periodically reviewed: worked ideas become `.backlog/` tickets (or an ADR, or
 get closed as wontfix) and are removed from this file. See `CLAUDE.md`.
 
- 
-
-- les entrées dans activity devraient être triées par ordre chrono décroissant (oldest last)
--  
+- _(empty — nothing captured yet)_
 
  
