@@ -1,7 +1,7 @@
 # BIZ-052 — Flag overlapping entries and offer a one-click trim
 
 ID: BIZ-052
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
