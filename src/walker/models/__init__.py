@@ -12,7 +12,7 @@ from walker.models.entry import Entry
 from walker.models.organization import Organization
 from walker.models.reference_code import ReferenceCode
 from walker.models.settings import Settings
-from walker.models.task import Task, TaskPriority, TaskStatus
+from walker.models.task import Task, TaskPriority
 from walker.models.timesheet_code import TimesheetCode
 from walker.models.user import User
 
@@ -27,7 +27,6 @@ __all__ = [
     "Settings",
     "Task",
     "TaskPriority",
-    "TaskStatus",
     "TimesheetCode",
     "User",
 ]

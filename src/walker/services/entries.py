@@ -12,7 +12,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.exceptions import NotFoundError, ValidationError
-from walker.models import Entry, Task, TaskStatus
+from walker.models import Entry, Task
+from walker.services import settings as settings_service
+from walker.services import states
 
 
 def running_entry(session: Session, user_id: int) -> Entry | None:
@@ -40,19 +42,21 @@ def list_entries_range(session: Session, user_id: int, start: date, end: date) -
     )
 
 
-def _start_task_if_todo(session: Session, user_id: int, task_id: int | None) -> None:
-    """Move a Task from To-do to In-progress when a Timer starts tracking it (BIZ-023).
+def _start_task_if_initial(session: Session, user_id: int, task_id: int | None) -> None:
+    """Nudge a Task from its initial state to the next one when a Timer starts tracking it (BIZ-023).
 
-    All other statuses are left untouched — only the automatic To-do -> In-progress transition is
-    triggered by starting a Timer (see lot TASKS PRD, Implementation Decisions).
+    Positional (ADR-0011): a Task sitting in the **first** state moves to the **second**; any other
+    state is left untouched — only the automatic initial -> next transition is triggered by starting
+    a Timer (see lot TASKS PRD, Implementation Decisions).
     """
     if task_id is None:
         return
     task = session.get(Task, task_id)
     if task is None or task.user_id != user_id:
         raise NotFoundError(f"Task {task_id} not found.")
-    if task.status == TaskStatus.TODO:
-        task.status = TaskStatus.IN_PROGRESS
+    task_states = settings_service.get_task_states(session, user_id)
+    if task.status == states.initial_id(task_states):
+        task.status = states.nudge_id(task_states)
 
 
 def create_entry(
@@ -108,10 +112,10 @@ def switch_timer(
 ) -> Entry:
     """Close the running Entry (if any) and open a new one, atomically in one commit.
 
-    When ``task_id`` is given and the Task is currently To-do, it moves to In-progress (BIZ-023) —
-    the start-from-Task action for a fresh Task.
+    When ``task_id`` is given and the Task sits in its initial (first) state, it moves to the next
+    state (BIZ-023, positional per ADR-0011) — the start-from-Task action for a fresh Task.
     """
-    _start_task_if_todo(session, user_id, task_id)
+    _start_task_if_initial(session, user_id, task_id)
     current = running_entry(session, user_id)
     if current is not None:
         current.end_minute = at_minute
@@ -156,7 +160,7 @@ def complete_timer(session: Session, user_id: int, at_minute: int) -> Entry:
     if current.task_id is not None:
         task = session.get(Task, current.task_id)
         if task is not None and task.user_id == user_id:
-            task.status = TaskStatus.DONE
+            task.status = states.terminal_id(settings_service.get_task_states(session, user_id))
     session.commit()
     session.refresh(current)
     return current

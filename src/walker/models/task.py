@@ -21,19 +21,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from walker.models.base import Base, TimestampMixin
 
 
-class TaskStatus(enum.StrEnum):
-    """The Task status workflow: To-do -> In-progress -> Waiting -> Test -> Done.
-
-    Waiting and Test are skippable; Done is terminal (see lot TASKS PRD, Implementation Decisions).
-    """
-
-    TODO = "todo"
-    IN_PROGRESS = "in_progress"
-    WAITING = "waiting"
-    TEST = "test"
-    DONE = "done"
-
-
 class TaskPriority(enum.StrEnum):
     """A Task's priority, so the consultant knows what to do first."""
 
@@ -58,10 +45,10 @@ class Task(TimestampMixin, Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     title: Mapped[str] = mapped_column(String(255))
     description: Mapped[str | None] = mapped_column(Text(), default=None)
-    status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus, values_callable=lambda enum_cls: [member.value for member in enum_cls]),
-        default=TaskStatus.TODO,
-    )
+    # An opaque id from the user's per-user state list (BIZ-056, ADR-0011). Stored as a free string
+    # (no DB Enum/CHECK) so user-defined ids are accepted; validated in ``services/tasks``. Defaults
+    # to the first default state's id for pickerless inserts.
+    status: Mapped[str] = mapped_column(String(40), default="todo")
     priority: Mapped[TaskPriority | None] = mapped_column(
         Enum(TaskPriority, values_callable=lambda enum_cls: [member.value for member in enum_cls]),
         default=None,
