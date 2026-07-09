@@ -8,9 +8,11 @@ import type {
   RecurrenceRule,
   Task,
   TaskPriority,
+  TaskState,
   TaskStatus,
   Theme,
   TimesheetCode,
+  ViewPreferences,
 } from '../types'
 
 interface ApiActivity {
@@ -283,11 +285,6 @@ export async function searchReference(q: string, limit = 20): Promise<ReferenceC
   return refs.map((r) => ({ ...r, id: String(r.id) }))
 }
 
-/** Copy a reference code (by number) into the user's active codes. */
-export async function addCodeFromReference(number: string): Promise<TimesheetCode> {
-  return mapCode(await sendJson<ApiCode>('/api/codes/from-reference', 'POST', { number }))
-}
-
 /** Import a catalog CSV into the reference catalog; upserts by number. Returns created/updated. */
 export async function importCatalog(file: File): Promise<{ created: number; updated: number }> {
   const form = new FormData()
@@ -378,6 +375,8 @@ interface ApiSettings {
   period_scheme: PeriodScheme
   theme: Theme
   absences: { date: string; reason: string }[]
+  view_preferences: ViewPreferences
+  task_states: TaskState[]
 }
 
 /** The user's settings as used by the SPA. */
@@ -387,6 +386,8 @@ export interface SettingsData {
   periodScheme: PeriodScheme
   theme: Theme
   absences: { date: string; reason: string }[]
+  viewPreferences: ViewPreferences
+  taskStates: TaskState[]
 }
 
 function mapSettings(settings: ApiSettings): SettingsData {
@@ -396,7 +397,45 @@ function mapSettings(settings: ApiSettings): SettingsData {
     periodScheme: settings.period_scheme,
     theme: settings.theme,
     absences: settings.absences,
+    viewPreferences: settings.view_preferences,
+    taskStates: settings.task_states,
   }
+}
+
+/** Add a task state (inserted before the terminal one, BIZ-056); returns full settings. */
+export async function addTaskState(label: string): Promise<SettingsData> {
+  return mapSettings(await sendJson<ApiSettings>('/api/task-states', 'POST', { label }))
+}
+
+/** Rename a task state's label (its id, and Tasks, are untouched). */
+export async function renameTaskState(id: string, label: string): Promise<SettingsData> {
+  return mapSettings(await sendJson<ApiSettings>(`/api/task-states/${id}`, 'PATCH', { label }))
+}
+
+/** Reorder the task states — a permutation of every existing id; re-points the initial/terminal roles. */
+export async function reorderTaskStates(orderedIds: string[]): Promise<SettingsData> {
+  return mapSettings(
+    await sendJson<ApiSettings>('/api/task-states/order', 'PUT', { ordered_ids: orderedIds }),
+  )
+}
+
+/** Delete a task state (blocked at 2); a non-empty state's Tasks move to `reassignTo`. */
+export async function deleteTaskState(id: string, reassignTo?: string): Promise<SettingsData> {
+  const query = reassignTo ? `?reassign_to=${encodeURIComponent(reassignTo)}` : ''
+  const response = await fetch(`/api/task-states/${id}${query}`, { method: 'DELETE' })
+  if (!response.ok) {
+    const detail = await response
+      .json()
+      .then((b: { detail?: string }) => b.detail)
+      .catch(() => undefined)
+    throw new Error(detail ?? `${response.status} ${response.statusText}`)
+  }
+  return mapSettings((await response.json()) as ApiSettings)
+}
+
+/** Merge a partial view-preferences patch server-side (BIZ-053); returns the full updated settings. */
+export async function patchViewPreferences(patch: Partial<ViewPreferences>): Promise<SettingsData> {
+  return mapSettings(await sendJson<ApiSettings>('/api/view-preferences', 'PATCH', patch))
 }
 
 /** Fetch the user's settings (work rhythm, density, period scheme, theme, absences). */

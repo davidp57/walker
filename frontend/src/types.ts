@@ -97,10 +97,53 @@ export type Density = 'comfortable' | 'compact'
 /** A User's theme preference (ADAPTIVE lot); `"system"` follows the OS's `prefers-color-scheme`. */
 export type Theme = 'dark' | 'light' | 'system'
 
+/**
+ * Per-user view preferences (BIZ-053): remembered screen state — the Tasks screen's view/group/sort
+ * and the Timesheet period screen's mode and the kanban's collapsed-Done state. Distinct from the
+ * deliberate {@link SettingsData}; keys mirror the API's snake_case contract.
+ */
+export interface ViewPreferences {
+  task_view: 'list' | 'board'
+  task_group: 'none' | 'status' | 'priority' | 'due' | 'code'
+  task_sort: 'due' | 'status' | 'priority' | 'title'
+  task_sort_dir: 'asc' | 'desc'
+  period_mode: 'review' | 'enter'
+  done_collapsed: boolean
+}
+
+/** The built-in view-preference defaults, mirroring the server's (services/settings.py). */
+export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
+  task_view: 'list',
+  task_group: 'none',
+  task_sort: 'due',
+  task_sort_dir: 'asc',
+  period_mode: 'review',
+  done_collapsed: false,
+}
+
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`
 
-/** The Task status workflow: To-do -> In-progress -> Waiting -> Test -> Done (Waiting/Test skippable). */
-export type TaskStatus = 'todo' | 'in_progress' | 'waiting' | 'test' | 'done'
+/**
+ * A Task's status is an **opaque id** from the user's per-user, ordered state list (BIZ-056,
+ * ADR-0011) — no longer a fixed enum. Roles are positional (first = initial, last = terminal), so
+ * the UI reads order + labels from `TaskState[]`, never from hardcoded values.
+ */
+export type TaskStatus = string
+
+/** One user-defined task state: an opaque stable id + an editable label (BIZ-056). */
+export interface TaskState {
+  id: string
+  label: string
+}
+
+/** The five built-in defaults, for the first paint before the settings fetch resolves (BIZ-057). */
+export const DEFAULT_TASK_STATES: TaskState[] = [
+  { id: 'todo', label: 'To-do' },
+  { id: 'in_progress', label: 'In progress' },
+  { id: 'waiting', label: 'Waiting' },
+  { id: 'test', label: 'Test' },
+  { id: 'done', label: 'Done' },
+]
 
 export type TaskPriority = 'low' | 'medium' | 'high'
 

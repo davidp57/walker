@@ -5,3 +5,5 @@ acted on immediately. Periodically reviewed: worked ideas become `.backlog/` tic
 get closed as wontfix) and are removed from this file. See `CLAUDE.md`.
 
 - _(empty — nothing captured yet)_
+
+ 

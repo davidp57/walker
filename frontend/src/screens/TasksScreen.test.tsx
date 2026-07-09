@@ -305,4 +305,127 @@ describe('TasksScreen', () => {
     expect(screen.getByText('urgent')).toBeInTheDocument()
     expect(screen.getByText('backend')).toBeInTheDocument()
   })
+
+  it('is controlled by view preferences and reports changes (BIZ-053)', () => {
+    const onPreferencesChange = vi.fn()
+    const preferences = {
+      task_view: 'list' as const,
+      task_group: 'none' as const,
+      task_sort: 'due' as const,
+      task_sort_dir: 'asc' as const,
+      period_mode: 'review' as const,
+      done_collapsed: false,
+    }
+    const tasks = [makeTask({ id: '1', title: 'A' })]
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={{}}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+        preferences={preferences}
+        onPreferencesChange={onPreferencesChange}
+      />,
+    )
+
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
+    expect(onPreferencesChange).toHaveBeenCalledWith({ task_group: 'status' })
+
+    fireEvent.change(screen.getByTestId('wk-task-sort-select'), { target: { value: 'title' } })
+    expect(onPreferencesChange).toHaveBeenCalledWith({ task_sort: 'title' })
+  })
+
+  it('starts a timer from a board card (BIZ-050)', () => {
+    const onStartTask = vi.fn()
+    const task = makeTask({ id: '1', title: 'Board task', status: 'todo' })
+    render(
+      <TasksScreen
+        tasks={[task]}
+        codesById={{}}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+        onStartTask={onStartTask}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-task-view-board'))
+    fireEvent.click(screen.getByTestId('wk-board-card-start-1'))
+
+    expect(onStartTask).toHaveBeenCalledWith(task)
+  })
+
+  it('renders a single table with section rows when grouped, not one table per group (BIZ-051)', () => {
+    const tasks = [
+      makeTask({ id: '1', title: 'Todo task', status: 'todo' }),
+      makeTask({ id: '2', title: 'Done task', status: 'done' }),
+    ]
+    render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
+
+    expect(screen.getAllByTestId('wk-task-table')).toHaveLength(1)
+    expect(document.querySelectorAll('.wk-task-group-row')).toHaveLength(2)
+  })
+
+  it('drops the Code column when grouped by project (code), keeps it otherwise (BIZ-051)', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4') }
+    const tasks = [makeTask({ id: '1', title: 'Paper task', codeId: '9' })]
+    render(<TasksScreen tasks={tasks} codesById={codesById} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+    expect(screen.getByRole('columnheader', { name: 'Code' })).toBeInTheDocument()
+
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'code' } })
+
+    expect(screen.queryByRole('columnheader', { name: 'Code' })).not.toBeInTheDocument()
+  })
+
+  // BIZ-057 — dynamic states from the user's list.
+  const CUSTOM = [
+    { id: 'x', label: 'Icebox' },
+    { id: 'y', label: 'Active' },
+    { id: 'z', label: 'Shipped' },
+  ]
+
+  it('renders the inline status dropdown from the custom state list', () => {
+    const tasks = [makeTask({ id: '1', status: 'y' })]
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={{}}
+        taskStates={CUSTOM}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    const select = screen.getByTestId('wk-task-status-select-1') as HTMLSelectElement
+    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+      'Icebox',
+      'Active',
+      'Shipped',
+    ])
+    expect(select.value).toBe('y')
+  })
+
+  it('orders status groups by the custom state order, not first appearance', () => {
+    const tasks = [
+      makeTask({ id: '1', title: 'Shipped one', status: 'z' }),
+      makeTask({ id: '2', title: 'Icebox one', status: 'x' }),
+    ]
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={{}}
+        taskStates={CUSTOM}
+        onNew={vi.fn()}
+        onOpenTask={vi.fn()}
+      />,
+    )
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
+    const headers = Array.from(document.querySelectorAll('.wk-task-group-title')).map(
+      (n) => n.textContent,
+    )
+    // Icebox (x) precedes Shipped (z) despite Shipped's task appearing first in the input.
+    expect(headers).toEqual(['Icebox', 'Shipped'])
+  })
 })

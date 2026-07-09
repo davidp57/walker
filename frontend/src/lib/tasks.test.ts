@@ -1,6 +1,43 @@
 import { describe, expect, it } from 'vitest'
-import { lastDescriptionFor } from './tasks'
-import type { Entry } from '../types'
+import { lastDescriptionFor, soleActivity } from './tasks'
+import type { Entry, TimesheetCode } from '../types'
+
+const code = (activities: { code: string; label: string }[]): TimesheetCode => ({
+  id: '1',
+  number: 'N9/1042',
+  name: 'Paper V4',
+  label: 'MNT - PAP V4',
+  color: '#5b9cf6',
+  activities,
+  isVirtual: false,
+  realCodeId: null,
+  realCodeNumber: null,
+})
+
+describe('soleActivity', () => {
+  it('returns null when there is no code', () => {
+    expect(soleActivity(null)).toBeNull()
+  })
+
+  it('returns null when the code has no activities', () => {
+    expect(soleActivity(code([]))).toBeNull()
+  })
+
+  it('returns the activity label when the code has exactly one', () => {
+    expect(soleActivity(code([{ code: '0001', label: 'Bug fixing' }]))).toBe('Bug fixing')
+  })
+
+  it('returns null when the code has several activities (ambiguous — defer)', () => {
+    expect(
+      soleActivity(
+        code([
+          { code: '0001', label: 'Bug fixing' },
+          { code: '0002', label: 'Design' },
+        ]),
+      ),
+    ).toBeNull()
+  })
+})
 
 const entry = (patch: Partial<Entry>): Entry => ({
   id: '1',

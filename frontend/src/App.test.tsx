@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Entry, Theme, TimesheetCode } from './types'
+import { DEFAULT_TASK_STATES, DEFAULT_VIEW_PREFERENCES } from './types'
 import * as api from './lib/api'
 
 afterEach(() => {
@@ -61,6 +62,8 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[], theme: Theme = 's
     periodScheme: 'semi_monthly',
     theme,
     absences: [],
+    viewPreferences: DEFAULT_VIEW_PREFERENCES,
+    taskStates: DEFAULT_TASK_STATES,
   })
   vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
@@ -182,6 +185,8 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       periodScheme: 'semi_monthly',
       theme: 'system',
       absences: [],
+      viewPreferences: DEFAULT_VIEW_PREFERENCES,
+      taskStates: DEFAULT_TASK_STATES,
     })
     vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
@@ -219,6 +224,8 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       periodScheme: 'semi_monthly',
       theme: 'system',
       absences: [],
+      viewPreferences: DEFAULT_VIEW_PREFERENCES,
+      taskStates: DEFAULT_TASK_STATES,
     })
     vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
@@ -513,6 +520,8 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
       periodScheme: 'monthly',
       theme: 'system',
       absences: [],
+      viewPreferences: DEFAULT_VIEW_PREFERENCES,
+      taskStates: DEFAULT_TASK_STATES,
     })
 
     render(<App />)
@@ -542,6 +551,8 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
       periodScheme: 'weekly',
       theme: 'system',
       absences: [],
+      viewPreferences: DEFAULT_VIEW_PREFERENCES,
+      taskStates: DEFAULT_TASK_STATES,
     })
 
     render(<App />)
@@ -714,5 +725,80 @@ describe('App — SSO sign-in gate (BIZ-029 frontend)', () => {
     render(<App />)
 
     expect(await screen.findByPlaceholderText('What are you working on?')).toBeInTheDocument()
+  })
+})
+
+describe('App — editing the running Timer (BIZ-058)', () => {
+  const otherCode: TimesheetCode = {
+    id: '3',
+    number: 'N9/2000',
+    label: 'MNT - OTHER',
+    name: 'Other project',
+    color: '#3fb68b',
+    activities: [{ code: '0002', label: 'Design' }],
+    isVirtual: false,
+    realCodeId: null,
+    realCodeNumber: null,
+  }
+
+  it("lists a day's entries newest-first, oldest last (BIZ-060)", async () => {
+    const today = new Date().toISOString().slice(0, 10)
+    const older: Entry = {
+      id: '1',
+      date: today,
+      start: 540, // 09:00
+      end: 570,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: 'older one',
+    }
+    const newer: Entry = {
+      id: '2',
+      date: today,
+      start: 600, // 10:00
+      end: 630,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: 'newer one',
+    }
+    mockBaseApi([realCode], [older, newer])
+
+    render(<App />)
+
+    const descriptions = await screen.findAllByText(/^(older one|newer one)$/)
+    expect(descriptions.map((d) => d.textContent)).toEqual(['newer one', 'older one'])
+  })
+
+  it('changing the code on a categorized running Timer edits the entry in place, not a switch', async () => {
+    const runningEntry: Entry = {
+      id: '30',
+      date: new Date().toISOString().slice(0, 10),
+      start: 540,
+      end: null,
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: 'writing spec',
+    }
+    mockBaseApi([realCode, otherCode], [runningEntry])
+    const patchEntry = vi
+      .spyOn(api, 'patchEntry')
+      .mockResolvedValue({ ...runningEntry, codeId: otherCode.id, activity: 'Design' })
+    const switchTimer = vi.spyOn(api, 'switchTimer')
+
+    render(<App />)
+    await screen.findByPlaceholderText('What are you working on?')
+
+    // Open the code picker for the running timer and pick a different code's activity.
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    fireEvent.click(await screen.findByText('Design'))
+
+    await waitFor(() =>
+      expect(patchEntry).toHaveBeenCalledWith(
+        '30',
+        expect.objectContaining({ codeId: otherCode.id, activity: 'Design' }),
+      ),
+    )
+    // In place — the running entry is corrected, no new segment opened.
+    expect(switchTimer).not.toHaveBeenCalled()
   })
 })

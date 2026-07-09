@@ -89,20 +89,33 @@ minute (no rounding). Aggregated, it feeds the Timesheet period's Timesheet entr
 _Avoid_: "log", "session".
 
 **Timer**:
-The stopwatch of an Entry in progress. Starts in **one click, with no input** (categorize later). You
-can **switch** from one task to another (change code or description) without stopping the clock: the
-Timer closes the current Entry and opens a new one. Its state is persisted server-side and survives a
-restart.
-_Avoid_: "stopwatch" (canonical = Timer).
+The stopwatch of an Entry in progress. Starts in **one click, with no input** (categorize later).
+Changing its code, activity, or description **edits the running Entry in place** — same segment, same
+start (BIZ-058). A **new segment** is only ever begun by an explicit start: the Start button,
+starting from a **Task**, or resuming an **Entry**. To split the current work into two, stop the
+Timer and start again. Its state is persisted server-side and survives a restart.
+_Avoid_: "stopwatch" (canonical = Timer); "switch" for changing the running Timer's code — it edits
+the current Entry in place, it does not open a new one.
 
 **Task**:
 A unit of work to do or being done, identified by its **title** — the same notion as the *comment* on
 an Entry. A Task saved in the **task list** carries metadata: a markdown **description**, a status, and
 an optional **Timesheet code** (real or virtual). Starting a **Timer** from a listed Task opens an
-**Entry** whose description is the Task's title and whose code is the Task's code (the **Activity** is
-still chosen). Time tracked without a listed Task — just a description typed on the Timer — is the same
+**Entry** whose description is the Task's title and whose code is the Task's code — in **one click**
+(capture-first): the **Activity** is auto-filled when the code has a single one, otherwise left to
+categorize later. Time tracked without a listed Task — just a description typed on the Timer — is the same
 notion, simply **not saved** in the list.
 _Avoid_: "ticket", "issue"; "todo" for a listed Task (that word leans to the Entry checklist's sense).
+
+**Status**:
+The workflow stage of a Task, and the columns of the kanban. A **user-defined, ordered set** of
+states (each an editable **label** over a stable opaque id), not a fixed list (ADR-0011). Two roles
+are **positional**: the **first** state is the **initial** one (default for new Tasks, recurrence
+reset target), the **last** is the **terminal** one (target of Complete, trigger of recurrence
+roll-forward, the collapsible kanban column). Renaming or reordering states never re-tags existing
+Tasks; moving a state to an end reassigns the initial/terminal role.
+_Avoid_: "state" and "status" as two different things (one concept); a hardcoded To-do…Done workflow
+(superseded — it's now per-user); "column" as a separate concept (a kanban column *is* a Status).
 
 **Organization**:
 A group of Users who share one **Code catalog** — real Timesheet codes (and their Activities) are

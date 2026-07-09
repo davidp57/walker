@@ -37,17 +37,42 @@ function renderRow(overrides: Partial<Parameters<typeof EntryRow>[0]> = {}) {
   return handlers
 }
 
+describe('EntryRow — overlap note (BIZ-052)', () => {
+  it('shows an overlap badge and a trim button for a fixable overlap, wiring the trim to onEdit', () => {
+    const handlers = renderRow({
+      overlap: { partners: [{ id: 'b', start: 600, end: 720 }], fixEnd: 600 },
+    })
+
+    expect(screen.getByText(/overlaps 10:00–12:00/i)).toBeInTheDocument()
+    const trim = screen.getByRole('button', { name: /trim to 10:00/i })
+    fireEvent.click(trim)
+    expect(handlers.onEdit).toHaveBeenCalledWith({ end: 600 })
+  })
+
+  it('shows the overlap badge but no trim button for a nested/same-start overlap', () => {
+    renderRow({ overlap: { partners: [{ id: 'b', start: 600, end: 720 }], fixEnd: null } })
+
+    expect(screen.getByText(/overlaps/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /trim to/i })).toBeNull()
+  })
+
+  it('renders no overlap note when the entry overlaps nothing', () => {
+    renderRow()
+    expect(screen.queryByText(/overlaps/i)).toBeNull()
+  })
+})
+
 describe('EntryRow row actions', () => {
   it('exposes an unambiguous accessible name for each row action', () => {
     renderRow()
     expect(screen.getByRole('button', { name: 'Edit entry' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Resume this task' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Resume this entry' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete entry' })).toBeInTheDocument()
   })
 
   it('gives row actions an adequately sized click target (at least 24x24 CSS px)', () => {
     renderRow()
-    for (const name of ['Edit entry', 'Resume this task', 'Delete entry']) {
+    for (const name of ['Edit entry', 'Resume this entry', 'Delete entry']) {
       const button = screen.getByRole('button', { name })
       expect(button.className).toContain('wk-row-action')
     }
@@ -59,7 +84,7 @@ describe('EntryRow row actions', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Edit entry' }))
     expect(handlers.onOpenEditor).toHaveBeenCalledTimes(1)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Resume this task' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Resume this entry' }))
     expect(handlers.onResume).toHaveBeenCalledTimes(1)
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete entry' }))
@@ -138,6 +163,32 @@ describe('EntryRow — running mode (BIZ-038)', () => {
     expect(screen.queryByRole('button', { name: 'Edit entry' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Delete entry' })).not.toBeInTheDocument()
     expect(document.querySelector('.wk-entry-row.is-running')).toBeInTheDocument()
+  })
+})
+
+describe('EntryRow — editing the running entry (BIZ-054)', () => {
+  it('lets you categorize the running entry (code cell is clickable)', () => {
+    const handlers = renderRow({ running: true, liveMinutes: 10, entry: { ...ENTRY, end: null } })
+    fireEvent.click(screen.getByText('Paper V4'))
+    expect(handlers.onCategorize).toHaveBeenCalled()
+  })
+
+  it('lets you edit the running entry description', () => {
+    const handlers = renderRow({ running: true, liveMinutes: 10, entry: { ...ENTRY, end: null } })
+    fireEvent.click(screen.getByText('writing spec'))
+    const input = screen.getByDisplayValue('writing spec')
+    fireEvent.change(input, { target: { value: 'updated note' } })
+    fireEvent.blur(input)
+    expect(handlers.onEdit).toHaveBeenCalledWith({ description: 'updated note' })
+  })
+
+  it('edits the running entry start without introducing an end (would stop the timer)', () => {
+    const handlers = renderRow({ running: true, liveMinutes: 10, entry: { ...ENTRY, end: null } })
+    fireEvent.click(screen.getByText('09:00'))
+    const input = screen.getByDisplayValue('09:00')
+    fireEvent.change(input, { target: { value: '10:00' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(handlers.onEdit).toHaveBeenCalledWith({ start: 600 })
   })
 })
 

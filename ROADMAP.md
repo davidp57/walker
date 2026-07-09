@@ -30,13 +30,26 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 - **I18N** (bilingual user-facing docs) — the published MkDocs site is bilingual: English primary
   (default/root/fallback), French secondary with full parity and a language switcher, via
   `mkdocs-static-i18n`; scope was `docs-site/` only. See `.backlog/archive/I18N.md`, CHR-010.
+- **CODEUX** (code colour automation + unified code-selection UX) — a single 64-colour palette
+  (mirrored back/front, contract-tested) with a least-used-first random suggestion and a rich colour
+  picker (BIZ-048), then a unified tiered code search (grouped by tier, sorted by name) applied to
+  every picker, replacing the virtual-code backing `<select>` and routing reference activation through
+  `CodeEditor` (BIZ-049). See `.backlog/archive/CODEUX.md`.
+- **STATES** (user-defined task states) — task statuses / kanban columns became a per-user ordered
+  list (opaque id + editable label) with positional roles (first = initial, last = terminal);
+  add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
+  (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
 ## Now — not yet chosen
 
 - **POLISH** (living lot of small UX improvements) — first batch shipped (BIZ-038 … BIZ-047: running
   Timer in Activity, absence date range, description de-noise, task priority/due pills + inline
   status, time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty
-  states, Review/Enter explainer). Lot stays open for future UX polish. See `.backlog/POLISH/PRD.md`.
+  states, Review/Enter explainer). Ready next: BIZ-050 (one-click start-timer arrow on tasks, list +
+  board), BIZ-051 (grouped task list as a single aligned table), BIZ-052 (flag overlapping
+  entries + one-click trim), BIZ-053 (persist per-user view preferences), BIZ-054 (edit the
+  running entry inline + Timer description affordance), and BIZ-055 (Cmd/Ctrl+click to open links in
+  the task description). Lot stays open for future UX polish. See `.backlog/POLISH/PRD.md`.
 
 ## Forward-looking (not scheduled)
 
@@ -49,4 +62,6 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 - Shared TS types generated from the OpenAPI spec (ADR-0003).
 - "Tracked vs theoretical hours" visual cue (default 8h, customizable) — nice-to-have.
 - Multi-user: add an auth layer over the already user-scoped data (ADR-0007).
+- Hosted multi-user catalog re-scope — reference per-Organization, activated codes per-User (ADR-0012,
+  deferred; a functional no-op until a real multi-user instance exists).
 - Switch SQLite → external DBMS (PostgreSQL / SQL Server) when hosted (ADR-0004).

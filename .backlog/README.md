@@ -28,6 +28,8 @@ source of truth for **scope and status**.
 | [ADAPTIVE](archive/ADAPTIVE.md) — Theme toggle (dark/light, server-persisted) + a fully-functional responsive phone layout | ✅ |
 | [PROJECTS](archive/PROJECTS.md) — Project (code)-centric task grouping (list group + kanban swimlanes) + unified searchable/creatable code picker on the Task editor | ✅ |
 | [I18N](archive/I18N.md) — Bilingual user-facing documentation site (EN primary, FR secondary) via `mkdocs-static-i18n` | ✅ |
+| [CODEUX](archive/CODEUX.md) — Code colour automation (64-colour palette, least-used-first suggestion, rich picker) + unified tiered code-selection UX (BIZ-048, BIZ-049) | ✅ |
+| [STATES](archive/STATES.md) — User-defined task states / kanban columns: add·rename·move·delete, positional initial/terminal roles, edited in the kanban (BIZ-056, BIZ-057; ADR-0011) | ✅ |
 
 ## ID prefixes & priorities
 

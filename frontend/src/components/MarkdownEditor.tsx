@@ -6,6 +6,7 @@ import { clipboard } from '@milkdown/plugin-clipboard'
 import { history } from '@milkdown/plugin-history'
 import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react'
 import { taskListItemView } from './markdownTaskListView'
+import { safeExternalHref, wantsLinkOpen } from '../lib/links'
 
 interface MarkdownEditorProps {
   value: string // the initial markdown; the editor is uncontrolled after mount (see BIZ-024)
@@ -64,8 +65,33 @@ function MilkdownEditorInner({ value, onChange, placeholder, readOnly }: Markdow
 }
 
 export function MarkdownEditor(props: MarkdownEditorProps) {
+  // Milkdown is a WYSIWYG editor, so a plain click on a link places the caret (to edit it) rather
+  // than navigating. Cmd/Ctrl+click opens it instead — the standard editor convention (BIZ-055).
+  const handleClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (!wantsLinkOpen(event)) return
+    const anchor = (event.target as HTMLElement).closest?.('a')
+    if (!anchor) return
+    const href = safeExternalHref(anchor.getAttribute('href') ?? '')
+    if (!href) return
+    event.preventDefault()
+    window.open(href, '_blank', 'noopener,noreferrer')
+  }
+
+  // Surface the destination on hover (Milkdown doesn't set one) so a link's URL is discoverable.
+  const handleMouseOver = (event: React.MouseEvent<HTMLDivElement>) => {
+    const anchor = (event.target as HTMLElement).closest?.('a')
+    if (!anchor || anchor.title) return
+    const href = anchor.getAttribute('href')
+    if (href) anchor.title = href
+  }
+
   return (
-    <div className="wk-markdown-editor" data-testid="wk-markdown-editor">
+    <div
+      className="wk-markdown-editor"
+      data-testid="wk-markdown-editor"
+      onClick={handleClick}
+      onMouseOver={handleMouseOver}
+    >
       <MilkdownProvider>
         <MilkdownEditorInner {...props} />
       </MilkdownProvider>

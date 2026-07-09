@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Entry, TimesheetCode } from './types'
+import { DEFAULT_TASK_STATES, DEFAULT_VIEW_PREFERENCES } from './types'
 import * as api from './lib/api'
 
 afterEach(() => {
@@ -40,6 +41,8 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
     periodScheme: 'semi_monthly',
     theme: 'system',
     absences: [],
+    viewPreferences: DEFAULT_VIEW_PREFERENCES,
+    taskStates: DEFAULT_TASK_STATES,
   })
   vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
@@ -117,7 +120,7 @@ describe('App — keyboard-driven timer loop (BIZ-009)', () => {
     expect(startTimer).not.toHaveBeenCalled()
   })
 
-  it('a global shortcut opens the task switcher', async () => {
+  it('a global shortcut opens the code picker', async () => {
     mockBaseApi([realCode], [])
 
     render(<App />)
@@ -125,6 +128,6 @@ describe('App — keyboard-driven timer loop (BIZ-009)', () => {
 
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
 
-    expect(await screen.findByText('Switch task')).toBeInTheDocument()
+    expect(await screen.findByText('Change code')).toBeInTheDocument()
   })
 })

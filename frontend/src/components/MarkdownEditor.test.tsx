@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MarkdownEditor } from './MarkdownEditor'
 
@@ -112,5 +112,38 @@ describe('MarkdownEditor', () => {
     expect(link).toHaveAttribute('href', 'https://example.com')
     const checkboxes = await screen.findAllByRole('checkbox')
     expect(checkboxes).toHaveLength(2)
+  })
+})
+
+describe('MarkdownEditor — opening links (BIZ-055)', () => {
+  it('opens a link in a new tab on Cmd/Ctrl+click', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    render(<MarkdownEditor value={'[site](https://example.com)'} onChange={vi.fn()} />)
+
+    const link = await screen.findByRole('link', { name: 'site' })
+    fireEvent.click(link, { metaKey: true })
+
+    expect(open).toHaveBeenCalledWith('https://example.com', '_blank', 'noopener,noreferrer')
+    open.mockRestore()
+  })
+
+  it('does not open on a plain click (so the link text stays editable)', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    render(<MarkdownEditor value={'[site](https://example.com)'} onChange={vi.fn()} />)
+
+    const link = await screen.findByRole('link', { name: 'site' })
+    fireEvent.click(link)
+
+    expect(open).not.toHaveBeenCalled()
+    open.mockRestore()
+  })
+
+  it('shows the URL as a title on hover', async () => {
+    render(<MarkdownEditor value={'[site](https://example.com)'} onChange={vi.fn()} />)
+
+    const link = await screen.findByRole('link', { name: 'site' })
+    fireEvent.mouseOver(link)
+
+    expect(link).toHaveAttribute('title', 'https://example.com')
   })
 })

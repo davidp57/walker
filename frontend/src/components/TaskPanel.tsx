@@ -4,9 +4,10 @@ import type {
   ReferenceCode,
   Task,
   TaskPriority,
-  TaskStatus,
+  TaskState,
   TimesheetCode,
 } from '../types'
+import { DEFAULT_TASK_STATES } from '../types'
 import { selectOnFocus } from '../lib/time'
 import { MarkdownEditor } from './MarkdownEditor'
 import { CodePicker } from './CodePicker'
@@ -14,7 +15,7 @@ import { CodePicker } from './CodePicker'
 export interface TaskDraft {
   title: string
   description: string
-  status: TaskStatus
+  status: string
   priority: TaskPriority | null
   dueDate: string | null
   tags: string[]
@@ -59,6 +60,7 @@ function defaultRuleFor(kind: RecurrenceKind): RecurrenceRule {
 interface TaskPanelProps {
   task: Task | null // null = creating a new Task
   codes: TimesheetCode[]
+  taskStates?: TaskState[] // the user's ordered states (BIZ-056) — drives the dropdown; defaults to the five
   tagSuggestions: string[] // every tag used across the user's Tasks, for autocomplete
   onSave: (draft: TaskDraft) => void
   onDelete?: () => void // omit to hide the Delete action (e.g. while creating)
@@ -66,18 +68,12 @@ interface TaskPanelProps {
   // Code selection via the shared CodePicker (BIZ-037). All optional so the panel still works
   // read-only without them; App wires them exactly as it does for the entry flow.
   onSearchReference?: (q: string) => Promise<ReferenceCode[]> // search the reference catalog
-  onAddFromReference?: (number: string) => Promise<TimesheetCode> // add a ref code; returns it
+  // Activate a reference code through the code editor (BIZ-049); `onActivated` selects it here.
+  onActivateReference?: (ref: ReferenceCode, onActivated: (code: TimesheetCode) => void) => void
   onCreateNew?: (query: string) => void // open the real-code editor prefilled with the query
   onCreateNewVirtual?: (query: string) => void // open the virtual-code editor
 }
 
-const STATUS_OPTIONS: { value: TaskStatus; label: string }[] = [
-  { value: 'todo', label: 'To-do' },
-  { value: 'in_progress', label: 'In progress' },
-  { value: 'waiting', label: 'Waiting' },
-  { value: 'test', label: 'Test' },
-  { value: 'done', label: 'Done' },
-]
 const PRIORITY_OPTIONS: { value: TaskPriority | ''; label: string }[] = [
   { value: '', label: 'No priority' },
   { value: 'low', label: 'Low' },
@@ -89,18 +85,19 @@ const PRIORITY_OPTIONS: { value: TaskPriority | ''; label: string }[] = [
 export function TaskPanel({
   task,
   codes,
+  taskStates = DEFAULT_TASK_STATES,
   tagSuggestions,
   onSave,
   onDelete,
   onClose,
   onSearchReference,
-  onAddFromReference,
+  onActivateReference,
   onCreateNew,
   onCreateNewVirtual,
 }: TaskPanelProps) {
   const [title, setTitle] = useState(task?.title ?? '')
   const [description, setDescription] = useState(task?.description ?? '')
-  const [status, setStatus] = useState<TaskStatus>(task?.status ?? 'todo')
+  const [status, setStatus] = useState<string>(task?.status ?? taskStates[0]?.id ?? '')
   const [priority, setPriority] = useState<TaskPriority | null>(task?.priority ?? null)
   const [dueDate, setDueDate] = useState<string>(task?.dueDate ?? '')
   const [tags, setTags] = useState<string[]>(task?.tags ?? [])
@@ -157,8 +154,9 @@ export function TaskPanel({
   const canSave = title.trim() !== ''
 
   return (
-    <div className="wk-panel-overlay" onClick={onClose}>
-      <div className="wk-panel" onClick={(ev) => ev.stopPropagation()}>
+    <div className="wk-panel-overlay">
+      {/* BIZ-059: no outside-click dismiss — a form panel closes only via ✕ / Cancel / Save. */}
+      <div className="wk-panel">
         <div className="wk-modal-head">
           <span className="wk-modal-title">{task ? 'Edit task' : 'New task'}</span>
           <button type="button" className="wk-modal-close" onClick={onClose}>
@@ -201,12 +199,12 @@ export function TaskPanel({
               <select
                 className="wk-input"
                 value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                onChange={(e) => setStatus(e.target.value)}
                 data-testid="wk-task-status-select"
               >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                {taskStates.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.label}
                   </option>
                 ))}
               </select>
@@ -536,14 +534,13 @@ export function TaskPanel({
             })
           }
           onSearchReference={onSearchReference}
-          onAddFromReference={
-            onAddFromReference &&
-            ((number) => {
-              void onAddFromReference(number).then((added) => {
-                setCodeId(added.id)
+          onActivateReference={
+            onActivateReference &&
+            ((ref) =>
+              onActivateReference(ref, (created) => {
+                setCodeId(created.id)
                 setCodePickerOpen(false)
-              })
-            })
+              }))
           }
         />
       )}

@@ -317,4 +317,145 @@ describe('TaskBoard', () => {
     expect(screen.getByText('Paper V4')).toBeInTheDocument()
     expect(screen.getByText('high')).toBeInTheDocument()
   })
+
+  // BIZ-057 — dynamic, user-defined columns + in-kanban editing.
+  const CUSTOM = [
+    { id: 'a', label: 'Backlog' },
+    { id: 'b', label: 'Doing' },
+    { id: 'c', label: 'Shipped' },
+  ]
+  const EDITS = () => ({
+    onAdd: vi.fn(),
+    onRename: vi.fn(),
+    onReorder: vi.fn(),
+    onDelete: vi.fn(),
+  })
+
+  it('renders columns from a custom state list, in order', () => {
+    const { container } = render(
+      <TaskBoard
+        tasks={[]}
+        codesById={{}}
+        states={CUSTOM}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    const titles = Array.from(container.querySelectorAll('.wk-board-column-title')).map((n) =>
+      (n.textContent ?? '').trim(),
+    )
+    expect(titles[0]).toContain('Backlog')
+    expect(titles[1]).toContain('Doing')
+    expect(titles[2]).toContain('Shipped')
+    // First = start, last = done (positional roles surfaced).
+    expect(titles[0]).toContain('start')
+    expect(titles[2]).toContain('done')
+  })
+
+  it('adds a column via the "+ column" control', () => {
+    const edits = EDITS()
+    vi.spyOn(window, 'prompt').mockReturnValue('Review')
+    render(
+      <TaskBoard
+        tasks={[]}
+        codesById={{}}
+        states={CUSTOM}
+        stateEdits={edits}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('wk-board-add-column'))
+    expect(edits.onAdd).toHaveBeenCalledWith('Review')
+  })
+
+  it('renames a column inline', () => {
+    const edits = EDITS()
+    render(
+      <TaskBoard
+        tasks={[]}
+        codesById={{}}
+        states={CUSTOM}
+        stateEdits={edits}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('wk-board-column-rename-b'))
+    const input = screen.getByTestId('wk-board-column-rename-input-b')
+    fireEvent.change(input, { target: { value: 'In progress' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(edits.onRename).toHaveBeenCalledWith('b', 'In progress')
+  })
+
+  it('reorders a column with the move controls', () => {
+    const edits = EDITS()
+    render(
+      <TaskBoard
+        tasks={[]}
+        codesById={{}}
+        states={CUSTOM}
+        stateEdits={edits}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('wk-board-column-move-right-a'))
+    expect(edits.onReorder).toHaveBeenCalledWith(['b', 'a', 'c'])
+  })
+
+  it('deletes an empty column directly', () => {
+    const edits = EDITS()
+    render(
+      <TaskBoard
+        tasks={[]}
+        codesById={{}}
+        states={CUSTOM}
+        stateEdits={edits}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('wk-board-column-delete-b'))
+    expect(edits.onDelete).toHaveBeenCalledWith('b')
+  })
+
+  it('prompts for a reassignment target when deleting a non-empty column', () => {
+    const edits = EDITS()
+    const tasks = [makeTask({ id: '1', title: 'A task', status: 'b' })]
+    render(
+      <TaskBoard
+        tasks={tasks}
+        codesById={{}}
+        states={CUSTOM}
+        stateEdits={edits}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('wk-board-column-delete-b'))
+    // A reassignment prompt appears; onDelete not called until confirmed.
+    expect(edits.onDelete).not.toHaveBeenCalled()
+    fireEvent.change(screen.getByTestId('wk-board-delete-reassign'), { target: { value: 'c' } })
+    fireEvent.click(screen.getByTestId('wk-board-delete-confirm'))
+    expect(edits.onDelete).toHaveBeenCalledWith('b', 'c')
+  })
+
+  it('disables delete at the two-column minimum', () => {
+    const edits = EDITS()
+    render(
+      <TaskBoard
+        tasks={[]}
+        codesById={{}}
+        states={[
+          { id: 'a', label: 'A' },
+          { id: 'b', label: 'B' },
+        ]}
+        stateEdits={edits}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    expect(screen.getByTestId('wk-board-column-delete-a')).toBeDisabled()
+  })
 })

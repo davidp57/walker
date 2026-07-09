@@ -313,11 +313,17 @@ html[data-theme='light'] body {
 .wk-timer-input {
   width: 100%;
   background: transparent;
-  border: none;
+  /* BIZ-054: a visible field affordance so it reads as editable next to the boxed code chip. */
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  padding: 6px 10px;
   outline: none;
   color: var(--wk-text-hi);
   font-size: var(--wk-fs-15);
   font-family: var(--wk-font-ui);
+}
+.wk-timer-input:focus {
+  border-color: var(--wk-accent);
 }
 .wk-timer-input::placeholder {
   color: var(--wk-text-lo);
@@ -562,6 +568,35 @@ html[data-theme='light'] body {
   border-bottom: 1px solid var(--wk-line-soft);
 }
 .wk-entry-row.is-flagged {
+  background: var(--wk-amber-soft);
+}
+/* BIZ-052: an entry whose time range overlaps another's — distinct from the amber "uncategorized". */
+.wk-entry-row.is-overlap {
+  box-shadow: inset 3px 0 0 var(--wk-danger);
+}
+.wk-overlap-note {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.wk-overlap-badge {
+  color: var(--wk-danger);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+}
+.wk-overlap-fix {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  color: var(--wk-danger);
+  background: none;
+  border: 1px solid var(--wk-danger);
+  border-radius: var(--wk-radius-md);
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.wk-overlap-fix:hover {
   background: var(--wk-amber-soft);
 }
 
@@ -1675,6 +1710,15 @@ html[data-theme='light'] body {
   color: var(--wk-text-lo);
   padding: 6px 4px;
 }
+/* BIZ-051: group headers as section rows inside the single task table (aligned columns). */
+.wk-task-group-row td {
+  background: var(--wk-bg-2);
+  border-top: 1px solid var(--wk-line);
+  padding: 2px 14px;
+}
+.wk-task-group-row:first-child td {
+  border-top: none;
+}
 .wk-task-table {
   width: 100%;
   border-collapse: collapse;
@@ -1881,6 +1925,49 @@ html[data-theme='light'] body {
   font-family: var(--wk-font-mono);
   color: var(--wk-text-lo);
 }
+/* BIZ-057: in-kanban column editing. */
+.wk-board-column-role {
+  color: var(--wk-accent, var(--wk-text-lo));
+  font-weight: 600;
+}
+.wk-board-column-rename {
+  font: inherit;
+  padding: 2px 6px;
+  height: auto;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.wk-board-column-tools {
+  display: flex;
+  gap: 2px;
+  justify-content: flex-end;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--wk-line);
+  background: var(--wk-bg-2);
+}
+.wk-board-column-tools .wk-btn-icon {
+  font-size: var(--wk-fs-11);
+  padding: 2px 6px;
+}
+.wk-board-add-column {
+  flex: 0 0 auto;
+  align-self: flex-start;
+  min-width: 120px;
+  border: 1px dashed var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  background: transparent;
+  color: var(--wk-text-lo);
+  padding: 10px 12px;
+  cursor: pointer;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.wk-board-add-column:hover {
+  color: var(--wk-text);
+  border-color: var(--wk-text-lo);
+}
 .wk-board-column-body {
   display: flex;
   flex-direction: column;
@@ -1902,6 +1989,21 @@ html[data-theme='light'] body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+/* BIZ-050: one-click start-timer on a board card, pinned to the head's right edge. */
+.wk-board-card-start {
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--wk-text-lo);
+  cursor: pointer;
+  padding: 2px;
+  display: inline-flex;
+  align-items: center;
+}
+.wk-board-card-start:hover {
+  color: var(--wk-accent);
 }
 .wk-board-drag-handle {
   flex: 0 0 auto;

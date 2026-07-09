@@ -207,6 +207,17 @@ describe('TaskPanel', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
+  it('does not close on an outside (backdrop) click — only Cancel/Save/✕ do (BIZ-059)', () => {
+    const onClose = vi.fn()
+    render(
+      <TaskPanel task={null} codes={[]} tagSuggestions={[]} onSave={vi.fn()} onClose={onClose} />,
+    )
+
+    fireEvent.click(document.querySelector('.wk-panel-overlay') as HTMLElement)
+
+    expect(onClose).not.toHaveBeenCalled()
+  })
+
   it('defaults to no recurrence rule', () => {
     const onSave = vi.fn()
     render(

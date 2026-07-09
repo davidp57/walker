@@ -13,17 +13,65 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Literal
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from walker.exceptions import ValidationError
-from walker.models import Absence, Settings
+from walker.models import Absence, Settings, Task
 from walker.models.settings import DEFAULT_PERIOD_SCHEME, DEFAULT_THEME, DEFAULT_WORKDAYS, PeriodScheme, Theme
+from walker.services import states
 
 # A single add-absence call may not span more than this many days (BIZ-039) — a guard against a
 # fat-fingered range, not a real limit anyone would hit for leave.
 MAX_ABSENCE_RANGE_DAYS = 366
+
+# View preferences (BIZ-053): ephemeral per-screen UI state remembered per user, stored as a JSON
+# bag so new prefs need no migration. Each enum key lists its allowed values; ``done_collapsed`` is
+# a bool. Reads always resolve to a full, valid set (invalid/missing → default), mirroring the
+# forgiving ``_as_theme``/``_as_period_scheme`` handling.
+VIEW_PREFERENCE_OPTIONS: dict[str, tuple[str, ...]] = {
+    "task_view": ("list", "board"),
+    "task_group": ("none", "status", "priority", "due", "code"),
+    "task_sort": ("due", "status", "priority", "title"),
+    "task_sort_dir": ("asc", "desc"),
+    "period_mode": ("review", "enter"),
+}
+DEFAULT_VIEW_PREFERENCES: dict[str, object] = {
+    "task_view": "list",
+    "task_group": "none",
+    "task_sort": "due",
+    "task_sort_dir": "asc",
+    "period_mode": "review",
+    "done_collapsed": False,
+}
+
+
+def _resolve_view_preferences(stored: dict[str, object] | None) -> dict[str, object]:
+    """Merge the stored bag over the defaults, dropping any invalid/unknown value to its default."""
+    stored = stored or {}
+    resolved = dict(DEFAULT_VIEW_PREFERENCES)
+    for key, options in VIEW_PREFERENCE_OPTIONS.items():
+        value = stored.get(key)
+        if isinstance(value, str) and value in options:
+            resolved[key] = value
+    done = stored.get("done_collapsed")
+    if isinstance(done, bool):
+        resolved["done_collapsed"] = done
+    return resolved
+
+
+def _clean_view_preferences_patch(patch: dict[str, object]) -> dict[str, object]:
+    """Keep only known keys with valid values from a partial patch — unknown/invalid are dropped."""
+    cleaned: dict[str, object] = {}
+    for key, options in VIEW_PREFERENCE_OPTIONS.items():
+        value = patch.get(key)
+        if isinstance(value, str) and value in options:
+            cleaned[key] = value
+    done = patch.get("done_collapsed")
+    if isinstance(done, bool):
+        cleaned["done_collapsed"] = done
+    return cleaned
 
 
 @dataclass
@@ -37,6 +85,8 @@ class SettingsView:
     period_scheme: PeriodScheme
     theme: Theme
     absences: list[Absence]
+    view_preferences: dict[str, object]
+    task_states: list[dict[str, str]]
 
 
 def _get_or_create(session: Session, user_id: int) -> Settings:
@@ -106,11 +156,63 @@ def _view(session: Session, user_id: int) -> SettingsView:
         period_scheme=_as_period_scheme(settings.period_scheme),
         theme=_as_theme(settings.theme),
         absences=_absences(session, user_id),
+        view_preferences=_resolve_view_preferences(settings.view_preferences),
+        task_states=states.resolve_states(settings.task_states),
     )
 
 
 def get_settings(session: Session, user_id: int) -> SettingsView:
     """Return the user's settings, creating defaults on first use."""
+    return _view(session, user_id)
+
+
+def get_task_states(session: Session, user_id: int) -> list[dict[str, str]]:
+    """Return the user's ordered task-state list, resolved to the defaults on first use (BIZ-056)."""
+    return states.resolve_states(_get_or_create(session, user_id).task_states)
+
+
+def add_task_state(session: Session, user_id: int, label: str) -> SettingsView:
+    """Add a state, inserted before the terminal one (ADR-0011); returns the full settings view."""
+    settings = _get_or_create(session, user_id)
+    settings.task_states = states.add_state(states.resolve_states(settings.task_states), label)
+    session.commit()
+    return _view(session, user_id)
+
+
+def rename_task_state(session: Session, user_id: int, state_id: str, label: str) -> SettingsView:
+    """Rename a state's label (its id is untouched, so Tasks are never re-tagged)."""
+    settings = _get_or_create(session, user_id)
+    settings.task_states = states.rename_state(states.resolve_states(settings.task_states), state_id, label)
+    session.commit()
+    return _view(session, user_id)
+
+
+def reorder_task_states(session: Session, user_id: int, ordered_ids: list[str]) -> SettingsView:
+    """Reorder the states to ``ordered_ids`` (a permutation) — re-pointing the initial/terminal roles."""
+    settings = _get_or_create(session, user_id)
+    settings.task_states = states.reorder_states(states.resolve_states(settings.task_states), ordered_ids)
+    session.commit()
+    return _view(session, user_id)
+
+
+def delete_task_state(session: Session, user_id: int, state_id: str, reassign_to: str | None = None) -> SettingsView:
+    """Delete a state (blocked at the 2-state minimum, ADR-0011).
+
+    A non-empty state's Tasks must be reassigned to a chosen, still-existing target; an empty state
+    deletes outright (``reassign_to`` ignored).
+    """
+    settings = _get_or_create(session, user_id)
+    current = states.resolve_states(settings.task_states)
+    remaining = states.delete_state(current, state_id)  # raises on unknown id / below the minimum
+    in_use = session.scalar(
+        select(func.count()).select_from(Task).where(Task.user_id == user_id, Task.status == state_id)
+    )
+    if in_use:
+        if reassign_to is None or reassign_to == state_id or reassign_to not in states.state_ids(remaining):
+            raise ValidationError("Deleting a non-empty state requires a valid target state to reassign its tasks to.")
+        session.execute(update(Task).where(Task.user_id == user_id, Task.status == state_id).values(status=reassign_to))
+    settings.task_states = remaining
+    session.commit()
     return _view(session, user_id)
 
 
@@ -131,6 +233,16 @@ def update_settings(
         settings.period_scheme = period_scheme
     if theme is not None:
         settings.theme = theme
+    session.commit()
+    return _view(session, user_id)
+
+
+def update_view_preferences(session: Session, user_id: int, patch: dict[str, object]) -> SettingsView:
+    """Merge a partial, validated view-preferences patch into the user's stored bag (BIZ-053)."""
+    settings = _get_or_create(session, user_id)
+    merged = dict(settings.view_preferences or {})
+    merged.update(_clean_view_preferences_patch(patch))
+    settings.view_preferences = merged
     session.commit()
     return _view(session, user_id)
 

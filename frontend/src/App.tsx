@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './styles/tokens.css'
 import './styles/walker.css'
 import { AppShell, type Route, type ShellUser } from './components/AppShell'
 import { TimerBar } from './components/TimerBar'
 import { CodePicker } from './components/CodePicker'
-import { CodeEditor } from './components/CodeEditor'
+import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
 import { CellEntriesModal } from './components/CellEntriesModal'
@@ -24,11 +24,15 @@ import type {
   Entry,
   PeriodRow,
   PeriodScheme,
+  ReferenceCode,
   Task,
+  TaskState,
   TaskSuggestion,
   Theme,
   TimesheetCode,
+  ViewPreferences,
 } from './types'
+import { DEFAULT_TASK_STATES, DEFAULT_VIEW_PREFERENCES } from './types'
 import { resolveChecklistRows } from './lib/checklist'
 import { elapsedSecondsSince, formatDuration } from './lib/time'
 import {
@@ -38,12 +42,12 @@ import {
   writeCachedThemePreference,
 } from './lib/theme'
 import { shouldRetagInPlace } from './lib/timer'
-import { lastDescriptionFor } from './lib/tasks'
+import { lastDescriptionFor, soleActivity } from './lib/tasks'
 import { ToastProvider } from './lib/toast'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
-  addCodeFromReference as apiAddCodeFromReference,
+  addTaskState as apiAddTaskState,
   ApiError,
   completeTimer as apiCompleteTimer,
   createCode as apiCreateCode,
@@ -53,6 +57,7 @@ import {
   deleteCode as apiDeleteCode,
   deleteEntry as apiDeleteEntry,
   deleteTask as apiDeleteTask,
+  deleteTaskState as apiDeleteTaskState,
   fetchChecklist,
   fetchCodes,
   fetchEntriesRange,
@@ -64,7 +69,10 @@ import {
   fetchUser,
   importCatalog as apiImportCatalog,
   patchEntry as apiPatchEntry,
+  patchViewPreferences as apiPatchViewPreferences,
   removeAbsence as apiRemoveAbsence,
+  renameTaskState as apiRenameTaskState,
+  reorderTaskStates as apiReorderTaskStates,
   resetChecklist as apiResetChecklist,
   searchReference,
   startTimer as apiStartTimer,
@@ -244,9 +252,15 @@ function AppInner() {
   const [matrix, setMatrix] = useState<Record<string, Record<number, number>>>({})
   const [checked, setChecked] = useState<ChecklistState>({})
   const [picker, setPicker] = useState<{ target: 'timer' | string } | null>(null)
-  const [editor, setEditor] = useState<{ code: TimesheetCode | null; initialName?: string } | null>(
-    null,
-  )
+  // `prefill` populates the editor from a reference-catalog entry being activated (BIZ-049);
+  // `onActivated` is the continuation run after the real code is saved (e.g. select it as a virtual
+  // code's backing, or set a task's code).
+  const [editor, setEditor] = useState<{
+    code: TimesheetCode | null
+    initialName?: string
+    prefill?: CodePrefill
+    onActivated?: (code: TimesheetCode) => void
+  } | null>(null)
   // `reopenPicker` is set when the virtual-code editor was opened from CodePicker's "create on the
   // fly" action (BIZ-013): on save, the picker reopens on the same target so the newly created
   // virtual code can be picked in one more click ("used immediately" — see saveVirtualCode below).
@@ -276,9 +290,6 @@ function AppInner() {
   const [taskTags, setTaskTags] = useState<string[]>([])
   // `{ task: null }` = creating a new Task; `{ task }` = editing an existing one.
   const [taskPanel, setTaskPanel] = useState<{ task: Task | null } | null>(null)
-  // The Task a start-from-Task action (BIZ-023) is starting a Timer for, while its Code picker
-  // (target 'task') is open — title becomes the comment, code is prefilled, Activity is chosen.
-  const [pendingTaskStart, setPendingTaskStart] = useState<Task | null>(null)
 
   // Settings (drive the Timesheet period grid + density)
   const [workdays, setWorkdays] = useState<boolean[]>([false, true, true, true, true, true, false]) // Sun..Sat
@@ -290,6 +301,13 @@ function AppInner() {
   // starting from the real last-known preference avoids momentarily resolving the wrong theme and
   // clobbering the flash-free value `main.tsx` already painted from its own resolved-theme cache.
   const [theme, setTheme] = useState<Theme>(() => readCachedThemePreference() ?? 'system')
+  // BIZ-053: per-user view preferences (Tasks view/group/sort, period mode, Done collapse). Seeded
+  // with the defaults; the settings fetch below replaces them. Writes are optimistic + debounced.
+  const [viewPreferences, setViewPreferences] = useState<ViewPreferences>(DEFAULT_VIEW_PREFERENCES)
+  const viewPrefsTimer = useRef<number | null>(null)
+  // BIZ-056/057: the user's ordered task states. Seeded with the defaults for the first paint; the
+  // settings fetch replaces them, and every CRUD op returns the fresh list.
+  const [taskStates, setTaskStates] = useState<TaskState[]>(DEFAULT_TASK_STATES)
 
   useEffect(() => {
     document.documentElement.dataset.density = density === 'compact' ? 'compact' : ''
@@ -322,6 +340,8 @@ function AppInner() {
         setDensity(s.density)
         setPeriodScheme(s.periodScheme)
         setTheme(s.theme)
+        setViewPreferences(s.viewPreferences)
+        setTaskStates(s.taskStates)
         writeCachedThemePreference(s.theme)
         setAbsences(s.absences)
       })
@@ -441,12 +461,26 @@ function AppInner() {
       })
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not complete the task.')))
   }
-  // Start a Timer from a Task (BIZ-023): title becomes the comment, code is prefilled — the Code
-  // picker still opens so the Activity is chosen (scoped to the Task's code when it has one).
+  // Start a Timer from a Task in one click, no picker (BIZ-050): description = the Task's title,
+  // code = the Task's code. The Activity is auto-filled only when the code has exactly one; with no
+  // code or several activities it's left to categorize later. If a Timer is already running the
+  // click switches (re-tagging an empty stub in place, else closing it and opening a new segment),
+  // exactly like resuming an entry. Starting work also advances a to-do Task into progress.
   const startTaskTimer = (task: Task) => {
-    setDraft({ codeId: task.codeId, activity: null, description: task.title })
-    setPendingTaskStart(task)
-    setPicker({ target: 'task' })
+    const code = task.codeId ? (codesById[task.codeId] ?? null) : null
+    const activity = soleActivity(code)
+    const category = { codeId: task.codeId, activity, description: task.title, taskId: task.id }
+    setDraft({ codeId: task.codeId, activity, description: task.title })
+    const apply =
+      running && shouldRetagInPlace(running)
+        ? apiPatchEntry(running.id, category)
+        : apiSwitchTimer(category)
+    apply
+      .then(() => Promise.all([reload(), reloadTasks()]))
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not start the timer.')))
+    // Optimistic mirror of the backend's positional nudge (ADR-0011): a Task in the first
+    // (initial) state moves to the second when a timer starts on it.
+    if (task.status === taskStates[0]?.id && taskStates[1]) moveTask(task, taskStates[1].id)
   }
   const cancelTimer = () => {
     if (running) {
@@ -487,23 +521,15 @@ function AppInner() {
     return () => window.removeEventListener('keydown', onKeyDown)
   })
 
-  // Pick a task for the running timer. Re-tag an empty capture-first stub in place (attributing the
-  // elapsed time to the picked task); only split (switch) for a genuine change on real work.
-  // Splitting a stub would orphan the pre-categorization minutes as a phantom uncategorized entry.
+  // Set/correct the running timer's code + activity — always in place, keeping the same Entry and
+  // start (BIZ-058). Editing the running timer never splits; a new segment comes only from an
+  // explicit start (Start, Start-from-Task, resume). To split deliberately, stop then start.
   const pickTask = (codeId: string, activity: ActivityName) => {
-    if (!running) {
-      setDraft((d) => ({ ...d, codeId, activity }))
-      return
-    }
     setDraft((d) => ({ ...d, codeId, activity }))
-    if (shouldRetagInPlace(running)) {
+    if (running) {
       apiPatchEntry(running.id, { codeId, activity })
         .then(reload)
         .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
-    } else {
-      apiSwitchTimer({ codeId, activity, description: draft.description })
-        .then(reload)
-        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not switch task.')))
     }
   }
 
@@ -620,12 +646,30 @@ function AppInner() {
       color: code.color,
       activities: code.activities,
     }
+    // Captured now: `setEditor(null)` (in the editor's onClose) runs before this promise resolves.
+    const onActivated = editor?.onActivated
     const op = codes.some((c) => c.id === code.id)
       ? apiUpdateCode(code.id, payload)
       : apiCreateCode(payload)
-    op.then(reloadCodes).catch((err: unknown) =>
-      notifyError(errorMessage(err, 'Could not save the code.')),
-    )
+    op.then(async (saved) => {
+      await reloadCodes()
+      onActivated?.(saved)
+    }).catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the code.')))
+  }
+  // Activate a reference-catalog code through the editor so it gets a deliberate colour (BIZ-049).
+  // Idempotent: if the number is already an active real code, open it in edit mode instead of
+  // re-creating; `onActivated` (if any) runs once the code is saved.
+  const activateReference = (ref: ReferenceCode, onActivated?: (code: TimesheetCode) => void) => {
+    const existing = codes.find((c) => !c.isVirtual && c.number === ref.number)
+    if (existing) {
+      setEditor({ code: existing, onActivated })
+      return
+    }
+    setEditor({
+      code: null,
+      prefill: { number: ref.number, label: ref.label, name: ref.name, activities: ref.activities },
+      onActivated,
+    })
   }
   const deleteCode = (code: TimesheetCode) => {
     apiDeleteCode(code.id)
@@ -705,6 +749,41 @@ function AppInner() {
     })
       .then(reloadTasks)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not move the task.')))
+  }
+
+  // In-kanban state editing (BIZ-057): each op returns the fresh settings; a delete-with-reassign
+  // also retags Tasks server-side, so reload them too.
+  const stateEdits = {
+    onAdd: (label: string) =>
+      apiAddTaskState(label)
+        .then((s) => setTaskStates(s.taskStates))
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the column.'))),
+    onRename: (id: string, label: string) =>
+      apiRenameTaskState(id, label)
+        .then((s) => setTaskStates(s.taskStates))
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not rename the column.'))),
+    onReorder: (orderedIds: string[]) =>
+      apiReorderTaskStates(orderedIds)
+        .then((s) => setTaskStates(s.taskStates))
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not reorder the columns.'))),
+    onDelete: (id: string, reassignTo?: string) =>
+      apiDeleteTaskState(id, reassignTo)
+        .then((s) => {
+          setTaskStates(s.taskStates)
+          return reloadTasks()
+        })
+        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the column.'))),
+  }
+
+  // BIZ-053: apply a view-preference change optimistically, then persist it debounced (fire-and-
+  // forget — the server is the source of truth on the next load, so a dropped write self-heals).
+  const updateViewPreferences = (patch: Partial<ViewPreferences>) => {
+    const next = { ...viewPreferences, ...patch }
+    setViewPreferences(next)
+    if (viewPrefsTimer.current != null) window.clearTimeout(viewPrefsTimer.current)
+    viewPrefsTimer.current = window.setTimeout(() => {
+      void apiPatchViewPreferences(next).catch(() => undefined)
+    }, 400)
   }
 
   // Comment suggestions (scoped to the draft's code when set)
@@ -958,10 +1037,12 @@ function AppInner() {
       .sort()
       .reverse()
       .map((date) => {
+        // BIZ-060: newest first within the day (oldest last), matching the days' most-recent-first
+        // order — the running entry is still pinned to the very top below.
         const dayEntries = byDate
           .get(date)!
           .slice()
-          .sort((a, b) => a.start - b.start)
+          .sort((a, b) => b.start - a.start)
         // Pin the running entry to the top of its day (it's the current activity).
         const runningIdx = dayEntries.findIndex((e) => e.id === runningId)
         if (runningIdx > 0) {
@@ -1055,6 +1136,8 @@ function AppInner() {
       )}
       {route === 'period' && (
         <PeriodScreen
+          mode={viewPreferences.period_mode}
+          onModeChange={(mode) => updateViewPreferences({ period_mode: mode })}
           periodLabel={periodLabel}
           days={days}
           reviewRows={gridRows}
@@ -1076,11 +1159,15 @@ function AppInner() {
         <TasksScreen
           tasks={tasks}
           codesById={codesById}
+          taskStates={taskStates}
+          stateEdits={stateEdits}
           loading={tasksLoading}
           onNew={() => setTaskPanel({ task: null })}
           onOpenTask={(task) => setTaskPanel({ task })}
           onStartTask={startTaskTimer}
           onMoveTask={moveTask}
+          preferences={viewPreferences}
+          onPreferencesChange={updateViewPreferences}
         />
       )}
       {route === 'codes' && (
@@ -1096,11 +1183,7 @@ function AppInner() {
           onImport={importCatalogFile}
           importStatus={importMessage}
           onSearchReference={searchReference}
-          onAddCode={(number) =>
-            apiAddCodeFromReference(number)
-              .then(reloadCodes)
-              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the code.')))
-          }
+          onActivateReference={(ref) => activateReference(ref)}
         />
       )}
       {route === 'settings' && (
@@ -1134,39 +1217,20 @@ function AppInner() {
         <CodePicker
           title={
             picker.target === 'timer'
-              ? 'Switch task'
+              ? 'Change code'
               : picker.target === 'new'
                 ? 'Pick code & activity'
-                : picker.target === 'task'
-                  ? 'Start task — pick an activity'
-                  : 'Categorize entry'
+                : 'Categorize entry'
           }
-          codes={
-            // Start-from-Task (BIZ-023): the Task's code is prefilled — scope the picker to just
-            // that code so only the Activity remains to be chosen. An orphan Task (no code) still
-            // gets the full picker, exactly like "Switch task".
-            picker.target === 'task' && pendingTaskStart?.codeId
-              ? codes.filter((c) => c.id === pendingTaskStart.codeId)
-              : codes
-          }
-          onCreateNew={
-            picker.target === 'task' ? undefined : (q) => setEditor({ code: null, initialName: q })
-          }
-          onCreateNewVirtual={
-            picker.target === 'task'
-              ? undefined
-              : () => {
-                  const reopenPicker = picker.target
-                  setPicker(null)
-                  setVirtualEditor({ code: null, reopenPicker })
-                }
-          }
-          onSearchReference={picker.target === 'task' ? undefined : searchReference}
-          onAddFromReference={(number) =>
-            apiAddCodeFromReference(number)
-              .then(reloadCodes)
-              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the code.')))
-          }
+          codes={codes}
+          onCreateNew={(q) => setEditor({ code: null, initialName: q })}
+          onCreateNewVirtual={() => {
+            const reopenPicker = picker.target
+            setPicker(null)
+            setVirtualEditor({ code: null, reopenPicker })
+          }}
+          onSearchReference={searchReference}
+          onActivateReference={(ref) => activateReference(ref)}
           onPick={(codeId, activity) => {
             // This picker always chooses an activity (never code-only, BIZ-037); the guard narrows
             // `activity` to a string for the entry/timer paths below.
@@ -1190,17 +1254,6 @@ function AppInner() {
               setAddDraft((d) =>
                 d ? { ...d, codeId, activity, description: lastDescription ?? d.description } : d,
               )
-            } else if (picker.target === 'task') {
-              const task = pendingTaskStart
-              if (task) {
-                setDraft({ codeId, activity, description: task.title })
-                apiSwitchTimer({ codeId, activity, description: task.title, taskId: task.id })
-                  .then(() => Promise.all([reload(), reloadTasks()]))
-                  .catch((err: unknown) =>
-                    notifyError(errorMessage(err, 'Could not start the timer.')),
-                  )
-              }
-              setPendingTaskStart(null)
             } else {
               apiPatchEntry(picker.target, {
                 codeId,
@@ -1214,22 +1267,7 @@ function AppInner() {
             }
             setPicker(null)
           }}
-          onClose={() => {
-            setPicker(null)
-            setPendingTaskStart(null)
-          }}
-        />
-      )}
-
-      {editor && (
-        <CodeEditor
-          code={editor.code}
-          initialName={editor.initialName}
-          onSave={saveCode}
-          onDelete={
-            editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
-          }
-          onClose={() => setEditor(null)}
+          onClose={() => setPicker(null)}
         />
       )}
 
@@ -1237,6 +1275,7 @@ function AppInner() {
         <VirtualCodeEditor
           code={virtualEditor.code}
           realCodes={codes.filter((c) => !c.isVirtual)}
+          codes={codes}
           onSave={saveVirtualCode}
           onDelete={
             virtualEditor.code && !isCodeInUse(virtualEditor.code.id)
@@ -1244,6 +1283,8 @@ function AppInner() {
               : undefined
           }
           onClose={() => setVirtualEditor(null)}
+          onSearchReference={searchReference}
+          onActivateReference={activateReference}
         />
       )}
 
@@ -1272,17 +1313,13 @@ function AppInner() {
         <TaskPanel
           task={taskPanel.task}
           codes={codes}
+          taskStates={taskStates}
           tagSuggestions={taskTags}
           onSave={saveTask}
           onDelete={taskPanel.task ? () => deleteTask(taskPanel.task!) : undefined}
           onClose={() => setTaskPanel(null)}
           onSearchReference={searchReference}
-          onAddFromReference={(number) =>
-            apiAddCodeFromReference(number).then((added) => {
-              void reloadCodes()
-              return added
-            })
-          }
+          onActivateReference={activateReference}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
           onCreateNewVirtual={() => setVirtualEditor({ code: null, reopenPicker: null })}
         />
@@ -1312,6 +1349,22 @@ function AppInner() {
             if (found) deleteEntryWithUndo(found, refreshCell)
           }}
           onClose={() => setCellDrill(null)}
+        />
+      )}
+
+      {/* Rendered last so it stacks above any modal that opened it — including the code picker inside
+          TaskPanel / VirtualCodeEditor when activating a reference code (BIZ-049). */}
+      {editor && (
+        <CodeEditor
+          code={editor.code}
+          initialName={editor.initialName}
+          prefill={editor.prefill}
+          codes={codes}
+          onSave={saveCode}
+          onDelete={
+            editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
+          }
+          onClose={() => setEditor(null)}
         />
       )}
 
