@@ -37,6 +37,31 @@ function renderRow(overrides: Partial<Parameters<typeof EntryRow>[0]> = {}) {
   return handlers
 }
 
+describe('EntryRow — overlap note (BIZ-052)', () => {
+  it('shows an overlap badge and a trim button for a fixable overlap, wiring the trim to onEdit', () => {
+    const handlers = renderRow({
+      overlap: { partners: [{ id: 'b', start: 600, end: 720 }], fixEnd: 600 },
+    })
+
+    expect(screen.getByText(/overlaps 10:00–12:00/i)).toBeInTheDocument()
+    const trim = screen.getByRole('button', { name: /trim to 10:00/i })
+    fireEvent.click(trim)
+    expect(handlers.onEdit).toHaveBeenCalledWith({ end: 600 })
+  })
+
+  it('shows the overlap badge but no trim button for a nested/same-start overlap', () => {
+    renderRow({ overlap: { partners: [{ id: 'b', start: 600, end: 720 }], fixEnd: null } })
+
+    expect(screen.getByText(/overlaps/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /trim to/i })).toBeNull()
+  })
+
+  it('renders no overlap note when the entry overlaps nothing', () => {
+    renderRow()
+    expect(screen.queryByText(/overlaps/i)).toBeNull()
+  })
+})
+
 describe('EntryRow row actions', () => {
   it('exposes an unambiguous accessible name for each row action', () => {
     renderRow()

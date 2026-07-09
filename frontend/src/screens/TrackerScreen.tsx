@@ -1,5 +1,6 @@
 import type { Entry, TimesheetCode } from '../types'
 import { EntryRow } from '../components/EntryRow'
+import { detectOverlaps } from '../lib/overlaps'
 
 /** One day's worth of entries, as shown in the tracker's grouped list. */
 export interface DayGroup {
@@ -100,6 +101,12 @@ export function TrackerScreen({
               <div className="wk-entry-list">
                 {(() => {
                   const groupMax = Math.max(1, ...group.entries.map(durationOf))
+                  // BIZ-052: detect time overlaps within the day, excluding the live running entry.
+                  const overlaps = detectOverlaps(
+                    group.entries
+                      .filter((e) => e.id !== runningId)
+                      .map((e) => ({ id: e.id, start: e.start, end: e.end ?? null })),
+                  )
                   return group.entries.map((entry) => (
                     <EntryRow
                       key={entry.id}
@@ -108,6 +115,7 @@ export function TrackerScreen({
                       running={entry.id === runningId}
                       liveMinutes={runningMinutes}
                       maxMinutes={groupMax}
+                      overlap={entry.id === runningId ? undefined : overlaps[entry.id]}
                       onEdit={(patch) => onEditEntry(entry.id, patch)}
                       onCategorize={() => onCategorizeEntry(entry.id)}
                       onOpenEditor={() => onOpenEntry(entry.id)}

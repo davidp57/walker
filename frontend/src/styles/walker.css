@@ -564,6 +564,35 @@ html[data-theme='light'] body {
 .wk-entry-row.is-flagged {
   background: var(--wk-amber-soft);
 }
+/* BIZ-052: an entry whose time range overlaps another's — distinct from the amber "uncategorized". */
+.wk-entry-row.is-overlap {
+  box-shadow: inset 3px 0 0 var(--wk-danger);
+}
+.wk-overlap-note {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+}
+.wk-overlap-badge {
+  color: var(--wk-danger);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+}
+.wk-overlap-fix {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  color: var(--wk-danger);
+  background: none;
+  border: 1px solid var(--wk-danger);
+  border-radius: var(--wk-radius-md);
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.wk-overlap-fix:hover {
+  background: var(--wk-amber-soft);
+}
 
 .wk-time {
   display: flex;
