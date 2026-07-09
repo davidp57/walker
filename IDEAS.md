@@ -15,5 +15,6 @@ migration (`ReferenceCode.user_id`→`organization_id`, active real `TimesheetCo
 `user_id`) + glossary updates. Separate lot — decoupled from the colour-automation feature.
 - 2026.07.09 - persister les réglages UX dans le profil user (également le profil user *virtuel* de la version .exe) ; par exemple le groupage des tasks, le dernier mode utilisé dans les écrans multimode (tasks, timesheet period)
 - 2026.07.09 - rendre éditable l'activité "en cours" dans la liste "activity" - ça modifie le timer aussi ; en passant c'est pas clair qu'on peut éditer la description dans le timer, parce que c'est séparé dans l'UI du timer (il est en encadré alors que la description est en non encadré, on pense que c'est pas un champ éditable du timer)
+- 2026-07-09 - lien global vers la doc (site publié) accessible depuis l'app — pas seulement le lien contextuel « catalog-import » déjà présent dans CodeCatalogScreen. Emplacement à décider (nav latérale ? footer ? icône aide ?).
 
  
