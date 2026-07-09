@@ -1,7 +1,7 @@
 # TEC-007 — Fix broken documentation-site URLs (/Walker/ → /walker/)
 
 ID: TEC-007
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Priority: P2
 
