@@ -49,8 +49,9 @@ export function VirtualCodeEditor({
   }
 
   return (
-    <div className="wk-overlay" onClick={onClose}>
-      <div className="wk-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="wk-overlay">
+      {/* BIZ-059: no outside-click dismiss — a form modal closes only via ✕ / Cancel / Save. */}
+      <div className="wk-modal">
         <div className="wk-modal-head">
           <span className="wk-modal-title">{code ? 'Edit virtual code' : 'New virtual code'}</span>
           <button type="button" className="wk-modal-close" onClick={onClose}>
