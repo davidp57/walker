@@ -1,5 +1,6 @@
 import { useState, type KeyboardEvent } from 'react'
 import type { Entry, TimesheetCode } from '../types'
+import type { OverlapInfo } from '../lib/overlaps'
 import {
   formatClock,
   formatDuration,
@@ -22,6 +23,8 @@ interface EntryRowProps {
   liveMinutes?: number // live elapsed minutes, used when `running`
   // BIZ-042: longest entry duration in this day group, for the proportion bar (omit to hide it).
   maxMinutes?: number
+  // BIZ-052: this entry's time-overlap info within its day (omit when it overlaps nothing).
+  overlap?: OverlapInfo
 }
 
 type Field = 'start' | 'end' | 'dur' | 'desc'
@@ -37,7 +40,10 @@ export function EntryRow({
   running = false,
   liveMinutes,
   maxMinutes,
+  overlap,
 }: EntryRowProps) {
+  const overlapPartner = overlap?.partners[0]
+  const overlapFixEnd = overlap?.fixEnd ?? null
   const [editing, setEditing] = useState<Field | null>(null)
   const [buffer, setBuffer] = useState('')
   const [rowHover, setRowHover] = useState(false)
@@ -85,7 +91,12 @@ export function EntryRow({
       </div>
     ) : null
 
-  const className = ['wk-entry-row', flagged ? 'is-flagged' : '', running ? 'is-running' : '']
+  const className = [
+    'wk-entry-row',
+    flagged ? 'is-flagged' : '',
+    running ? 'is-running' : '',
+    overlapPartner ? 'is-overlap' : '',
+  ]
     .filter(Boolean)
     .join(' ')
 
@@ -262,6 +273,26 @@ export function EntryRow({
             <IconTrash />
           </button>
         </>
+      )}
+
+      {/* BIZ-052: time-overlap note, spanning the row's full width on its own line. */}
+      {overlapPartner && (
+        <div className="wk-overlap-note">
+          <span className="wk-overlap-badge">
+            ⚠ overlaps {formatClock(overlapPartner.start)}–{formatClock(overlapPartner.end)}
+            {overlap && overlap.partners.length > 1 ? ` +${overlap.partners.length - 1}` : ''}
+          </span>
+          {overlapFixEnd != null && (
+            <button
+              type="button"
+              className="wk-overlap-fix"
+              title={`Shorten this entry's end to ${formatClock(overlapFixEnd)} (start of the next entry)`}
+              onClick={() => onEdit({ end: overlapFixEnd })}
+            >
+              Trim to {formatClock(overlapFixEnd)}
+            </button>
+          )}
+        </div>
       )}
     </div>
   )
