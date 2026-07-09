@@ -43,8 +43,8 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   Timer in Activity, absence date range, description de-noise, task priority/due pills + inline
   status, time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty
   states, Review/Enter explainer). Ready next: BIZ-050 (one-click start-timer arrow on tasks, list +
-  board) and BIZ-051 (grouped task list as a single aligned table). Lot stays open for future UX
-  polish. See `.backlog/POLISH/PRD.md`.
+  board), BIZ-051 (grouped task list as a single aligned table), and BIZ-052 (flag overlapping
+  entries + one-click trim). Lot stays open for future UX polish. See `.backlog/POLISH/PRD.md`.
 
 ## Forward-looking (not scheduled)
 
