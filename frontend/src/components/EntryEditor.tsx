@@ -66,8 +66,9 @@ export function EntryEditor({
   }
 
   return (
-    <div className="wk-overlay" onClick={onClose}>
-      <div className="wk-modal" onClick={(ev) => ev.stopPropagation()}>
+    <div className="wk-overlay">
+      {/* BIZ-059: no outside-click dismiss — a form modal closes only via ✕ / Cancel / Save. */}
+      <div className="wk-modal">
         <div className="wk-modal-head">
           <span className="wk-modal-title">{title}</span>
           <button type="button" className="wk-modal-close" onClick={onClose}>

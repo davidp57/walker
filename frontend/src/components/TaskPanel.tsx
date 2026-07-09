@@ -157,8 +157,9 @@ export function TaskPanel({
   const canSave = title.trim() !== ''
 
   return (
-    <div className="wk-panel-overlay" onClick={onClose}>
-      <div className="wk-panel" onClick={(ev) => ev.stopPropagation()}>
+    <div className="wk-panel-overlay">
+      {/* BIZ-059: no outside-click dismiss — a form panel closes only via ✕ / Cancel / Save. */}
+      <div className="wk-panel">
         <div className="wk-modal-head">
           <span className="wk-modal-title">{task ? 'Edit task' : 'New task'}</span>
           <button type="button" className="wk-modal-close" onClick={onClose}>
