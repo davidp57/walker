@@ -1,7 +1,7 @@
 # BIZ-058 — Changing the running Timer's code edits the entry in place (no switch)
 
 ID: BIZ-058
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
