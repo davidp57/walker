@@ -1,6 +1,6 @@
 # Code colour automation + unified code-selection UX — PRD
 
-Status: ⬜ ready
+Status: 🔄 in-progress
 Lot: CODEUX
 Branch: feature/* per ticket → PR → develop
 

@@ -1,7 +1,7 @@
 # BIZ-048 — Automatic colour suggestion + rich colour picker
 
 ID: BIZ-048
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -56,16 +56,16 @@ create with `color=None`), using the same mirrored function — so pickerless cr
 
 ## Acceptance criteria
 
-- [ ] A single 64-colour palette exists once per side (Py + TS) with a contract test proving equality;
+- [x] A single 64-colour palette exists once per side (Py + TS) with a contract test proving equality;
       the old backend `PALETTE`/`_auto_color` and both frontend palettes are gone.
-- [ ] Suggestion picks uniformly at random among minimal-usage-count palette colours; with free
+- [x] Suggestion picks uniformly at random among minimal-usage-count palette colours; with free
       colours left it never repeats an in-use colour. Unit-tested incl. the all-64-used case.
-- [ ] Avoidance/counting is over `list_codes(user)`, palette-only, and excludes the edited code when
+- [x] Avoidance/counting is over `list_codes(user)`, palette-only, and excludes the edited code when
       editing. Covered by tests.
-- [ ] Both editors open on the suggested colour; 🎲 re-rolls; the swatch grid marks used colours with
+- [x] Both editors open on the suggested colour; 🎲 re-rolls; the swatch grid marks used colours with
       a marker + tooltip naming the code(s); used colours stay selectable; analog picker still works.
-- [ ] Selected swatch is visually distinct (ring); grid and markers read correctly in both themes.
-- [ ] Existing codes are not recoloured or migrated.
+- [x] Selected swatch is visually distinct (ring); grid and markers read correctly in both themes.
+- [x] Existing codes are not recoloured or migrated.
 
 ## Blocked by
 
