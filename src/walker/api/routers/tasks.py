@@ -20,7 +20,7 @@ def _task_read(task: Task) -> TaskRead:
         id=task.id,
         title=task.title,
         description=task.description,
-        status=task.status.value,
+        status=task.status,
         priority=task.priority.value if task.priority is not None else None,
         due_date=task.due_date,
         tags=list(task.tags),

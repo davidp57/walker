@@ -274,9 +274,18 @@ class ViewPreferencesUpdate(BaseModel):
     done_collapsed: bool | None = None
 
 
+class TaskStateRead(BaseModel):
+    """One user-defined task state: an opaque stable id + an editable label (BIZ-056, ADR-0011)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    label: str
+
+
 class SettingsRead(BaseModel):
-    """The user's settings: work rhythm (Sun..Sat), density, period scheme, theme, absences, and
-    the per-user view preferences (BIZ-053).
+    """The user's settings: work rhythm (Sun..Sat), density, period scheme, theme, absences, the
+    per-user view preferences (BIZ-053), and the ordered task-state list (BIZ-056).
     """
 
     model_config = ConfigDict(from_attributes=True)
@@ -287,6 +296,25 @@ class SettingsRead(BaseModel):
     theme: Theme
     absences: list[AbsenceRead]
     view_preferences: ViewPreferencesRead
+    task_states: list[TaskStateRead]
+
+
+class TaskStateAdd(BaseModel):
+    """Payload to add a task state (inserted before the terminal one)."""
+
+    label: str
+
+
+class TaskStateRename(BaseModel):
+    """Payload to rename a task state (label only — its id, and Tasks, are untouched)."""
+
+    label: str
+
+
+class TaskStateReorder(BaseModel):
+    """Payload to reorder the task states — a permutation of every existing state id."""
+
+    ordered_ids: list[str]
 
 
 class SettingsUpdate(BaseModel):
@@ -340,7 +368,8 @@ class TaskCreate(BaseModel):
 
     title: str
     description: str | None = None
-    status: str = "todo"
+    # A task-state id from the user's list (BIZ-056); null defaults to their first (initial) state.
+    status: str | None = None
     priority: str | None = None
     due_date: date | None = None
     tags: list[str] = []
@@ -353,7 +382,8 @@ class TaskUpdate(BaseModel):
 
     title: str
     description: str | None = None
-    status: str = "todo"
+    # A task-state id from the user's list (BIZ-056); null defaults to their first (initial) state.
+    status: str | None = None
     priority: str | None = None
     due_date: date | None = None
     tags: list[str] = []

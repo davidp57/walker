@@ -13,19 +13,26 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.exceptions import NotFoundError, ValidationError
-from walker.models import Task, TaskPriority, TaskStatus
-from walker.services import catalog
+from walker.models import Task, TaskPriority
+from walker.services import catalog, states
 from walker.services import settings as settings_service
 from walker.services.recurrence import RecurrenceRule, next_due_date, rule_from_dict, rule_to_dict
 
-_VALID_STATUSES = {member.value for member in TaskStatus}
 _VALID_PRIORITIES = {member.value for member in TaskPriority}
 
 
-def _validate_status(status: str) -> TaskStatus:
-    if status not in _VALID_STATUSES:
+def _resolve_status(session: Session, user_id: int, status: str | None) -> str:
+    """Resolve a Task status id against the user's state list (BIZ-056).
+
+    ``None`` (no status supplied) defaults to the user's **first** (initial) state; an id not in the
+    user's list raises ``ValidationError``.
+    """
+    task_states = settings_service.get_task_states(session, user_id)
+    if status is None:
+        return states.initial_id(task_states)
+    if status not in states.state_ids(task_states):
         raise ValidationError(f"Unknown status: {status!r}.")
-    return TaskStatus(status)
+    return status
 
 
 def _validate_priority(priority: str | None) -> TaskPriority | None:
@@ -79,20 +86,23 @@ def create_task(
     *,
     title: str,
     description: str | None,
-    status: str,
+    status: str | None,
     priority: str | None,
     due_date: date_type | None,
     tags: list[str],
     timesheet_code_id: int | None,
     recurrence_rule: dict[str, object] | None = None,
 ) -> Task:
-    """Create a Task. Orphan Tasks (``timesheet_code_id`` ``None``) are allowed."""
+    """Create a Task. Orphan Tasks (``timesheet_code_id`` ``None``) are allowed.
+
+    ``status`` ``None`` defaults to the user's first (initial) state (BIZ-056).
+    """
     _validate_code(session, user_id, timesheet_code_id)
     task = Task(
         user_id=user_id,
         title=title,
         description=description,
-        status=_validate_status(status),
+        status=_resolve_status(session, user_id, status),
         priority=_validate_priority(priority),
         due_date=due_date,
         tags=list(tags),
@@ -112,7 +122,7 @@ def update_task(
     *,
     title: str,
     description: str | None,
-    status: str,
+    status: str | None,
     priority: str | None,
     due_date: date_type | None,
     tags: list[str],
@@ -124,7 +134,7 @@ def update_task(
     _validate_code(session, user_id, timesheet_code_id)
     task.title = title
     task.description = description
-    task.status = _validate_status(status)
+    task.status = _resolve_status(session, user_id, status)
     task.priority = _validate_priority(priority)
     task.due_date = due_date
     task.tags = list(tags)
@@ -144,15 +154,15 @@ def complete_task(session: Session, user_id: int, task_id: int) -> Task:
     non-recurring Task is simply marked Done.
     """
     task = get_task(session, user_id, task_id)
+    settings_view = settings_service.get_settings(session, user_id)
     if task.recurrence_rule is None:
-        task.status = TaskStatus.DONE
+        task.status = states.terminal_id(settings_view.task_states)
         session.commit()
         session.refresh(task)
         return task
 
     rule: RecurrenceRule = rule_from_dict(task.recurrence_rule)
     current_due = task.due_date if task.due_date is not None else date_type.today()
-    settings_view = settings_service.get_settings(session, user_id)
     absences = {absence.date for absence in settings_view.absences}
     task.due_date = next_due_date(
         rule,
@@ -160,7 +170,7 @@ def complete_task(session: Session, user_id: int, task_id: int) -> Task:
         workdays=settings_view.workdays,
         absences=absences,
     )
-    task.status = TaskStatus.TODO
+    task.status = states.initial_id(settings_view.task_states)
     session.commit()
     session.refresh(task)
     return task

@@ -41,3 +41,7 @@ class Settings(TimestampMixin, Base):
     # BIZ-053: per-user view preferences (task view/group/sort, period mode, Done collapse) as a JSON
     # bag — ephemeral screen state remembered per user, distinct from the deliberate settings above.
     view_preferences: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)
+    # BIZ-056 (ADR-0011): the user's ordered task-state list (each {"id", "label"}); empty resolves to
+    # the five defaults in `services/states`. Configuration data (Tasks reference the ids), distinct
+    # from the ephemeral view_preferences above though both use JSON storage.
+    task_states: Mapped[list[dict[str, str]]] = mapped_column(JSON, default=list)
