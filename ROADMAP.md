@@ -35,13 +35,13 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   picker (BIZ-048), then a unified tiered code search (grouped by tier, sorted by name) applied to
   every picker, replacing the virtual-code backing `<select>` and routing reference activation through
   `CodeEditor` (BIZ-049). See `.backlog/archive/CODEUX.md`.
+- **STATES** (user-defined task states) — task statuses / kanban columns became a per-user ordered
+  list (opaque id + editable label) with positional roles (first = initial, last = terminal);
+  add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
+  (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
 ## Now — not yet chosen
 
-- **STATES** (user-defined task states) — task statuses / kanban columns become a per-user ordered
-  list (opaque id + editable label) with positional roles (first = initial, last = terminal);
-  add/rename/move/delete edited in the kanban, `Task.status` migrates enum → string. Backend first
-  (BIZ-056), then the in-kanban editing UI (BIZ-057). See `.backlog/STATES/PRD.md`, ADR-0011.
 - **POLISH** (living lot of small UX improvements) — first batch shipped (BIZ-038 … BIZ-047: running
   Timer in Activity, absence date range, description de-noise, task priority/due pills + inline
   status, time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty
