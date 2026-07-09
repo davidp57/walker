@@ -1,7 +1,7 @@
 # BIZ-050 — One-click "Start a timer" arrow on tasks (list + board)
 
 ID: BIZ-050
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
