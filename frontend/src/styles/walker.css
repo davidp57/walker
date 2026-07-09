@@ -1704,6 +1704,15 @@ html[data-theme='light'] body {
   color: var(--wk-text-lo);
   padding: 6px 4px;
 }
+/* BIZ-051: group headers as section rows inside the single task table (aligned columns). */
+.wk-task-group-row td {
+  background: var(--wk-bg-2);
+  border-top: 1px solid var(--wk-line);
+  padding: 2px 14px;
+}
+.wk-task-group-row:first-child td {
+  border-top: none;
+}
 .wk-task-table {
   width: 100%;
   border-collapse: collapse;
