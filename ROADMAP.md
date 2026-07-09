@@ -30,15 +30,14 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 - **I18N** (bilingual user-facing docs) — the published MkDocs site is bilingual: English primary
   (default/root/fallback), French secondary with full parity and a language switcher, via
   `mkdocs-static-i18n`; scope was `docs-site/` only. See `.backlog/archive/I18N.md`, CHR-010.
-
-## Now — not yet chosen
-
 - **CODEUX** (code colour automation + unified code-selection UX) — a single 64-colour palette
   (mirrored back/front, contract-tested) with a least-used-first random suggestion and a rich colour
   picker (BIZ-048), then a unified tiered code search (grouped by tier, sorted by name) applied to
   every picker, replacing the virtual-code backing `<select>` and routing reference activation through
-  `CodeEditor` (BIZ-049). Sequenced BIZ-048 → BIZ-049. Model-agnostic w.r.t. the parked catalog
-  re-scoping (see `IDEAS.md`). See `.backlog/CODEUX/PRD.md`.
+  `CodeEditor` (BIZ-049). See `.backlog/archive/CODEUX.md`.
+
+## Now — not yet chosen
+
 - **STATES** (user-defined task states) — task statuses / kanban columns become a per-user ordered
   list (opaque id + editable label) with positional roles (first = initial, last = terminal);
   add/rename/move/delete edited in the kanban, `Task.status` migrates enum → string. Backend first
