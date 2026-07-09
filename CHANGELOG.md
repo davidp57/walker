@@ -5,6 +5,51 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-09
+
+### Added
+
+- **Automatic code colour + rich colour picker** (BIZ-048): one curated 64-colour palette (mirrored
+  backend/frontend, contract-tested) replaces the old modulo palette and the two divergent frontend
+  palettes. New codes open on a colour picked at random from the least-used palette colours (so
+  siblings stay distinct, degrading gracefully once all 64 are in use); a rich picker offers a 🎲
+  re-roll, a hue-ordered swatch grid marking used colours with a tooltip naming the code(s), and the
+  native analog colour input.
+- **Unified tiered code search** (BIZ-049): every code-selection surface (categorize entry, switch
+  task, task code, catalog search, and the new virtual-code backing selector) uses one search,
+  results grouped by tier (your codes, then the reference catalog) and sorted by name. The
+  virtual-code backing `<select>` is replaced by the shared searchable picker, and activating a
+  reference code now routes through the code editor (with the colour picker) instead of a one-click
+  add.
+- **User-defined task states / kanban columns** (BIZ-056, BIZ-057; ADR-0011): task statuses become a
+  per-user, ordered list (opaque id + editable label) with positional roles — the first state is
+  initial (new-task default, recurrence reset), the last is terminal (Complete, roll-forward). Add,
+  rename, reorder, and delete columns from within the kanban; add inserts before the terminal, a
+  2-state minimum is enforced, and deleting a non-empty column reassigns its tasks to a chosen
+  target. The first/last columns are marked start/done.
+- **One-click start-timer from a task** (BIZ-050): a play action on each task (list + board) starts a
+  timer immediately, carrying the task title as the entry description.
+- **Persisted per-user view preferences** (BIZ-053): task view/group/sort, period mode, and the
+  collapsed-Done state are remembered per user across sessions.
+- **Overlapping-entry detection + one-click trim** (BIZ-052): entries that overlap in time are
+  flagged, with a one-click action to trim the overlap.
+- **Cmd/Ctrl+click to open links in a task description** (BIZ-055).
+
+### Changed
+
+- **Grouped task list as a single aligned table** (BIZ-051): grouped views render as one table with
+  per-group section rows, so columns stay aligned across groups.
+- **Edit the running entry inline; Timer description looks like a field** (BIZ-054).
+- **Changing the running Timer's code edits the entry in place** (BIZ-058) rather than starting a new
+  one.
+- **Form modals no longer dismiss on an outside click** (BIZ-059): a form modal closes only via
+  ✕ / Cancel / Save.
+- **A day's Activity entries are listed newest-first** (BIZ-060).
+
+### Fixed
+
+- **Broken documentation-site URLs** (TEC-007): corrected `/Walker/` → `/walker/`.
+
 ## [1.3.0] - 2026-07-08
 
 ### Added

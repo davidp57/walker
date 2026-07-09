@@ -1,39 +1,51 @@
-# Walker v1.3.0
+# Walker v1.4.0
 
-**A wave of day-to-day UX polish — and a fully de-branded, shareable codebase.**
+**Two headline improvements land together: a workflow you can shape yourself, and smoother code
+management — plus a round of everyday UX polish.**
 
-## Added
+## Make the workflow your own
 
-- **Your running Timer now shows in the Activity view** — a live, read-only row pinned to the top of
-  Today, and the day's total counts the time you're currently tracking (not just finished entries).
-- **Add an absence over a date range** — pick a "from" and "to" in Settings and Walker fills in every
-  day in between (a whole week of leave in one go), instead of one day at a time.
-- **Time-proportion bars in the Activity list** — a thin bar in each entry's color shows at a glance
-  where the day's time went, without reading every number.
-- **Change a task's status straight from the list** — a status selector on each row, no need to open
-  the board or the task panel.
-- **Review vs. Enter, explained** — the Timesheet period view now says what each mode shows (Review
-  is your time by the code you tracked on; Enter resolves virtual codes to the real code the
-  timesheet system expects).
+- **User-defined task states / kanban columns.** Task statuses are no longer a fixed five. Add,
+  rename, reorder, and delete your own columns straight from the kanban. The first column is your
+  starting state and the last is "done" — Walker follows those positions for completing tasks,
+  recurrence roll-forward, and the start-timer nudge, so your workflow drives the behaviour. Deleting
+  a column that still holds tasks asks where to move them first, and you always keep at least two
+  columns.
 
-## Changed
+## Codes: colours and picking, sorted out
 
-- **Calmer Activity list** — an entry with no description shows a quiet `—`; the "Add a description…"
-  invite appears when you hover or focus the row.
-- **Tasks list reads cleaner** — priority and due date show as inline pills only when set, replacing
-  the columns that were empty for most tasks.
-- **Kanban fits the screen** — the Done column can be collapsed to a slim rail (its count stays
-  visible), taming the horizontal scroll.
-- **Denser Code catalog** — a code's activities collapse behind an "N activities" toggle, so more
-  codes fit at once.
-- **Friendlier first run** — the empty Code catalog explains the reference-vs-active model and links
-  the docs; the period view notes it fills in as you track.
+- **Automatic, distinct colours.** Every new code (real or virtual) now opens on a colour picked for
+  you — at random from a curated 64-colour palette, favouring the least-used colours so sibling codes
+  stay visually distinct. A rich colour picker lets you re-roll, pick from the grid (used colours are
+  marked and named on hover), or set any custom colour.
+- **One consistent code search everywhere.** Categorizing an entry, setting a task's code, and now
+  choosing a virtual code's backing code all use the same searchable picker — results grouped (your
+  codes, then the reference catalog) and sorted by name. Activating a code from the reference catalog
+  now opens the code editor, so you give it a colour as you add it.
 
-## Also
+## Everyday polish
 
-- The project is now free of employer-specific references and reads as a generic, shareable product,
-  with a link to the published documentation site from the README.
+- **Start a timer from a task in one click** — from both the list and the board.
+- **Your view preferences stick** — task view / group / sort, period mode, and the collapsed-Done
+  state are remembered per user.
+- **Overlapping entries are flagged** with a one-click trim to fix them.
+- **The grouped task list** renders as a single, aligned table.
+- **Edit the running entry inline**, and the Timer's description now looks like the field it is.
+- **Changing the running Timer's code** edits the entry in place instead of starting a new one.
+- **Open links in a task description** with Cmd/Ctrl+click.
+- **A day's entries** are listed newest-first.
+- **Form modals** no longer close when you click outside them — only ✕ / Cancel / Save dismiss them.
+
+## Fixed
+
+- Broken links on the documentation site (`/Walker/` → `/walker/`).
 
 ## Upgrading
 
-No breaking changes, no manual migration steps — upgrade in place.
+This release includes a **database migration** (task status moves from a fixed enum to a per-user
+state list). Run `alembic upgrade head` after updating. It's backwards-compatible with your data —
+existing task statuses stay valid and no task is rewritten.
+
+## Thanks
+
+Thanks to Julien for his suggestions.
