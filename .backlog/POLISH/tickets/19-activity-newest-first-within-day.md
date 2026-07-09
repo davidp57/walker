@@ -1,7 +1,7 @@
 # BIZ-060 — Activity entries: newest first within each day
 
 ID: BIZ-060
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Priority: P3
 
