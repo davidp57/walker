@@ -504,23 +504,15 @@ function AppInner() {
     return () => window.removeEventListener('keydown', onKeyDown)
   })
 
-  // Pick a task for the running timer. Re-tag an empty capture-first stub in place (attributing the
-  // elapsed time to the picked task); only split (switch) for a genuine change on real work.
-  // Splitting a stub would orphan the pre-categorization minutes as a phantom uncategorized entry.
+  // Set/correct the running timer's code + activity — always in place, keeping the same Entry and
+  // start (BIZ-058). Editing the running timer never splits; a new segment comes only from an
+  // explicit start (Start, Start-from-Task, resume). To split deliberately, stop then start.
   const pickTask = (codeId: string, activity: ActivityName) => {
-    if (!running) {
-      setDraft((d) => ({ ...d, codeId, activity }))
-      return
-    }
     setDraft((d) => ({ ...d, codeId, activity }))
-    if (shouldRetagInPlace(running)) {
+    if (running) {
       apiPatchEntry(running.id, { codeId, activity })
         .then(reload)
         .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
-    } else {
-      apiSwitchTimer({ codeId, activity, description: draft.description })
-        .then(reload)
-        .catch((err: unknown) => notifyError(errorMessage(err, 'Could not switch task.')))
     }
   }
 
@@ -1166,7 +1158,7 @@ function AppInner() {
         <CodePicker
           title={
             picker.target === 'timer'
-              ? 'Switch task'
+              ? 'Change code'
               : picker.target === 'new'
                 ? 'Pick code & activity'
                 : 'Categorize entry'

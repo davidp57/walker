@@ -89,11 +89,13 @@ minute (no rounding). Aggregated, it feeds the Timesheet period's Timesheet entr
 _Avoid_: "log", "session".
 
 **Timer**:
-The stopwatch of an Entry in progress. Starts in **one click, with no input** (categorize later). You
-can **switch** from one task to another (change code or description) without stopping the clock: the
-Timer closes the current Entry and opens a new one. Its state is persisted server-side and survives a
-restart.
-_Avoid_: "stopwatch" (canonical = Timer).
+The stopwatch of an Entry in progress. Starts in **one click, with no input** (categorize later).
+Changing its code, activity, or description **edits the running Entry in place** — same segment, same
+start (BIZ-058). A **new segment** is only ever begun by an explicit start: the Start button,
+starting from a **Task**, or resuming an **Entry**. To split the current work into two, stop the
+Timer and start again. Its state is persisted server-side and survives a restart.
+_Avoid_: "stopwatch" (canonical = Timer); "switch" for changing the running Timer's code — it edits
+the current Entry in place, it does not open a new one.
 
 **Task**:
 A unit of work to do or being done, identified by its **title** — the same notion as the *comment* on

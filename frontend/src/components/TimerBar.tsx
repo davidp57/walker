@@ -115,7 +115,7 @@ export function TimerBar({
             {code ? (activity ?? 'pick an activity') : 'pick a code'}
           </span>
         </span>
-        <span className="wk-taskchip-caret">switch ⌄</span>
+        <span className="wk-taskchip-caret">code ⌄</span>
       </button>
 
       <div className="wk-timer-right">
