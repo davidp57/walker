@@ -105,6 +105,16 @@ categorize later. Time tracked without a listed Task — just a description type
 notion, simply **not saved** in the list.
 _Avoid_: "ticket", "issue"; "todo" for a listed Task (that word leans to the Entry checklist's sense).
 
+**Status**:
+The workflow stage of a Task, and the columns of the kanban. A **user-defined, ordered set** of
+states (each an editable **label** over a stable opaque id), not a fixed list (ADR-0011). Two roles
+are **positional**: the **first** state is the **initial** one (default for new Tasks, recurrence
+reset target), the **last** is the **terminal** one (target of Complete, trigger of recurrence
+roll-forward, the collapsible kanban column). Renaming or reordering states never re-tags existing
+Tasks; moving a state to an end reassigns the initial/terminal role.
+_Avoid_: "state" and "status" as two different things (one concept); a hardcoded To-do…Done workflow
+(superseded — it's now per-user); "column" as a separate concept (a kanban column *is* a Status).
+
 **Organization**:
 A group of Users who share one **Code catalog** — real Timesheet codes (and their Activities) are
 scoped to the Organization, not to the User, so colleagues at the same company import and impute
