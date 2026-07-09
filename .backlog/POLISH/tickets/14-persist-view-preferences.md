@@ -1,7 +1,7 @@
 # BIZ-053 — Persist per-user view preferences (task view/group/sort, period mode, Done collapse)
 
 ID: BIZ-053
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
