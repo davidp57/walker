@@ -1222,6 +1222,7 @@ function AppInner() {
         <CodeEditor
           code={editor.code}
           initialName={editor.initialName}
+          codes={codes}
           onSave={saveCode}
           onDelete={
             editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
@@ -1234,6 +1235,7 @@ function AppInner() {
         <VirtualCodeEditor
           code={virtualEditor.code}
           realCodes={codes.filter((c) => !c.isVirtual)}
+          codes={codes}
           onSave={saveVirtualCode}
           onDelete={
             virtualEditor.code && !isCodeInUse(virtualEditor.code.id)
