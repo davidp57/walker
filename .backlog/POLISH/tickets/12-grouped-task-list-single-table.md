@@ -1,7 +1,7 @@
 # BIZ-051 — Grouped task list as a single table with section rows
 
 ID: BIZ-051
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 
