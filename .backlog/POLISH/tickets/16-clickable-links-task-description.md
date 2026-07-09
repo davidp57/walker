@@ -1,7 +1,7 @@
 # BIZ-055 — Open links in the task description via Cmd/Ctrl+click
 
 ID: BIZ-055
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 
