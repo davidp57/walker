@@ -312,6 +312,7 @@ export function TasksScreen({
           groupByCode={group === 'code'}
           onOpenTask={onOpenTask}
           onMoveTask={onMoveTask ?? (() => {})}
+          onStartTask={onStartTask}
         />
       ) : (
         // BIZ-051: one table with per-group section rows, so columns stay aligned across groups.

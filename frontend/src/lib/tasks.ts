@@ -1,4 +1,14 @@
-import type { ActivityName, Entry } from '../types'
+import type { ActivityName, Entry, TimesheetCode } from '../types'
+
+/**
+ * The Activity to auto-fill when starting a Timer from a Task in one click (BIZ-050): the code's
+ * activity when it has exactly one (unambiguous), otherwise `null` — no code, no activities, or
+ * several all leave it to categorize later. Keeps the one-click start from ever guessing.
+ */
+export function soleActivity(code: TimesheetCode | null): ActivityName | null {
+  const activities = code?.activities ?? []
+  return activities.length === 1 ? activities[0].label : null
+}
 
 /**
  * The most recent non-blank description used for a given code + activity, or `null` when none.
