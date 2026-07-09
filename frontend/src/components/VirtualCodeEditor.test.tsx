@@ -47,6 +47,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={null}
         realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
         onSave={vi.fn().mockResolvedValue(undefined)}
         onClose={vi.fn()}
       />,
@@ -61,6 +62,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
         onSave={vi.fn().mockResolvedValue(undefined)}
         onClose={vi.fn()}
       />,
@@ -78,6 +80,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
         onSave={vi.fn().mockResolvedValue(undefined)}
         onDelete={onDelete}
         onClose={onClose}
@@ -95,6 +98,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
         onSave={vi.fn().mockResolvedValue(undefined)}
         onClose={vi.fn()}
       />,
@@ -109,6 +113,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
         onSave={onSave}
         onClose={vi.fn()}
       />,
@@ -139,6 +144,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
         onSave={onSave}
         onClose={onClose}
       />,
@@ -158,6 +164,7 @@ describe('VirtualCodeEditor', () => {
       <VirtualCodeEditor
         code={virtualCode}
         realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
         onSave={onSave}
         onClose={onClose}
       />,

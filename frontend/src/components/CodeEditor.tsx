@@ -1,31 +1,37 @@
 import { useState } from 'react'
 import type { Activity, TimesheetCode } from '../types'
+import { ColorPicker } from './ColorPicker'
+import { suggestColor } from '../lib/palette'
 
 interface CodeEditorProps {
   code: TimesheetCode | null // null = create a new code
   initialName?: string // prefill (e.g. the search query from the picker)
+  codes: TimesheetCode[] // all visible codes — for the colour picker's avoidance + used markers
   onSave: (code: TimesheetCode) => void
   onDelete?: () => void // omitted when the code can't be deleted (new, or in use)
   onClose: () => void
 }
 
-const PALETTE = [
-  '#5b9cf6',
-  '#3fb68b',
-  '#c88b5b',
-  '#a879d6',
-  '#e8a84b',
-  '#e5644e',
-  '#5bd6c4',
-  '#d67ba8',
-]
-
 /** Modal create/edit for a Timesheet code and its (hierarchical) activities. */
-export function CodeEditor({ code, initialName, onSave, onDelete, onClose }: CodeEditorProps) {
+export function CodeEditor({
+  code,
+  initialName,
+  codes,
+  onSave,
+  onDelete,
+  onClose,
+}: CodeEditorProps) {
+  // The other codes whose colours to avoid/mark — this code excluded so its own colour reads as
+  // selected, not taken (BIZ-048).
+  const otherCodes = codes
+    .filter((c) => c.id !== code?.id)
+    .map((c) => ({ color: c.color, name: c.name }))
   const [number, setNumber] = useState(code?.number ?? '')
   const [name, setName] = useState(code?.name ?? initialName ?? '')
   const [label, setLabel] = useState(code?.label ?? '')
-  const [color, setColor] = useState(code?.color ?? PALETTE[0])
+  const [color, setColor] = useState(
+    () => code?.color ?? suggestColor(otherCodes.map((c) => c.color)),
+  )
   const [activities, setActivities] = useState<Activity[]>(
     code?.activities.length
       ? code.activities.map((a) => ({ ...a }))
@@ -68,36 +74,23 @@ export function CodeEditor({ code, initialName, onSave, onDelete, onClose }: Cod
         </div>
 
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <label style={{ flex: 1 }}>
-              <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
-                Number
-              </div>
-              <input
-                className="wk-input"
-                value={number}
-                placeholder="N9/1042"
-                onChange={(e) => setNumber(e.target.value)}
-              />
-            </label>
-            <label style={{ width: 64 }}>
-              <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
-                Color
-              </div>
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                style={{
-                  width: '100%',
-                  height: 40,
-                  background: 'none',
-                  border: '1px solid var(--wk-line)',
-                  borderRadius: 'var(--wk-radius-md)',
-                  cursor: 'pointer',
-                }}
-              />
-            </label>
+          <label>
+            <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
+              Number
+            </div>
+            <input
+              className="wk-input"
+              value={number}
+              placeholder="N9/1042"
+              onChange={(e) => setNumber(e.target.value)}
+            />
+          </label>
+
+          <div>
+            <div className="wk-screen-sub" style={{ marginBottom: 6 }}>
+              Color
+            </div>
+            <ColorPicker value={color} onChange={setColor} otherCodes={otherCodes} />
           </div>
 
           <label>

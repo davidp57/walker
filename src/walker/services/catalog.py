@@ -15,9 +15,8 @@ from sqlalchemy.orm import Session
 
 from walker.exceptions import CatalogImportError, NotFoundError, ValidationError
 from walker.models import Activity, Entry, TimesheetCode, User
+from walker.services.palette import suggest_color
 
-# Accent palette for auto-assigned code colors (editable later).
-PALETTE = ["#5b9cf6", "#3fb68b", "#c88b5b", "#a879d6", "#e0697f", "#6cc0d6", "#d6a24a", "#7a86e0"]
 _REQUIRED_COLUMNS = ["code_number", "code_label", "code_name", "activity_code", "activity_label"]
 
 
@@ -39,21 +38,15 @@ class ParsedCode:
     activities: list[ParsedActivity] = field(default_factory=list)
 
 
-def _auto_color(index: int) -> str:
-    return PALETTE[index % len(PALETTE)]
-
-
 def _organization_id(session: Session, user_id: int) -> int | None:
     """Return the Organization a user belongs to, or ``None`` (a not-yet-migrated standalone user)."""
     return session.scalar(select(User.organization_id).where(User.id == user_id))
 
 
-def _count_codes(session: Session, user_id: int, organization_id: int | None) -> int:
-    """Count the codes visible to a user: their Organization's real codes + their own virtual codes."""
-    total = session.scalar(
-        select(func.count()).select_from(TimesheetCode).where(_visible_codes_filter(user_id, organization_id))
-    )
-    return total or 0
+def _suggested_color(session: Session, user_id: int, organization_id: int | None) -> str:
+    """Least-used-first colour (BIZ-048) over the codes visible to the user, avoiding those in use."""
+    used = session.scalars(select(TimesheetCode.color).where(_visible_codes_filter(user_id, organization_id)))
+    return suggest_color(used)
 
 
 def _visible_codes_filter(user_id: int, organization_id: int | None) -> ColumnElement[bool]:
@@ -152,7 +145,7 @@ def create_code(
         number=number,
         label=label,
         name=name or label,
-        color=color or _auto_color(_count_codes(session, user_id, organization_id)),
+        color=color or _suggested_color(session, user_id, organization_id),
         activities=[Activity(code=a.code, label=a.label) for a in activities],
     )
     session.add(code)
@@ -216,7 +209,7 @@ def create_virtual_code(
         number=real.number,
         label=real.label,
         name=name,
-        color=color or _auto_color(_count_codes(session, user_id, _organization_id(session, user_id))),
+        color=color or _suggested_color(session, user_id, _organization_id(session, user_id)),
         real_code_id=real.id,
     )
     session.add(code)
