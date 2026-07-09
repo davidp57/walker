@@ -166,6 +166,32 @@ describe('EntryRow — running mode (BIZ-038)', () => {
   })
 })
 
+describe('EntryRow — editing the running entry (BIZ-054)', () => {
+  it('lets you categorize the running entry (code cell is clickable)', () => {
+    const handlers = renderRow({ running: true, liveMinutes: 10, entry: { ...ENTRY, end: null } })
+    fireEvent.click(screen.getByText('Paper V4'))
+    expect(handlers.onCategorize).toHaveBeenCalled()
+  })
+
+  it('lets you edit the running entry description', () => {
+    const handlers = renderRow({ running: true, liveMinutes: 10, entry: { ...ENTRY, end: null } })
+    fireEvent.click(screen.getByText('writing spec'))
+    const input = screen.getByDisplayValue('writing spec')
+    fireEvent.change(input, { target: { value: 'updated note' } })
+    fireEvent.blur(input)
+    expect(handlers.onEdit).toHaveBeenCalledWith({ description: 'updated note' })
+  })
+
+  it('edits the running entry start without introducing an end (would stop the timer)', () => {
+    const handlers = renderRow({ running: true, liveMinutes: 10, entry: { ...ENTRY, end: null } })
+    fireEvent.click(screen.getByText('09:00'))
+    const input = screen.getByDisplayValue('09:00')
+    fireEvent.change(input, { target: { value: '10:00' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(handlers.onEdit).toHaveBeenCalledWith({ start: 600 })
+  })
+})
+
 describe('EntryRow — empty description invite (BIZ-040)', () => {
   it('hides the "Add a description…" invite at rest and reveals it on row hover', () => {
     renderRow({ entry: { ...ENTRY, description: '' } })

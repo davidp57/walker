@@ -313,11 +313,17 @@ html[data-theme='light'] body {
 .wk-timer-input {
   width: 100%;
   background: transparent;
-  border: none;
+  /* BIZ-054: a visible field affordance so it reads as editable next to the boxed code chip. */
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  padding: 6px 10px;
   outline: none;
   color: var(--wk-text-hi);
   font-size: var(--wk-fs-15);
   font-family: var(--wk-font-ui);
+}
+.wk-timer-input:focus {
+  border-color: var(--wk-accent);
 }
 .wk-timer-input::placeholder {
   color: var(--wk-text-lo);
