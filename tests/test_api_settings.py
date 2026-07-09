@@ -15,6 +15,39 @@ def test_get_settings_returns_defaults(client: TestClient) -> None:
     assert body["absences"] == []
 
 
+def test_get_settings_includes_default_view_preferences(client: TestClient) -> None:
+    prefs = client.get("/api/settings").json()["view_preferences"]
+
+    assert prefs == {
+        "task_view": "list",
+        "task_group": "none",
+        "task_sort": "due",
+        "task_sort_dir": "asc",
+        "period_mode": "review",
+        "done_collapsed": False,
+    }
+
+
+def test_patch_view_preferences_merges_and_persists(client: TestClient) -> None:
+    response = client.patch(
+        "/api/view-preferences",
+        json={"task_view": "board", "task_group": "code", "done_collapsed": True},
+    )
+
+    assert response.status_code == 200
+    prefs = response.json()["view_preferences"]
+    assert prefs["task_view"] == "board"
+    assert prefs["task_group"] == "code"
+    assert prefs["done_collapsed"] is True
+    assert prefs["task_sort"] == "due"  # untouched key keeps its default
+
+    # Persists across requests, and a later partial patch keeps earlier keys.
+    client.patch("/api/view-preferences", json={"period_mode": "enter"})
+    reloaded = client.get("/api/settings").json()["view_preferences"]
+    assert reloaded["task_view"] == "board"
+    assert reloaded["period_mode"] == "enter"
+
+
 def test_update_settings_persists(client: TestClient) -> None:
     response = client.put(
         "/api/settings",

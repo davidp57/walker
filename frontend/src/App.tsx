@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './styles/tokens.css'
 import './styles/walker.css'
 import { AppShell, type Route, type ShellUser } from './components/AppShell'
@@ -28,7 +28,9 @@ import type {
   TaskSuggestion,
   Theme,
   TimesheetCode,
+  ViewPreferences,
 } from './types'
+import { DEFAULT_VIEW_PREFERENCES } from './types'
 import { resolveChecklistRows } from './lib/checklist'
 import { elapsedSecondsSince, formatDuration } from './lib/time'
 import {
@@ -64,6 +66,7 @@ import {
   fetchUser,
   importCatalog as apiImportCatalog,
   patchEntry as apiPatchEntry,
+  patchViewPreferences as apiPatchViewPreferences,
   removeAbsence as apiRemoveAbsence,
   resetChecklist as apiResetChecklist,
   searchReference,
@@ -287,6 +290,10 @@ function AppInner() {
   // starting from the real last-known preference avoids momentarily resolving the wrong theme and
   // clobbering the flash-free value `main.tsx` already painted from its own resolved-theme cache.
   const [theme, setTheme] = useState<Theme>(() => readCachedThemePreference() ?? 'system')
+  // BIZ-053: per-user view preferences (Tasks view/group/sort, period mode, Done collapse). Seeded
+  // with the defaults; the settings fetch below replaces them. Writes are optimistic + debounced.
+  const [viewPreferences, setViewPreferences] = useState<ViewPreferences>(DEFAULT_VIEW_PREFERENCES)
+  const viewPrefsTimer = useRef<number | null>(null)
 
   useEffect(() => {
     document.documentElement.dataset.density = density === 'compact' ? 'compact' : ''
@@ -319,6 +326,7 @@ function AppInner() {
         setDensity(s.density)
         setPeriodScheme(s.periodScheme)
         setTheme(s.theme)
+        setViewPreferences(s.viewPreferences)
         writeCachedThemePreference(s.theme)
         setAbsences(s.absences)
       })
@@ -716,6 +724,17 @@ function AppInner() {
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not move the task.')))
   }
 
+  // BIZ-053: apply a view-preference change optimistically, then persist it debounced (fire-and-
+  // forget — the server is the source of truth on the next load, so a dropped write self-heals).
+  const updateViewPreferences = (patch: Partial<ViewPreferences>) => {
+    const next = { ...viewPreferences, ...patch }
+    setViewPreferences(next)
+    if (viewPrefsTimer.current != null) window.clearTimeout(viewPrefsTimer.current)
+    viewPrefsTimer.current = window.setTimeout(() => {
+      void apiPatchViewPreferences(next).catch(() => undefined)
+    }, 400)
+  }
+
   // Comment suggestions (scoped to the draft's code when set)
   const suggestions: TaskSuggestion[] = useMemo(() => {
     const q = draft.description.trim().toLowerCase()
@@ -1064,6 +1083,8 @@ function AppInner() {
       )}
       {route === 'period' && (
         <PeriodScreen
+          mode={viewPreferences.period_mode}
+          onModeChange={(mode) => updateViewPreferences({ period_mode: mode })}
           periodLabel={periodLabel}
           days={days}
           reviewRows={gridRows}
@@ -1090,6 +1111,8 @@ function AppInner() {
           onOpenTask={(task) => setTaskPanel({ task })}
           onStartTask={startTaskTimer}
           onMoveTask={moveTask}
+          preferences={viewPreferences}
+          onPreferencesChange={updateViewPreferences}
         />
       )}
       {route === 'codes' && (

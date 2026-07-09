@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from walker.api.dependencies import get_current_user
-from walker.api.schemas import AbsenceWrite, SettingsRead, SettingsUpdate
+from walker.api.schemas import AbsenceWrite, SettingsRead, SettingsUpdate, ViewPreferencesUpdate
 from walker.db import get_session
 from walker.exceptions import ValidationError
 from walker.models import User
@@ -42,6 +42,16 @@ def update_settings(
         period_scheme=body.period_scheme,
         theme=body.theme,
     )
+
+
+@router.patch("/view-preferences", response_model=SettingsRead)
+def update_view_preferences(
+    body: ViewPreferencesUpdate,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> SettingsView:
+    """Merge a partial view-preferences patch (task view/group/sort, period mode, Done collapse)."""
+    return settings_service.update_view_preferences(session, user.id, body.model_dump(exclude_unset=True))
 
 
 @router.post("/settings/absences", response_model=SettingsRead)

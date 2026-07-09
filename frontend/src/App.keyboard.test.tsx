@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Entry, TimesheetCode } from './types'
+import { DEFAULT_VIEW_PREFERENCES } from './types'
 import * as api from './lib/api'
 
 afterEach(() => {
@@ -40,6 +41,7 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
     periodScheme: 'semi_monthly',
     theme: 'system',
     absences: [],
+    viewPreferences: DEFAULT_VIEW_PREFERENCES,
   })
   vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})

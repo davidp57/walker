@@ -11,6 +11,7 @@ import type {
   TaskStatus,
   Theme,
   TimesheetCode,
+  ViewPreferences,
 } from '../types'
 
 interface ApiActivity {
@@ -378,6 +379,7 @@ interface ApiSettings {
   period_scheme: PeriodScheme
   theme: Theme
   absences: { date: string; reason: string }[]
+  view_preferences: ViewPreferences
 }
 
 /** The user's settings as used by the SPA. */
@@ -387,6 +389,7 @@ export interface SettingsData {
   periodScheme: PeriodScheme
   theme: Theme
   absences: { date: string; reason: string }[]
+  viewPreferences: ViewPreferences
 }
 
 function mapSettings(settings: ApiSettings): SettingsData {
@@ -396,7 +399,13 @@ function mapSettings(settings: ApiSettings): SettingsData {
     periodScheme: settings.period_scheme,
     theme: settings.theme,
     absences: settings.absences,
+    viewPreferences: settings.view_preferences,
   }
+}
+
+/** Merge a partial view-preferences patch server-side (BIZ-053); returns the full updated settings. */
+export async function patchViewPreferences(patch: Partial<ViewPreferences>): Promise<SettingsData> {
+  return mapSettings(await sendJson<ApiSettings>('/api/view-preferences', 'PATCH', patch))
 }
 
 /** Fetch the user's settings (work rhythm, density, period scheme, theme, absences). */

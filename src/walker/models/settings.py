@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import JSON, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from walker.models.base import Base, TimestampMixin
@@ -38,3 +38,6 @@ class Settings(TimestampMixin, Base):
     density: Mapped[str] = mapped_column(String(20), default="comfortable")
     period_scheme: Mapped[str] = mapped_column(String(20), default=DEFAULT_PERIOD_SCHEME)
     theme: Mapped[str] = mapped_column(String(20), default=DEFAULT_THEME)
+    # BIZ-053: per-user view preferences (task view/group/sort, period mode, Done collapse) as a JSON
+    # bag — ephemeral screen state remembered per user, distinct from the deliberate settings above.
+    view_preferences: Mapped[dict[str, object]] = mapped_column(JSON, default=dict)

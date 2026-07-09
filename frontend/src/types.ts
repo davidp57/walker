@@ -97,6 +97,30 @@ export type Density = 'comfortable' | 'compact'
 /** A User's theme preference (ADAPTIVE lot); `"system"` follows the OS's `prefers-color-scheme`. */
 export type Theme = 'dark' | 'light' | 'system'
 
+/**
+ * Per-user view preferences (BIZ-053): remembered screen state — the Tasks screen's view/group/sort
+ * and the Timesheet period screen's mode and the kanban's collapsed-Done state. Distinct from the
+ * deliberate {@link SettingsData}; keys mirror the API's snake_case contract.
+ */
+export interface ViewPreferences {
+  task_view: 'list' | 'board'
+  task_group: 'none' | 'status' | 'priority' | 'due' | 'code'
+  task_sort: 'due' | 'status' | 'priority' | 'title'
+  task_sort_dir: 'asc' | 'desc'
+  period_mode: 'review' | 'enter'
+  done_collapsed: boolean
+}
+
+/** The built-in view-preference defaults, mirroring the server's (services/settings.py). */
+export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
+  task_view: 'list',
+  task_group: 'none',
+  task_sort: 'due',
+  task_sort_dir: 'asc',
+  period_mode: 'review',
+  done_collapsed: false,
+}
+
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`
 
 /** The Task status workflow: To-do -> In-progress -> Waiting -> Test -> Done (Waiting/Test skippable). */

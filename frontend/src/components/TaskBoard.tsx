@@ -22,6 +22,9 @@ interface StatusBoardProps {
   onOpenTask: (task: Task) => void
   onMoveTask: (task: Task, status: TaskStatus) => void
   onStartTask?: (task: Task) => void
+  // BIZ-053: controlled collapsed-Done state (persisted). Omit both to keep it local (BIZ-044).
+  doneCollapsed?: boolean
+  onDoneCollapsedChange?: (collapsed: boolean) => void
 }
 
 export interface TaskBoardProps extends StatusBoardProps {
@@ -248,10 +251,22 @@ function BoardCard({
  * sensor also makes the drag path itself operable without a pointer: focus a card's drag handle,
  * Space to lift, arrow keys to move between columns, Space to drop (Escape cancels).
  */
-function StatusBoard({ tasks, codesById, onOpenTask, onMoveTask, onStartTask }: StatusBoardProps) {
+function StatusBoard({
+  tasks,
+  codesById,
+  onOpenTask,
+  onMoveTask,
+  onStartTask,
+  doneCollapsed: doneCollapsedProp,
+  onDoneCollapsedChange,
+}: StatusBoardProps) {
   const [overStatus, setOverStatus] = useState<TaskStatus | null>(null)
-  // BIZ-044: Done can be collapsed to a narrow rail to tame the horizontal scroll (session state).
-  const [doneCollapsed, setDoneCollapsed] = useState(false)
+  // BIZ-044: Done can be collapsed to a narrow rail to tame the horizontal scroll. Persisted per user
+  // when the parent controls it (BIZ-053); otherwise local session state.
+  const [localDoneCollapsed, setLocalDoneCollapsed] = useState(false)
+  const doneCollapsed = doneCollapsedProp ?? localDoneCollapsed
+  const setDoneCollapsed = (collapsed: boolean) =>
+    onDoneCollapsedChange ? onDoneCollapsedChange(collapsed) : setLocalDoneCollapsed(collapsed)
   const atStatusRef = useRef<TaskStatus | null>(null)
   const coordinateGetter = useMemo(() => makeColumnCoordinateGetter(atStatusRef), [])
   const sensors = useSensors(
@@ -312,7 +327,7 @@ function StatusBoard({ tasks, codesById, onOpenTask, onMoveTask, onStartTask }: 
               count={columnTasks.length}
               isDropTarget={overStatus === status}
               collapsed={isDone && doneCollapsed}
-              onToggle={isDone ? () => setDoneCollapsed((v) => !v) : undefined}
+              onToggle={isDone ? () => setDoneCollapsed(!doneCollapsed) : undefined}
             >
               {columnTasks.map((task) => {
                 const code = task.codeId ? (codesById[task.codeId] ?? null) : null
@@ -376,6 +391,8 @@ export function TaskBoard({
   onOpenTask,
   onMoveTask,
   onStartTask,
+  doneCollapsed,
+  onDoneCollapsedChange,
   groupByCode = false,
 }: TaskBoardProps) {
   if (!groupByCode) {
@@ -386,6 +403,8 @@ export function TaskBoard({
         onOpenTask={onOpenTask}
         onMoveTask={onMoveTask}
         onStartTask={onStartTask}
+        doneCollapsed={doneCollapsed}
+        onDoneCollapsedChange={onDoneCollapsedChange}
       />
     )
   }
@@ -401,6 +420,8 @@ export function TaskBoard({
             onOpenTask={onOpenTask}
             onMoveTask={onMoveTask}
             onStartTask={onStartTask}
+            doneCollapsed={doneCollapsed}
+            onDoneCollapsedChange={onDoneCollapsedChange}
           />
         </div>
       ))}
