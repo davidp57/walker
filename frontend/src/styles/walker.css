@@ -1388,6 +1388,13 @@ html[data-theme='light'] body {
   border: 1px solid var(--wk-accent);
   color: var(--wk-text-hi);
 }
+/* BIZ-063: the real duration shown small + greyed beside a quarter-hour-rounded value (Enter view). */
+.wk-dur-real {
+  margin-left: 5px;
+  font-size: var(--wk-fs-10);
+  color: var(--wk-text-lo);
+  font-family: var(--wk-font-mono);
+}
 .wk-toast-msg {
   flex: 1;
   min-width: 0;

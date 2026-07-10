@@ -48,3 +48,15 @@ def test_unknown_keys_are_ignored(session: Session) -> None:
 def test_non_bool_done_collapsed_is_ignored(session: Session) -> None:
     view = update_view_preferences(session, 1, {"done_collapsed": "yes"})
     assert view.view_preferences["done_collapsed"] is False
+
+
+def test_enter_rounding_defaults_false_and_round_trips(session: Session) -> None:
+    # BIZ-063: the Enter-view quarter-hour rounding toggle, persisted like done_collapsed.
+    assert get_settings(session, 1).view_preferences["enter_rounding"] is False
+    view = update_view_preferences(session, 1, {"enter_rounding": True})
+    assert view.view_preferences["enter_rounding"] is True
+
+
+def test_non_bool_enter_rounding_is_ignored(session: Session) -> None:
+    view = update_view_preferences(session, 1, {"enter_rounding": "yes"})
+    assert view.view_preferences["enter_rounding"] is False

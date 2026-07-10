@@ -350,6 +350,7 @@ describe('TasksScreen', () => {
       task_sort_dir: 'asc' as const,
       period_mode: 'review' as const,
       done_collapsed: false,
+      enter_rounding: false,
     }
     const tasks = [makeTask({ id: '1', title: 'A' })]
     render(

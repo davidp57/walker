@@ -1168,6 +1168,8 @@ function AppInner() {
         <PeriodScreen
           mode={viewPreferences.period_mode}
           onModeChange={(mode) => updateViewPreferences({ period_mode: mode })}
+          rounding={viewPreferences.enter_rounding}
+          onRoundingChange={(enter_rounding) => updateViewPreferences({ enter_rounding })}
           periodLabel={periodLabel}
           days={days}
           reviewRows={gridRows}
