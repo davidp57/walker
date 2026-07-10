@@ -77,7 +77,7 @@ function renderScreen(overrides: Partial<Parameters<typeof PeriodScreen>[0]> = {
     onThis: vi.fn(),
     onOpenCell: vi.fn(),
     onAddCell: vi.fn(),
-    onAddEntry: vi.fn(),
+    onAddDay: vi.fn(),
     onChecklistChange: vi.fn(),
     onChecklistReset: vi.fn(),
     ...overrides,
@@ -111,7 +111,9 @@ describe('PeriodScreen — mode toggle', () => {
     expect(screen.getByRole('button', { name: 'Enter in Timesheet system' })).not.toHaveClass(
       'is-active',
     )
-    expect(screen.getByText('+ Add entry')).toBeInTheDocument()
+    // BIZ-066: no global "+ Add entry"; each working day column has its own per-day Add instead.
+    expect(screen.queryByText('+ Add entry')).not.toBeInTheDocument()
+    expect(within(table()).getByTestId('wk-period-add-1')).toBeInTheDocument()
     expect(screen.queryByText('lines entered')).not.toBeInTheDocument()
   })
 
@@ -134,7 +136,8 @@ describe('PeriodScreen — mode toggle', () => {
     expect(screen.getByRole('button', { name: 'Enter in Timesheet system' })).toHaveClass(
       'is-active',
     )
-    expect(screen.queryByText('+ Add entry')).not.toBeInTheDocument()
+    // The per-day column Adds are Review-only — gone in Enter mode.
+    expect(within(table()).queryByTestId('wk-period-add-1')).not.toBeInTheDocument()
     expect(screen.getByText('lines entered')).toBeInTheDocument()
     expect(screen.getByText('Reset')).toBeInTheDocument()
   })
@@ -153,7 +156,7 @@ describe('PeriodScreen — mode toggle', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enter in Timesheet system' }))
     fireEvent.click(screen.getByRole('button', { name: 'Review' }))
 
-    expect(screen.getByText('+ Add entry')).toBeInTheDocument()
+    expect(within(table()).getByTestId('wk-period-add-1')).toBeInTheDocument()
     expect(screen.queryByText('lines entered')).not.toBeInTheDocument()
   })
 })
@@ -172,21 +175,21 @@ describe('PeriodScreen — Review mode', () => {
     const onAddCell = vi.fn()
     renderScreen({ onAddCell })
 
-    // Row "2|Bug fixing" has no minutes on day 1 → empty, addable working cell. The "+" affordance
-    // only exists in the table (the day-card list has no add-empty-cell equivalent).
-    const addCells = within(table()).getAllByText('+')
-    fireEvent.click(addCells[0])
+    // Row "2|Bug fixing" has no minutes on day 1 → empty, addable working cell. Scope to the cell
+    // add affordance (BIZ-066 also adds a per-column header "+", so plain text "+" is ambiguous).
+    const addCell = table().querySelector('.wk-cell-add') as HTMLElement
+    fireEvent.click(addCell.closest('td.wk-cell') as HTMLElement)
 
     expect(onAddCell).toHaveBeenCalled()
   })
 
-  it('calls onAddEntry from the + Add entry button', () => {
-    const onAddEntry = vi.fn()
-    renderScreen({ onAddEntry })
+  it('adds via a per-day-column header button using onAddDay (BIZ-066)', () => {
+    const onAddDay = vi.fn()
+    renderScreen({ onAddDay })
 
-    fireEvent.click(screen.getByText('+ Add entry'))
+    fireEvent.click(within(table()).getByTestId('wk-period-add-1'))
 
-    expect(onAddEntry).toHaveBeenCalledOnce()
+    expect(onAddDay).toHaveBeenCalledWith(1)
   })
 
   it('shows one row per code (virtual codes as their own row)', () => {

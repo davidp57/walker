@@ -1429,6 +1429,40 @@ html[data-theme='light'] body {
     opacity: 0.55;
   }
 }
+/* BIZ-066: per-day-column "+" Add in the Review grid. Today's is primary; other columns stay quiet
+   until the column header is hovered or the button focused (always shown on touch). */
+.wk-period-add {
+  margin-top: 4px;
+  width: 20px;
+  height: 20px;
+  line-height: 1;
+  border-radius: var(--wk-radius-pill);
+  border: 1px solid var(--wk-accent-line);
+  background: transparent;
+  color: var(--wk-text-mid);
+  cursor: pointer;
+}
+.wk-period-add:hover {
+  color: var(--wk-accent);
+}
+.wk-period-add.is-today {
+  background: var(--wk-accent-soft);
+  color: var(--wk-accent);
+}
+.wk-period-add.is-quiet {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.wk-day:hover .wk-period-add.is-quiet,
+.wk-daycard-head:hover .wk-period-add.is-quiet,
+.wk-period-add.is-quiet:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .wk-period-add.is-quiet {
+    opacity: 0.55;
+  }
+}
 .wk-toast-msg {
   flex: 1;
   min-width: 0;

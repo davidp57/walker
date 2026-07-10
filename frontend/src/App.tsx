@@ -591,22 +591,6 @@ function AppInner() {
     })
   }
 
-  // Compose an entry inside the Timesheet period view. Nothing is written until Save (no phantom on
-  // cancel). Default the date to today when viewing the current period, else the first day of the
-  // viewed one.
-  const openAddEntryInPeriod = () => {
-    const periodStart = periodStartFor(periodScheme, anchor)
-    const date = periodStart === periodStartFor(periodScheme, TODAY) ? TODAY : periodStart
-    setAddDraft({
-      id: 'new',
-      date,
-      start: 9 * 60,
-      end: 10 * 60,
-      codeId: null,
-      activity: null,
-      description: '',
-    })
-  }
   const saveAddDraft = (patch: Partial<Entry>) => {
     if (!addDraft) return
     const e = { ...addDraft, ...patch }
@@ -985,6 +969,10 @@ function AppInner() {
     })
   }
 
+  // BIZ-066: per-day-column Add in the Review grid — a code-agnostic new entry prefilled with that
+  // column's date (day-of-month resolved within the viewed period).
+  const openAddEntryOnDay = (day: number) => addEntry(cellDayIso(day))
+
   // ---- Checklist (server-backed — BIZ-005) ----
   const applyChecklistChange = (next: ChecklistState) => {
     const date = periodStartFor(periodScheme, anchor)
@@ -1183,7 +1171,7 @@ function AppInner() {
           onThis={() => setAnchor(TODAY)}
           onOpenCell={openCell}
           onAddCell={openAddInCell}
-          onAddEntry={openAddEntryInPeriod}
+          onAddDay={openAddEntryOnDay}
           onChecklistChange={applyChecklistChange}
           onChecklistReset={resetChecklistMarks}
         />

@@ -36,6 +36,50 @@ function findCell(text: string): HTMLTableCellElement {
   return match
 }
 
+describe('PeriodGrid — per-day-column Add in Review (BIZ-066)', () => {
+  const row: PeriodRow = {
+    key: 'c1|A',
+    code: code({ name: 'Alpha' }),
+    activity: 'A',
+    minutesByDay: { 1: 60 },
+  }
+  const tableEl = () => document.querySelector('.wk-grid') as HTMLTableElement
+
+  it('shows a per-column Add on working days (today primary, others quiet), not weekends', () => {
+    render(
+      <PeriodGrid
+        mode="period"
+        days={[day({ day: 1, isToday: true }), day({ day: 2 }), day({ day: 3, isWeekend: true })]}
+        rows={[row]}
+        runningCell={null}
+        onOpenCell={() => {}}
+        onAddCell={() => {}}
+        onAddDay={() => {}}
+      />,
+    )
+    expect(within(tableEl()).getByTestId('wk-period-add-1')).toHaveClass('is-today')
+    expect(within(tableEl()).getByTestId('wk-period-add-2')).toHaveClass('is-quiet')
+    expect(within(tableEl()).queryByTestId('wk-period-add-3')).toBeNull()
+  })
+
+  it('calls onAddDay with the column’s day', () => {
+    const onAddDay = vi.fn()
+    render(
+      <PeriodGrid
+        mode="period"
+        days={[day({ day: 1, isToday: true })]}
+        rows={[row]}
+        runningCell={null}
+        onOpenCell={() => {}}
+        onAddCell={() => {}}
+        onAddDay={onAddDay}
+      />,
+    )
+    fireEvent.click(within(tableEl()).getByTestId('wk-period-add-1'))
+    expect(onAddDay).toHaveBeenCalledWith(1)
+  })
+})
+
 describe('PeriodGrid — Enter-view quarter-hour rounding (BIZ-063)', () => {
   const rowA: PeriodRow = {
     key: 'c1|A',
@@ -174,6 +218,7 @@ describe('PeriodGrid — checklist checkbox affordance (BIZ-008)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -198,6 +243,7 @@ describe('PeriodGrid — Activity dedup', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -223,6 +269,7 @@ describe('PeriodGrid — Activity dedup', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -367,6 +414,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -385,6 +433,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -409,6 +458,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -428,6 +478,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -500,6 +551,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={onOpenCell}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -522,6 +574,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={{ key: 'c1|Bug fixing', day: 1 }}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -544,6 +597,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 

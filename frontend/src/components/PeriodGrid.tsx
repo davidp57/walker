@@ -40,6 +40,26 @@ interface PeriodModeProps extends BaseProps {
   runningCell: { key: string; day: number } | null // the live timer's cell — tinted, read-only
   onOpenCell: (rowKey: string, day: number) => void
   onAddCell: (rowKey: string, day: number) => void // click an empty working cell → new entry, prefilled
+  onAddDay: (day: number) => void // BIZ-066: per-column Add → new entry prefilled with that day's date
+}
+
+/** BIZ-066: the per-day-column "+" Add shown on working days in Review mode (today primary). */
+function DayAddButton({ d, onAddDay }: { d: DayColumn; onAddDay: (day: number) => void }) {
+  if (d.isWeekend || d.isAbsence) return null
+  return (
+    <button
+      type="button"
+      className={`wk-period-add${d.isToday ? ' is-today' : ' is-quiet'}`}
+      data-testid={`wk-period-add-${d.day}`}
+      title="Add an entry on this day"
+      onClick={(e) => {
+        e.stopPropagation()
+        onAddDay(d.day)
+      }}
+    >
+      +
+    </button>
+  )
 }
 
 interface ChecklistModeProps extends BaseProps {
@@ -198,6 +218,9 @@ function DayCards(props: GridRenderProps) {
               {!d.isWeekend && !d.isAbsence && (
                 <div className="wk-daycard-total">{formatDuration(colTotal(d.day))}</div>
               )}
+              {props.mode === 'period' && (
+                <DayAddButton d={d} onAddDay={(props as PeriodModeProps).onAddDay} />
+              )}
             </div>
             <div className="wk-daycard-lines">
               {lines.map((row) => (
@@ -256,6 +279,7 @@ export function PeriodGrid(props: PeriodGridProps) {
                 >
                   {d.isAbsence ? 'leave' : d.isToday ? 'today' : ''}
                 </div>
+                {isPeriod && <DayAddButton d={d} onAddDay={(props as PeriodModeProps).onAddDay} />}
               </th>
             ))}
             <th className="wk-total-h">Total</th>
