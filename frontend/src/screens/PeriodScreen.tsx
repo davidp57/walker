@@ -26,7 +26,7 @@ interface PeriodScreenProps {
   onThis: () => void // jump back to the current Timesheet period
   onOpenCell: (rowKey: string, day: number) => void // Review: drill into a cell's entries
   onAddCell: (rowKey: string, day: number) => void // Review: click an empty cell → prefilled new entry
-  onAddEntry: () => void // Review: add an entry directly into this period
+  onAddDay: (day: number) => void // BIZ-066: Review per-column Add → new entry prefilled with that day
   onChecklistChange: (next: ChecklistState) => void // Enter in Timesheet system: full next map (entered flags)
   onChecklistReset: () => void // Enter in Timesheet system: clear all marks for the period
 }
@@ -55,7 +55,7 @@ export function PeriodScreen({
   onThis,
   onOpenCell,
   onAddCell,
-  onAddEntry,
+  onAddDay,
   onChecklistChange,
   onChecklistReset,
 }: PeriodScreenProps) {
@@ -172,16 +172,7 @@ export function PeriodScreen({
             </button>
           </div>
           <div className="wk-period-label">{periodLabel}</div>
-          {mode === 'review' ? (
-            <button
-              type="button"
-              className="wk-btn wk-btn-primary"
-              style={{ padding: '8px 16px' }}
-              onClick={onAddEntry}
-            >
-              + Add entry
-            </button>
-          ) : (
+          {mode === 'review' ? null : (
             <>
               <div style={{ textAlign: 'right' }}>
                 <div className="wk-progress-count">
@@ -227,6 +218,7 @@ export function PeriodScreen({
             runningCell={runningCell}
             onOpenCell={onOpenCell}
             onAddCell={onAddCell}
+            onAddDay={onAddDay}
           />
         ) : (
           <PeriodGrid

@@ -92,6 +92,9 @@ describe('App — keyboard-driven timer loop (BIZ-009)', () => {
 
     render(<App />)
     await screen.findByPlaceholderText('What are you working on?')
+    // Settle the initial data-loading and the passive effect registering the global key listener
+    // before dispatching, so a late re-render doesn't race the shortcut (flaky on loaded CI).
+    await act(async () => {})
 
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true })
 
