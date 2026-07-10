@@ -65,7 +65,7 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[], theme: Theme = 's
     viewPreferences: DEFAULT_VIEW_PREFERENCES,
     taskStates: DEFAULT_TASK_STATES,
   })
-  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
   vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
   vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -209,7 +209,7 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       viewPreferences: DEFAULT_VIEW_PREFERENCES,
       taskStates: DEFAULT_TASK_STATES,
     })
-    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -248,7 +248,7 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       viewPreferences: DEFAULT_VIEW_PREFERENCES,
       taskStates: DEFAULT_TASK_STATES,
     })
-    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -565,7 +565,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
 
   it('persists the chosen period scheme via updateSettings', async () => {
     mockBaseApi([realCode], [])
-    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
     const updateSettings = vi.spyOn(api, 'updateSettings').mockResolvedValue({
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
@@ -677,7 +677,7 @@ describe('App — theme preference applied to the document (BIZ-032)', () => {
     window.localStorage.setItem('wk-last-theme-preference', 'light')
     vi.spyOn(api, 'fetchCodes').mockResolvedValue([realCode])
     vi.spyOn(api, 'fetchEntriesRange').mockResolvedValue([])
-    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])

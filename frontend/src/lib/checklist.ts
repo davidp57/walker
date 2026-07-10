@@ -23,6 +23,7 @@ export function resolveChecklistRows(
         code: realCode,
         activity: row.activity,
         minutesByDay: { ...row.minutesByDay },
+        manualByDay: { ...(row.manualByDay ?? {}) },
       })
       return
     }
@@ -30,7 +31,12 @@ export function resolveChecklistRows(
     for (const [day, minutes] of Object.entries(row.minutesByDay)) {
       minutesByDay[Number(day)] = (minutesByDay[Number(day)] || 0) + minutes
     }
-    merged.set(key, { ...existing, minutesByDay })
+    // OR-combine the manual flag as virtual rows merge into their real code (BIZ-065).
+    const manualByDay = { ...(existing.manualByDay ?? {}) }
+    for (const [day, isManual] of Object.entries(row.manualByDay ?? {})) {
+      manualByDay[Number(day)] = Boolean(manualByDay[Number(day)]) || isManual
+    }
+    merged.set(key, { ...existing, minutesByDay, manualByDay })
   })
   return Array.from(merged.values())
 }

@@ -167,6 +167,11 @@ function DayCardLine({ row, d, props }: { row: PeriodRow; d: DayColumn; props: G
         {props.roundedByKey && minutes !== real && (
           <span className="wk-dur-real">{formatDuration(real)}</span>
         )}
+        {real > 0 && row.manualByDay?.[d.day] && (
+          <span className="wk-manual-mark" title="Contains manually-added time">
+            ✎
+          </span>
+        )}
       </div>
     </div>
   )
@@ -406,6 +411,11 @@ export function PeriodGrid(props: PeriodGridProps) {
                       <span>{filled || running ? formatDuration(shown) : ''}</span>
                       {roundedByKey && filled && shown !== minutes && (
                         <span className="wk-dur-real">{formatDuration(minutes)}</span>
+                      )}
+                      {filled && row.manualByDay?.[d.day] && (
+                        <span className="wk-manual-mark" title="Contains manually-added time">
+                          ✎
+                        </span>
                       )}
                       {running && <span className="wk-cell-live" />}
                       {canAdd && <span className="wk-cell-add">+</span>}

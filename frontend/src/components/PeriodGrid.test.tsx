@@ -36,6 +36,31 @@ function findCell(text: string): HTMLTableCellElement {
   return match
 }
 
+describe('PeriodGrid — manual-entry marker (BIZ-065)', () => {
+  it('marks a cell that contains manual time, not a timer-only cell', () => {
+    const r: PeriodRow = {
+      key: 'c1|A',
+      code: code({ name: 'Alpha' }),
+      activity: 'A',
+      minutesByDay: { 1: 60, 2: 30 },
+      manualByDay: { 1: true },
+    }
+    render(
+      <PeriodGrid
+        mode="period"
+        days={[day({ day: 1 }), day({ day: 2 })]}
+        rows={[r]}
+        runningCell={null}
+        onOpenCell={() => {}}
+        onAddCell={() => {}}
+        onAddDay={() => {}}
+      />,
+    )
+    expect(findCell('1:00').querySelector('.wk-manual-mark')).toBeInTheDocument()
+    expect(findCell('0:30').querySelector('.wk-manual-mark')).toBeNull()
+  })
+})
+
 describe('PeriodGrid — per-day-column Add in Review (BIZ-066)', () => {
   const row: PeriodRow = {
     key: 'c1|A',

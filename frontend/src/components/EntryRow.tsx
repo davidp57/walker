@@ -181,14 +181,26 @@ export function EntryRow({
           BIZ-054) */}
       <div style={{ minWidth: 0 }}>
         {flagged ? (
-          <span className="wk-pill-add" onClick={onCategorize}>
-            ⚑ Add code &amp; activity
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <span className="wk-pill-add" onClick={onCategorize}>
+              ⚑ Add code &amp; activity
+            </span>
+            {entry.source === 'manual' && (
+              <span className="wk-manual-mark" title="Added manually">
+                ✎
+              </span>
+            )}
           </span>
         ) : (
           <div className="wk-code-cell" onClick={onCategorize}>
             <div className="wk-code-name-row">
               <span className="wk-dot" style={{ background: code?.color }} />
               <span className="wk-code-name">{code?.name}</span>
+              {entry.source === 'manual' && (
+                <span className="wk-manual-mark" title="Added manually">
+                  ✎
+                </span>
+              )}
             </div>
             <div className="wk-code-meta">
               {code?.number}

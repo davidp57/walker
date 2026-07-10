@@ -144,6 +144,7 @@ class EntryRead(BaseModel):
     activity: str | None
     description: str | None
     task_id: int | None
+    source: str | None  # "timer" | "manual" | None (legacy/unknown) — BIZ-065
 
 
 class PeriodRowRead(BaseModel):
@@ -154,6 +155,8 @@ class PeriodRowRead(BaseModel):
     timesheet_code_id: int
     activity: str
     minutes_by_day: dict[int, int]
+    # BIZ-065: per-day flag — the cell aggregates at least one manually-added entry.
+    manual_by_day: dict[int, bool]
 
 
 class PeriodRead(BaseModel):

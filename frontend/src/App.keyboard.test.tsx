@@ -44,7 +44,7 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
     viewPreferences: DEFAULT_VIEW_PREFERENCES,
     taskStates: DEFAULT_TASK_STATES,
   })
-  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
 }
 

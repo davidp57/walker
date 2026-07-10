@@ -79,6 +79,7 @@ interface ApiEntry {
   activity: string | null
   description: string | null
   task_id: number | null
+  source: string | null
 }
 
 function mapEntry(entry: ApiEntry): Entry {
@@ -91,6 +92,7 @@ function mapEntry(entry: ApiEntry): Entry {
     activity: entry.activity,
     description: entry.description ?? '',
     taskId: entry.task_id == null ? null : String(entry.task_id),
+    source: entry.source === 'timer' || entry.source === 'manual' ? entry.source : null,
   }
 }
 
@@ -307,6 +309,7 @@ interface ApiPeriodRow {
   timesheet_code_id: number
   activity: string
   minutes_by_day: Record<string, number>
+  manual_by_day: Record<string, boolean>
 }
 
 interface ApiPeriod {
@@ -315,18 +318,29 @@ interface ApiPeriod {
   rows: ApiPeriodRow[]
 }
 
-/** Fetch the aggregated Timesheet period grid as a `${codeId}|${activity}` → day → minutes matrix. */
-export async function fetchPeriod(date: string): Promise<Record<string, Record<number, number>>> {
+/** Both matrices for the period grid, keyed `${codeId}|${activity}` → day → value (BIZ-065). */
+export interface PeriodMatrices {
+  minutes: Record<string, Record<number, number>>
+  manual: Record<string, Record<number, boolean>>
+}
+
+/** Fetch the aggregated Timesheet period grid: minutes per cell + a per-cell manual flag (BIZ-065). */
+export async function fetchPeriod(date: string): Promise<PeriodMatrices> {
   const grid = await getJson<ApiPeriod>(`/api/period/${date}`)
-  const matrix: Record<string, Record<number, number>> = {}
+  const minutes: Record<string, Record<number, number>> = {}
+  const manual: Record<string, Record<number, boolean>> = {}
   for (const row of grid.rows) {
+    const key = `${row.timesheet_code_id}|${row.activity}`
     const byDay: Record<number, number> = {}
-    for (const [day, minutes] of Object.entries(row.minutes_by_day)) {
-      byDay[Number(day)] = minutes
+    for (const [day, m] of Object.entries(row.minutes_by_day)) byDay[Number(day)] = m
+    minutes[key] = byDay
+    const manualByDay: Record<number, boolean> = {}
+    for (const [day, isManual] of Object.entries(row.manual_by_day ?? {})) {
+      manualByDay[Number(day)] = isManual
     }
-    matrix[`${row.timesheet_code_id}|${row.activity}`] = byDay
+    manual[key] = manualByDay
   }
-  return matrix
+  return { minutes, manual }
 }
 
 interface ApiChecklistItem {
