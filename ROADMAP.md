@@ -40,16 +40,10 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
   (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
-## Now
+## Now — batch shipped to develop, release pending
 
-Ready to pick up (release paused to gather a batch before cutting the next version):
-
-- **BIZ-065** (POLISH, P2) — **mark manual entries** vs timer entries: a persisted `Entry.source`
-  (timer/manual, nullable for legacy) surfaced as a subtle marker in the Activity, Timesheet period,
-  and Enter views (a period/Enter cell is marked if it contains any manual minutes). See
-  `.backlog/POLISH/tickets/24-mark-manual-vs-timer-entries.md`.
-Everything else is shipped. The three living lots stay open as containers for future work; apart from
-the above they hold no open tickets:
+The queued batch (BIZ-063 … BIZ-066) is merged to `develop`; the next version has not been cut yet.
+The three living lots stay open as containers for future work, but hold no open tickets:
 
 - **POLISH** (living lot of small UX improvements) — fully shipped: BIZ-038…047 (running Timer in
   Activity, absence date range, description de-noise, task priority/due pills + inline status,
@@ -59,9 +53,11 @@ the above they hold no open tickets:
   edit of the running entry + Timer description, Cmd/Ctrl+click links in task descriptions), plus
   BIZ-058 (Timer code change edits in place), BIZ-059 (modals no outside-click dismiss), BIZ-060
   (Activity newest-first within a day), BIZ-061 (global Help link to the docs-site root in the
-  sidebar + phone tab bar), and BIZ-062 (task due dates: relative labels in the list, a due pill on
-  the kanban card, an overdue/due-today nav badge, and a once-per-load startup toast). See
-  `.backlog/POLISH/PRD.md`.
+  sidebar + phone tab bar), BIZ-062 (task due dates: relative labels in the list, a due pill on
+  the kanban card, an overdue/due-today nav badge, and a once-per-load startup toast), BIZ-063
+  (optional quarter-hour rounding in the Enter view — ADR-0013), BIZ-064 + BIZ-066 (per-day Add
+  buttons in the Activity list and the period-grid columns), and BIZ-065 (mark manual vs timer
+  entries). See `.backlog/POLISH/PRD.md`.
 - **DOCS** (living lot, bilingual docs-site content) — CHR-011 (catalog-import page) shipped. See
   `.backlog/DOCS/PRD.md`.
 - **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped. See

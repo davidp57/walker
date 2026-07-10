@@ -1,7 +1,7 @@
 # BIZ-065 — Mark manual entries so they're distinguishable from timer entries
 
 ID: BIZ-065
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -47,16 +47,16 @@ entries stay unmarked (the common case); the marker is a positive flag on manual
 
 ## Acceptance criteria
 
-- [ ] A new Entry started from the timer has `source = 'timer'`; one created via "+ Add entry" has
+- [x] A new Entry started from the timer has `source = 'timer'`; one created via "+ Add entry" has
       `source = 'manual'`; the value round-trips through the API.
-- [ ] A migration adds the column; existing rows are `NULL` and render unmarked (no fabricated
+- [x] A migration adds the column; existing rows are `NULL` and render unmarked (no fabricated
       backfill).
-- [ ] Activity rows show the manual marker only when `source === 'manual'`.
-- [ ] A period/Enter cell shows the marker when it aggregates at least one manual entry, and nothing
+- [x] Activity rows show the manual marker only when `source === 'manual'`.
+- [x] A period/Enter cell shows the marker when it aggregates at least one manual entry, and nothing
       when it is purely timer/legacy; exact minutes are unchanged.
-- [ ] Virtual-code resolution (`resolve_to_real_codes`) preserves the manual flag (OR-combined on
+- [x] Virtual-code resolution (`resolve_to_real_codes`) preserves the manual flag (OR-combined on
       merge).
-- [ ] Backend tests: `start_timer`/`create_entry` set the right source; aggregation flags a mixed
+- [x] Backend tests: `start_timer`/`create_entry` set the right source; aggregation flags a mixed
       cell as manual; resolution OR-combines. Frontend tests: the marker shows for manual entries in
       Activity and for cells with manual minutes in the period/Enter grid, and is absent otherwise.
 
