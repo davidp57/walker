@@ -57,6 +57,10 @@ Ready to pick up (release paused to gather a batch before cutting the next versi
   (timer/manual, nullable for legacy) surfaced as a subtle marker in the Activity, Timesheet period,
   and Enter views (a period/Enter cell is marked if it contains any manual minutes). See
   `.backlog/POLISH/tickets/24-mark-manual-vs-timer-entries.md`.
+- **BIZ-066** (POLISH, P3) — Timesheet period view: a **per-day-column Add action** with the date
+  prefilled (companion to BIZ-064; today's column primary when the period contains today, else all
+  quiet; weekends excluded; Review mode only). See
+  `.backlog/POLISH/tickets/25-per-day-add-entry-timesheet-period.md`.
 
 Everything else is shipped. The three living lots stay open as containers for future work; apart from
 the above they hold no open tickets:
