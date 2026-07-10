@@ -1395,6 +1395,13 @@ html[data-theme='light'] body {
   color: var(--wk-text-lo);
   font-family: var(--wk-font-mono);
 }
+/* BIZ-065: subtle marker on manually-added entries (Activity row) and cells with manual time. */
+.wk-manual-mark {
+  margin-left: 5px;
+  font-size: var(--wk-fs-10);
+  color: var(--wk-text-lo);
+  cursor: help;
+}
 /* BIZ-064: per-day "+ Add" on each Activity day group. Today's is primary/always-on; other days'
    stay quiet until the group is hovered or the button is focused (always shown on touch). */
 .wk-daygroup-add {

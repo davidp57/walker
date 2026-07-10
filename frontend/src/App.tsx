@@ -251,6 +251,8 @@ function AppInner() {
   const [now, setNow] = useState(Date.now())
   const [anchor, setAnchor] = useState<string>(TODAY)
   const [matrix, setMatrix] = useState<Record<string, Record<number, number>>>({})
+  // BIZ-065: parallel per-cell "has a manual entry" matrix, same `${codeId}|${activity}` keys.
+  const [manualMatrix, setManualMatrix] = useState<Record<string, Record<number, boolean>>>({})
   const [checked, setChecked] = useState<ChecklistState>({})
   const [picker, setPicker] = useState<{ target: 'timer' | string } | null>(null)
   // `prefill` populates the editor from a reference-catalog entry being activated (BIZ-049);
@@ -379,7 +381,10 @@ function AppInner() {
   useEffect(() => {
     const ref = periodStartFor(periodScheme, anchor)
     fetchPeriod(ref)
-      .then(setMatrix)
+      .then(({ minutes, manual }) => {
+        setMatrix(minutes)
+        setManualMatrix(manual)
+      })
       .catch((err: unknown) =>
         notifyError(errorMessage(err, 'Could not load the Timesheet period grid.')),
       )
@@ -860,13 +865,15 @@ function AppInner() {
 
   const rows: PeriodRow[] = useMemo(
     () =>
-      Object.keys(matrix)
-        .map((key) => {
-          const [codeId, activity] = key.split('|') as [string, ActivityName]
-          return { key, code: codesById[codeId], activity, minutesByDay: matrix[key] }
-        })
-        .filter((r): r is PeriodRow => Boolean(r.code)),
-    [matrix, codesById],
+      Object.keys(matrix).flatMap((key) => {
+        const [codeId, activity] = key.split('|') as [string, ActivityName]
+        const code = codesById[codeId]
+        if (!code) return []
+        return [
+          { key, code, activity, minutesByDay: matrix[key], manualByDay: manualMatrix[key] ?? {} },
+        ]
+      }),
+    [matrix, manualMatrix, codesById],
   )
 
   // The running timer as a Timesheet period cell: shown live in its code × activity row, but only
@@ -910,7 +917,10 @@ function AppInner() {
           : r,
       )
     }
-    return [...rows, { key, code, activity, minutesByDay: { [day]: runningMinutes } }]
+    return [
+      ...rows,
+      { key, code, activity, minutesByDay: { [day]: runningMinutes }, manualByDay: {} },
+    ]
   }, [rows, runningCell, runningMinutes])
 
   // Enter-in-Timesheet-system view (ADR-0008): resolve virtual codes to their real code and collapse rows that

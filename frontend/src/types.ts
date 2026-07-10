@@ -46,6 +46,7 @@ export interface Entry {
   activity: ActivityName | null // the chosen activity's label
   description: string
   taskId?: string | null // the Task this Entry was started from (BIZ-023), or null/absent
+  source?: 'timer' | 'manual' | null // how it was created (BIZ-065); null = legacy/unknown
 }
 
 /** A non-worked day, reflected from the Timesheet system (read-only) or entered manually in the POC. */
@@ -77,6 +78,7 @@ export interface PeriodRow {
   code: TimesheetCode
   activity: ActivityName
   minutesByDay: Record<number, number>
+  manualByDay?: Record<number, boolean> // BIZ-065: per-day flag — cell has ≥1 manual entry
 }
 
 /** Which grid cells have been keyed into the Timesheet system. Key = `${rowKey}#${day}`. */

@@ -30,3 +30,6 @@ class Entry(TimestampMixin, Base):
     activity: Mapped[str | None] = mapped_column(String(255), default=None)
     description: Mapped[str | None] = mapped_column(String(1000), default=None)
     task_id: Mapped[int | None] = mapped_column(ForeignKey("tasks.id"), default=None, index=True)
+    # How the Entry was created (BIZ-065): "timer" (started from the timer) or "manual" ("+ Add
+    # entry"). NULL for rows created before this was tracked — origin unknown, shown unmarked.
+    source: Mapped[str | None] = mapped_column(String(10), default=None)

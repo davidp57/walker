@@ -107,6 +107,7 @@ describe('fetchEntries', () => {
         activity: 'Bug fixing',
         description: 'x',
         task_id: null,
+        source: 'timer',
       },
       {
         id: 8,
@@ -137,6 +138,7 @@ describe('fetchEntries', () => {
         activity: 'Bug fixing',
         description: 'x',
         taskId: null,
+        source: 'timer',
       },
       {
         id: '8',
@@ -147,6 +149,7 @@ describe('fetchEntries', () => {
         activity: null,
         description: '',
         taskId: '5',
+        source: null,
       },
     ])
   })
@@ -364,12 +367,17 @@ describe('createVirtualCode', () => {
 describe('fetchPeriod', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  it('maps the grid rows into a `${codeId}|${activity}` matrix with numeric day keys', async () => {
+  it('maps the grid rows into minutes + manual matrices with numeric day keys', async () => {
     const payload = {
       start: '2026-07-01',
       end: '2026-07-15',
       rows: [
-        { timesheet_code_id: 3, activity: 'Bug fixing', minutes_by_day: { '1': 90, '2': 60 } },
+        {
+          timesheet_code_id: 3,
+          activity: 'Bug fixing',
+          minutes_by_day: { '1': 90, '2': 60 },
+          manual_by_day: { '1': true, '2': false },
+        },
       ],
     }
     vi.stubGlobal(
@@ -377,10 +385,11 @@ describe('fetchPeriod', () => {
       vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })),
     )
 
-    const matrix = await fetchPeriod('2026-07-02')
+    const { minutes, manual } = await fetchPeriod('2026-07-02')
 
     expect(fetch).toHaveBeenCalledWith('/api/period/2026-07-02')
-    expect(matrix).toEqual({ '3|Bug fixing': { 1: 90, 2: 60 } })
+    expect(minutes).toEqual({ '3|Bug fixing': { 1: 90, 2: 60 } })
+    expect(manual).toEqual({ '3|Bug fixing': { 1: true, 2: false } })
   })
 })
 
