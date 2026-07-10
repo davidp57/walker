@@ -113,6 +113,27 @@ export const IconSettings = ({ size = 15, style, className }: IconProps) => (
   </svg>
 )
 
+/** Question-mark-in-a-circle glyph for the global Help link to the docs site (BIZ-061). */
+export const IconHelp = ({ size = 15, style, className }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{ ...base(size), ...style }}
+    className={className}
+    aria-hidden
+  >
+    <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.7" />
+    <path
+      d="M9.3 9.2a2.7 2.7 0 0 1 5.2 1c0 1.8-2.5 2.1-2.5 3.9"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <circle cx="12" cy="17" r="1" fill="currentColor" />
+  </svg>
+)
+
 /** Sheriff-star app mark — the western wink. Simple 5-point star. */
 export const IconStar = ({ size = 16, style, className }: IconProps) => (
   <svg

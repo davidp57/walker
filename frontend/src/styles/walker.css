@@ -109,6 +109,24 @@ html[data-theme='light'] body {
   color: var(--wk-text-hi);
   font-weight: var(--wk-fw-semibold);
 }
+/* Global Help link (BIZ-061): looks like a nav item but pinned to the bottom of the nav column,
+   set apart from the route items by a soft divider. */
+.wk-nav-help {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--wk-radius-md);
+  font-size: var(--wk-fs-13);
+  font-weight: var(--wk-fw-medium);
+  color: var(--wk-text-mid);
+  text-decoration: none;
+}
+.wk-nav-help:hover {
+  background: var(--wk-bg-2);
+  color: var(--wk-text-hi);
+}
 .wk-nav-ico {
   width: 19px;
   display: flex;
@@ -207,6 +225,19 @@ html[data-theme='light'] body {
 }
 .wk-tabbar-label {
   line-height: 1.1;
+}
+/* Help link in the phone tab bar (BIZ-061): same shape as a tab, but an external link. */
+.wk-tabbar-help {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px 10px;
+  font-size: var(--wk-fs-10);
+  color: var(--wk-text-mid);
+  text-decoration: none;
 }
 .wk-tabbar-badge {
   position: absolute;

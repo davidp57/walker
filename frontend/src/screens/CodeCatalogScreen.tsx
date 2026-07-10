@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ReferenceCode, TimesheetCode } from '../types'
 import { sortReferenceByName } from '../lib/codeSearch'
+import { DOCS_SITE_URL } from '../lib/links'
 
 interface CodeCatalogScreenProps {
   codes: TimesheetCode[]
@@ -165,10 +166,7 @@ export function CodeCatalogScreen({
                 Your catalog has two tiers: import your full reference catalog once (
                 <span className="wk-accent">Import reference</span>), then search above to add the
                 handful of codes you actually charge to. See{' '}
-                <a href="https://davidp57.github.io/walker/catalog-import/">
-                  Importing your code catalog
-                </a>
-                .
+                <a href={`${DOCS_SITE_URL}catalog-import/`}>Importing your code catalog</a>.
               </div>
             </div>
           )}
