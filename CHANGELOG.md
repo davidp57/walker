@@ -5,6 +5,35 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-10
+
+### Added
+
+- **Global Help link to the documentation** (BIZ-061): a Help entry in the navigation (desktop
+  sidebar + phone tab bar) opens the documentation-site root in a new tab, alongside the existing
+  in-context links.
+- **Visible, alerting task due dates** (BIZ-062): due dates render as glanceable relative labels
+  (`Today`, `Tomorrow`, `in 3d`, `3d overdue`) in the task list and on the kanban cards (which had
+  none), with the exact date on hover. A count badge on the Tasks nav item (sidebar + phone tab bar)
+  shows overdue/due-today tasks, and a once-per-load startup toast summarises them; tasks in the
+  terminal (done) state are never flagged.
+- **Optional quarter-hour rounding in the Enter view** (BIZ-063; ADR-0013): an opt-in "Round to ¼h"
+  toggle rounds each day's durations to the quarter-hour with error-carry, so the day total stays
+  closest to the real total. Display-only and non-destructive — the real minutes are kept and shown
+  greyed beside the rounded value; off by default. Relaxes ADR-0005's "no rounding" consequence.
+- **Per-day "Add" buttons** (BIZ-064, BIZ-066): add an entry straight to a given day, with the date
+  prefilled — in the Activity list (today's is always visible, other days reveal on hover/focus) and
+  on each working day column of the Timesheet period grid. The former global "+ Add entry" buttons
+  are replaced by these.
+- **Manual vs timer entry marking** (BIZ-065): each entry records its origin (timer-started vs
+  manually added) and manual ones get a subtle ✎ marker in the Activity, Timesheet period, and Enter
+  views (a period/Enter cell is marked when it contains any manually-added time).
+
+### Migrations
+
+- Adds a nullable `source` column to `entries` (BIZ-065). Run `alembic upgrade head`. Existing rows
+  stay `NULL` (origin unknown) and render unmarked; new entries are tagged `timer`/`manual`.
+
 ## [1.4.0] - 2026-07-09
 
 ### Added

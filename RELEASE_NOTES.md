@@ -1,51 +1,39 @@
-# Walker v1.4.0
+# Walker v1.5.0
 
-**Two headline improvements land together: a workflow you can shape yourself, and smoother code
-management — plus a round of everyday UX polish.**
+**Headline:** task **due dates** are now visible and alert you when they arrive, the documentation
+site is **one click away**, the Enter view can **round to the quarter-hour** for you, and adding a
+forgotten entry or spotting hand-entered time is faster.
 
-## Make the workflow your own
+## Highlights
 
-- **User-defined task states / kanban columns.** Task statuses are no longer a fixed five. Add,
-  rename, reorder, and delete your own columns straight from the kanban. The first column is your
-  starting state and the last is "done" — Walker follows those positions for completing tasks,
-  recurrence roll-forward, and the start-timer nudge, so your workflow drives the behaviour. Deleting
-  a column that still holds tasks asks where to move them first, and you always keep at least two
-  columns.
+### Due dates you can actually see — and that remind you
+- Due dates now show as **glanceable relative labels** (`Today`, `Tomorrow`, `in 3d`, `3d overdue`)
+  in the task list **and** on the kanban cards (which showed none before). Hover for the exact date.
+- A **count badge** on the Tasks nav item (sidebar + phone tab bar) shows how many tasks are overdue
+  or due today, and a **startup notice** summarises them when you open the app — so a deadline never
+  slips by just because you weren't on the Tasks screen. Done tasks are never flagged.
 
-## Codes: colours and picking, sorted out
+### One-click access to the documentation
+- A global **Help** link in the navigation (sidebar and phone tab bar) opens the documentation site,
+  alongside the existing in-context links.
 
-- **Automatic, distinct colours.** Every new code (real or virtual) now opens on a colour picked for
-  you — at random from a curated 64-colour palette, favouring the least-used colours so sibling codes
-  stay visually distinct. A rich colour picker lets you re-roll, pick from the grid (used colours are
-  marked and named on hover), or set any custom colour.
-- **One consistent code search everywhere.** Categorizing an entry, setting a task's code, and now
-  choosing a virtual code's backing code all use the same searchable picker — results grouped (your
-  codes, then the reference catalog) and sorted by name. Activating a code from the reference catalog
-  now opens the code editor, so you give it a colour as you add it.
+### Optional quarter-hour rounding in "Enter in Timesheet system"
+- A per-view **"Round to ¼h"** toggle rounds each day's durations to the quarter-hour, intelligently
+  carrying the rounding so the **day's total stays as close as possible to what you really worked**.
+  It's **display-only and opt-in** — your real minutes are always kept and shown greyed beside the
+  rounded value. Off by default.
 
-## Everyday polish
+### Faster entry, clearer origins
+- **Per-day "Add" buttons**: add an entry straight to a given day — in the Activity list (today's is
+  always there; other days reveal on hover) and on each day column of the Timesheet period grid — with
+  the date already filled in.
+- **Manual vs timer entries** are now marked with a subtle ✎ so you can tell hand-entered time from
+  timer-tracked time, in the Activity, Timesheet period, and Enter views.
 
-- **Start a timer from a task in one click** — from both the list and the board.
-- **Your view preferences stick** — task view / group / sort, period mode, and the collapsed-Done
-  state are remembered per user.
-- **Overlapping entries are flagged** with a one-click trim to fix them.
-- **The grouped task list** renders as a single, aligned table.
-- **Edit the running entry inline**, and the Timer's description now looks like the field it is.
-- **Changing the running Timer's code** edits the entry in place instead of starting a new one.
-- **Open links in a task description** with Cmd/Ctrl+click.
-- **A day's entries** are listed newest-first.
-- **Form modals** no longer close when you click outside them — only ✕ / Cancel / Save dismiss them.
-
-## Fixed
-
-- Broken links on the documentation site (`/Walker/` → `/walker/`).
-
-## Upgrading
-
-This release includes a **database migration** (task status moves from a fixed enum to a per-user
-state list). Run `alembic upgrade head` after updating. It's backwards-compatible with your data —
-existing task statuses stay valid and no task is rewritten.
-
-## Thanks
-
-Thanks to Julien for his suggestions.
+## Upgrade notes
+- **Database migration required.** This release adds a column to record each entry's origin
+  (timer vs manual). Run `alembic upgrade head` when upgrading. Existing entries are left unmarked
+  (their origin is unknown) — the marker applies to entries created from now on.
+- No breaking API or behaviour changes. Quarter-hour rounding relaxes the long-standing "Walker does
+  no rounding" stance (ADR-0005) with an **opt-in, non-destructive** display option only — the real,
+  to-the-minute data remains the system of record (ADR-0013).
