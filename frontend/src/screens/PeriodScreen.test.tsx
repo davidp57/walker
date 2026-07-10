@@ -86,6 +86,23 @@ function renderScreen(overrides: Partial<Parameters<typeof PeriodScreen>[0]> = {
   return props
 }
 
+describe('PeriodScreen — quarter-hour rounding toggle (BIZ-063)', () => {
+  it('shows the rounding toggle only in Enter mode', () => {
+    renderScreen({ mode: 'review' })
+    expect(screen.queryByRole('button', { name: /round to ¼h/i })).not.toBeInTheDocument()
+    cleanup()
+    renderScreen({ mode: 'enter' })
+    expect(screen.getByRole('button', { name: /round to ¼h/i })).toBeInTheDocument()
+  })
+
+  it('calls onRoundingChange when the toggle is clicked', () => {
+    const onRoundingChange = vi.fn()
+    renderScreen({ mode: 'enter', rounding: false, onRoundingChange })
+    fireEvent.click(screen.getByRole('button', { name: /round to ¼h/i }))
+    expect(onRoundingChange).toHaveBeenCalledWith(true)
+  })
+})
+
 describe('PeriodScreen — mode toggle', () => {
   it('opens in Review mode by default', () => {
     renderScreen()

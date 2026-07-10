@@ -109,6 +109,7 @@ export interface ViewPreferences {
   task_sort_dir: 'asc' | 'desc'
   period_mode: 'review' | 'enter'
   done_collapsed: boolean
+  enter_rounding: boolean // BIZ-063: round Enter-view durations to the quarter-hour
 }
 
 /** The built-in view-preference defaults, mirroring the server's (services/settings.py). */
@@ -119,6 +120,7 @@ export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
   task_sort_dir: 'asc',
   period_mode: 'review',
   done_collapsed: false,
+  enter_rounding: false,
 }
 
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`
