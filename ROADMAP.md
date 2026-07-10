@@ -40,16 +40,25 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
   (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
-## Now — not yet chosen
+## Now — backlog drained
 
-- **POLISH** (living lot of small UX improvements) — first batch shipped (BIZ-038 … BIZ-047: running
-  Timer in Activity, absence date range, description de-noise, task priority/due pills + inline
-  status, time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty
-  states, Review/Enter explainer). Ready next: BIZ-050 (one-click start-timer arrow on tasks, list +
-  board), BIZ-051 (grouped task list as a single aligned table), BIZ-052 (flag overlapping
-  entries + one-click trim), BIZ-053 (persist per-user view preferences), BIZ-054 (edit the
-  running entry inline + Timer description affordance), and BIZ-055 (Cmd/Ctrl+click to open links in
-  the task description). Lot stays open for future UX polish. See `.backlog/POLISH/PRD.md`.
+All planned tickets are shipped as of **v1.4.0**; no ticket is currently ready or in progress. The
+three living lots stay open as containers for future work, but hold no open tickets:
+
+- **POLISH** (living lot of small UX improvements) — fully shipped: BIZ-038…047 (running Timer in
+  Activity, absence date range, description de-noise, task priority/due pills + inline status,
+  time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty states,
+  Review/Enter explainer), then BIZ-050…055 (one-click start-timer arrow, grouped task list as a
+  single aligned table, overlapping-entry flag + trim, persisted per-user view preferences, inline
+  edit of the running entry + Timer description, Cmd/Ctrl+click links in task descriptions), plus
+  BIZ-058 (Timer code change edits in place), BIZ-059 (modals no outside-click dismiss), BIZ-060
+  (Activity newest-first within a day). See `.backlog/POLISH/PRD.md`.
+- **DOCS** (living lot, bilingual docs-site content) — CHR-011 (catalog-import page) shipped. See
+  `.backlog/DOCS/PRD.md`.
+- **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped. See
+  `.backlog/TECH/PRD.md`.
+
+Next work comes from triaging `IDEAS.md` (currently empty) into new tickets.
 
 ## Forward-looking (not scheduled)
 
