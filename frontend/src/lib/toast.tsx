@@ -4,9 +4,12 @@
 import { useCallback, useMemo, useState, type ReactNode } from 'react'
 import { ToastContext } from './toastContext'
 
+type ToastVariant = 'error' | 'info'
+
 interface Toast {
   id: number
   message: string
+  variant: ToastVariant
 }
 
 let nextId = 1
@@ -18,12 +21,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id))
   }, [])
 
-  const notifyError = useCallback((message: string) => {
+  const push = useCallback((message: string, variant: ToastVariant) => {
     const id = nextId++
-    setToasts((prev) => [...prev, { id, message }])
+    setToasts((prev) => [...prev, { id, message, variant }])
   }, [])
 
-  const value = useMemo(() => ({ notifyError }), [notifyError])
+  const notifyError = useCallback((message: string) => push(message, 'error'), [push])
+  const notify = useCallback((message: string) => push(message, 'info'), [push])
+
+  const value = useMemo(() => ({ notifyError, notify }), [notifyError, notify])
 
   return (
     <ToastContext.Provider value={value}>
@@ -31,7 +37,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {toasts.length > 0 && (
         <div className="wk-toast-stack">
           {toasts.map((t) => (
-            <div key={t.id} role="alert" className="wk-toast wk-toast-error">
+            <div
+              key={t.id}
+              // Errors demand attention (assertive `alert`); info notices are polite (`status`).
+              role={t.variant === 'error' ? 'alert' : 'status'}
+              className={`wk-toast wk-toast-${t.variant}`}
+            >
               <span className="wk-toast-msg">{t.message}</span>
               <button
                 type="button"

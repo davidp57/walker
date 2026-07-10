@@ -36,6 +36,11 @@ interface AppShellProps {
    * nav item; hidden at zero so nothing to code reads as a neutral, uncluttered nav.
    */
   uncategorizedCount?: number
+  /**
+   * Count of tasks that are overdue or due today (excluding done — BIZ-062). Shown as a badge on the
+   * Tasks nav item; hidden at zero.
+   */
+  tasksDueCount?: number
   /** The current user, shown in the footer as `name` if set, else `username`. No role/employer line. */
   user?: ShellUser
 }
@@ -46,6 +51,7 @@ export function AppShell({
   timer,
   children,
   uncategorizedCount = 0,
+  tasksDueCount = 0,
   user,
 }: AppShellProps) {
   const displayName = user?.name ?? user?.username ?? ''
@@ -76,6 +82,15 @@ export function AppShell({
                   title={`${uncategorizedCount} entr${uncategorizedCount === 1 ? 'y' : 'ies'} without a Timesheet code`}
                 >
                   {uncategorizedCount}
+                </span>
+              )}
+              {item.key === 'tasks' && tasksDueCount > 0 && (
+                <span
+                  className="wk-nav-badge"
+                  data-testid="wk-tasks-due-badge"
+                  title={`${tasksDueCount} task${tasksDueCount === 1 ? '' : 's'} overdue or due today`}
+                >
+                  {tasksDueCount}
                 </span>
               )}
             </button>
@@ -121,6 +136,15 @@ export function AppShell({
                 title={`${uncategorizedCount} entr${uncategorizedCount === 1 ? 'y' : 'ies'} without a Timesheet code`}
               >
                 {uncategorizedCount}
+              </span>
+            )}
+            {item.key === 'tasks' && tasksDueCount > 0 && (
+              <span
+                className="wk-tabbar-badge"
+                data-testid="wk-tasks-due-badge-tabbar"
+                title={`${tasksDueCount} task${tasksDueCount === 1 ? '' : 's'} overdue or due today`}
+              >
+                {tasksDueCount}
               </span>
             )}
           </button>

@@ -1382,6 +1382,12 @@ html[data-theme='light'] body {
   border: 1px solid var(--wk-danger);
   color: var(--wk-text-hi);
 }
+/* Info notice (BIZ-062): same shape as an error toast, accent border instead of danger. */
+.wk-toast-info {
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-accent);
+  color: var(--wk-text-hi);
+}
 .wk-toast-msg {
   flex: 1;
   min-width: 0;

@@ -1,7 +1,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
-import type { Entry, Theme, TimesheetCode } from './types'
+import type { Entry, Task, Theme, TimesheetCode } from './types'
 import { DEFAULT_TASK_STATES, DEFAULT_VIEW_PREFERENCES } from './types'
 import * as api from './lib/api'
 
@@ -70,6 +70,27 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[], theme: Theme = 's
   vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
   vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
 }
+
+function makeTask(overrides: Partial<Task> = {}): Task {
+  return {
+    id: '1',
+    title: 'A task',
+    description: '',
+    status: 'todo',
+    priority: null,
+    dueDate: null,
+    tags: [],
+    codeId: null,
+    recurrenceRule: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    ...overrides,
+  }
+}
+
+// Dates relative to the real clock so the assertions stay deterministic (App reads the real today).
+const TODAY_ISO = new Date().toISOString().slice(0, 10)
+const YESTERDAY_ISO = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
 
 describe('App — tracking on a virtual code (BIZ-013)', () => {
   it('categorizing an entry with a virtual code patches it with that virtual code id', async () => {
@@ -800,5 +821,51 @@ describe('App — editing the running Timer (BIZ-058)', () => {
     )
     // In place — the running entry is corrected, no new segment opened.
     expect(switchTimer).not.toHaveBeenCalled()
+  })
+})
+
+describe('App — task due dates: nav badge + startup toast (BIZ-062)', () => {
+  it('badges the Tasks nav with the overdue/due-today count, excluding done', async () => {
+    mockBaseApi([], [])
+    vi.spyOn(api, 'fetchTasks').mockResolvedValue([
+      makeTask({ id: '1', dueDate: YESTERDAY_ISO, status: 'todo' }), // overdue
+      makeTask({ id: '2', dueDate: TODAY_ISO, status: 'todo' }), // due today
+      makeTask({ id: '3', dueDate: YESTERDAY_ISO, status: 'done' }), // done — excluded
+    ])
+
+    render(<App />)
+
+    await waitFor(() => expect(screen.getByTestId('wk-tasks-due-badge')).toHaveTextContent('2'))
+  })
+
+  it('shows a one-time startup toast summarising the due tasks', async () => {
+    mockBaseApi([], [])
+    vi.spyOn(api, 'fetchTasks').mockResolvedValue([
+      makeTask({ id: '1', dueDate: YESTERDAY_ISO, status: 'todo' }),
+      makeTask({ id: '2', dueDate: TODAY_ISO, status: 'todo' }),
+    ])
+
+    render(<App />)
+
+    const toast = await screen.findByRole('status')
+    expect(toast).toHaveTextContent(/2 tasks due/i)
+    expect(toast).toHaveTextContent(/1 overdue/i)
+    expect(toast).toHaveTextContent(/1 due today/i)
+    expect(screen.getAllByRole('status')).toHaveLength(1)
+  })
+
+  it('shows no startup toast when nothing is overdue or due today', async () => {
+    mockBaseApi([], [])
+    vi.spyOn(api, 'fetchTasks').mockResolvedValue([
+      makeTask({ id: '1', dueDate: null }),
+      makeTask({ id: '2', dueDate: YESTERDAY_ISO, status: 'done' }), // done — never flagged
+    ])
+
+    render(<App />)
+    await screen.findByRole('navigation', { name: /main navigation/i })
+    await act(async () => {})
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('wk-tasks-due-badge')).not.toBeInTheDocument()
   })
 })

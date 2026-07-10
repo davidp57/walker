@@ -200,6 +200,35 @@ describe('AppShell — Help link to the docs site (BIZ-061)', () => {
   })
 })
 
+describe('AppShell — tasks-due count badge (BIZ-062)', () => {
+  it('shows the due-task count on the Tasks nav item (sidebar + tab bar) when > 0', () => {
+    render(
+      <AppShell route="tracker" onNavigate={vi.fn()} timer={null} tasksDueCount={2}>
+        <div />
+      </AppShell>,
+    )
+    const nav = screen.getByRole('navigation', { name: /main navigation/i })
+    const tasks = within(nav).getByText('Tasks').closest('button')
+    expect(tasks).toHaveTextContent('2')
+
+    const tabbar = screen.getByRole('navigation', { name: /bottom tab bar/i })
+    const tasksTab = Array.from(tabbar.querySelectorAll('.wk-tabbar-item')).find((el) =>
+      el.textContent?.includes('Tasks'),
+    )
+    expect(tasksTab).toHaveTextContent('2')
+  })
+
+  it('hides the badge when the due count is zero', () => {
+    render(
+      <AppShell route="tracker" onNavigate={vi.fn()} timer={null} tasksDueCount={0}>
+        <div />
+      </AppShell>,
+    )
+    expect(screen.queryByTestId('wk-tasks-due-badge')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('wk-tasks-due-badge-tabbar')).not.toBeInTheDocument()
+  })
+})
+
 describe('AppShell — uncategorized-Entry count (BIZ-010)', () => {
   it('shows the count next to the Activity nav item when there are uncategorized Entries', () => {
     render(

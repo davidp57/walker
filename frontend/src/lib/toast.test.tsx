@@ -63,3 +63,40 @@ describe('ToastProvider / useToast', () => {
     expect(screen.getAllByRole('alert')).toHaveLength(2)
   })
 })
+
+function InfoTrigger({ message }: { message: string }) {
+  const { notify } = useToast()
+  return (
+    <button type="button" onClick={() => notify(message)}>
+      info
+    </button>
+  )
+}
+
+describe('ToastProvider — info toasts (BIZ-062)', () => {
+  it('notify() shows a dismissible info toast, styled distinctly from an error toast', () => {
+    render(
+      <ToastProvider>
+        <InfoTrigger message="3 tasks due today" />
+      </ToastProvider>,
+    )
+    fireEvent.click(screen.getByText('info'))
+
+    const toast = screen.getByText('3 tasks due today').closest('.wk-toast')
+    expect(toast).toHaveClass('wk-toast-info')
+    expect(toast).not.toHaveClass('wk-toast-error')
+
+    fireEvent.click(screen.getByRole('button', { name: /dismiss/i }))
+    expect(screen.queryByText('3 tasks due today')).not.toBeInTheDocument()
+  })
+
+  it('keeps error toasts styled as errors', () => {
+    render(
+      <ToastProvider>
+        <Trigger message="save failed" />
+      </ToastProvider>,
+    )
+    fireEvent.click(screen.getByText('trigger'))
+    expect(screen.getByText('save failed').closest('.wk-toast')).toHaveClass('wk-toast-error')
+  })
+})
