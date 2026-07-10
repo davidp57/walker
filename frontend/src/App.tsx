@@ -579,10 +579,10 @@ function AppInner() {
 
   // Compose a manual entry (no timer): default to today 9:00–10:00. Nothing is written until Save
   // (BIZ-011) — cancelling the editor leaves no phantom entry, matching the Timesheet period add path.
-  const addEntry = () => {
+  const addEntry = (date: string = TODAY) => {
     setAddDraft({
       id: 'new',
-      date: TODAY,
+      date,
       start: 9 * 60,
       end: 10 * 60,
       codeId: null,
@@ -1162,6 +1162,7 @@ function AppInner() {
           }}
           onLoadEarlier={() => setTrackerFrom((f) => addDays(f, -14))}
           onAddEntry={addEntry}
+          today={TODAY}
         />
       )}
       {route === 'period' && (

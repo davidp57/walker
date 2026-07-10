@@ -1395,6 +1395,40 @@ html[data-theme='light'] body {
   color: var(--wk-text-lo);
   font-family: var(--wk-font-mono);
 }
+/* BIZ-064: per-day "+ Add" on each Activity day group. Today's is primary/always-on; other days'
+   stay quiet until the group is hovered or the button is focused (always shown on touch). */
+.wk-daygroup-add {
+  font-size: var(--wk-fs-11);
+  padding: 3px 10px;
+  border-radius: var(--wk-radius-pill);
+  border: 1px solid var(--wk-line);
+  background: transparent;
+  color: var(--wk-text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wk-daygroup-add:hover {
+  color: var(--wk-text-hi);
+  border-color: var(--wk-accent-line);
+}
+.wk-daygroup-add.is-today {
+  background: var(--wk-accent-soft);
+  border-color: var(--wk-accent-line);
+  color: var(--wk-accent);
+}
+.wk-daygroup-add.is-quiet {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.wk-daygroup:hover .wk-daygroup-add.is-quiet,
+.wk-daygroup-add.is-quiet:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .wk-daygroup-add.is-quiet {
+    opacity: 0.55;
+  }
+}
 .wk-toast-msg {
   flex: 1;
   min-width: 0;
