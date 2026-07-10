@@ -1,7 +1,7 @@
 # BIZ-062 — Task due dates: make them visible everywhere, and alert when they arrive
 
 ID: BIZ-062
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -55,16 +55,16 @@ when the task has a due date, using the shared helper + overdue styling.
 
 ## Acceptance criteria
 
-- [ ] List and kanban both show a due date as a short **relative** label (`Today`, `Tomorrow`,
+- [x] List and kanban both show a due date as a short **relative** label (`Today`, `Tomorrow`,
       `in 3d`, `3d overdue`), with the absolute date available on hover (`title`).
-- [ ] The kanban card shows a due pill when the task has a due date (none when unset), overdue in red.
-- [ ] A task in the terminal state is never styled overdue and never counts toward the alert.
-- [ ] The **Tasks** nav item (sidebar + phone tab bar) shows a count badge of overdue/due-today
+- [x] The kanban card shows a due pill when the task has a due date (none when unset), overdue in red.
+- [x] A task in the terminal state is never styled overdue and never counts toward the alert.
+- [x] The **Tasks** nav item (sidebar + phone tab bar) shows a count badge of overdue/due-today
       (non-terminal) tasks; the badge is hidden when that count is zero.
-- [ ] On app load, when at least one task is overdue/due-today, exactly one summary toast is shown;
+- [x] On app load, when at least one task is overdue/due-today, exactly one summary toast is shown;
       no toast when there are none. It does not re-fire on subsequent task reloads within the session.
-- [ ] The relative-date helper is unit-tested (today/tomorrow/yesterday/N-days/overdue boundaries).
-- [ ] Frontend tests cover: kanban due pill presence/absence + overdue styling; the nav badge count
+- [x] The relative-date helper is unit-tested (today/tomorrow/yesterday/N-days/overdue boundaries).
+- [x] Frontend tests cover: kanban due pill presence/absence + overdue styling; the nav badge count
       (incl. terminal-state exclusion and hidden-at-zero); the startup toast fires once and only when
       due tasks exist.
 
