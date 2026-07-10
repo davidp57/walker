@@ -1,7 +1,7 @@
 # BIZ-061 — Global Help link to the docs site in the nav
 
 ID: BIZ-061
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 
@@ -40,13 +40,13 @@ No backend change.
 
 ## Acceptance criteria
 
-- [ ] A **Help** item appears in the desktop sidebar and in the phone bottom tab bar.
-- [ ] Activating it opens `https://davidp57.github.io/walker/` in a new tab
+- [x] A **Help** item appears in the desktop sidebar and in the phone bottom tab bar.
+- [x] Activating it opens `https://davidp57.github.io/walker/` in a new tab
       (`rel="noopener noreferrer"`); it does **not** change the active app route.
-- [ ] The Help item never renders the active/selected nav state.
-- [ ] The docs-site base URL is defined once and shared by the Help link and the existing
+- [x] The Help item never renders the active/selected nav state.
+- [x] The docs-site base URL is defined once and shared by the Help link and the existing
       `CodeCatalogScreen` contextual link.
-- [ ] Frontend test: the Help control targets the docs root URL, opens in a new tab with
+- [x] Frontend test: the Help control targets the docs root URL, opens in a new tab with
       `rel="noopener noreferrer"`, and clicking it does not fire `onNavigate`.
 
 ## Blocked by

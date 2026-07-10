@@ -40,16 +40,10 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
   (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
-## Now
+## Now — backlog drained
 
-Ready to pick up:
-
-- **BIZ-061** (POLISH) — a global **Help** link to the docs-site root in the nav (desktop sidebar +
-  phone tab bar), alongside the existing contextual catalog-import link. See
-  `.backlog/POLISH/tickets/20-global-docs-link-in-nav.md`.
-
-Everything else is shipped as of **v1.4.0**. The three living lots stay open as containers for future
-work; apart from BIZ-061 they hold no open tickets:
+All planned tickets are shipped; no ticket is currently ready or in progress. The three living lots
+stay open as containers for future work, but hold no open tickets:
 
 - **POLISH** (living lot of small UX improvements) — fully shipped: BIZ-038…047 (running Timer in
   Activity, absence date range, description de-noise, task priority/due pills + inline status,
@@ -58,7 +52,8 @@ work; apart from BIZ-061 they hold no open tickets:
   single aligned table, overlapping-entry flag + trim, persisted per-user view preferences, inline
   edit of the running entry + Timer description, Cmd/Ctrl+click links in task descriptions), plus
   BIZ-058 (Timer code change edits in place), BIZ-059 (modals no outside-click dismiss), BIZ-060
-  (Activity newest-first within a day). See `.backlog/POLISH/PRD.md`.
+  (Activity newest-first within a day), and BIZ-061 (global Help link to the docs-site root in the
+  sidebar + phone tab bar). See `.backlog/POLISH/PRD.md`.
 - **DOCS** (living lot, bilingual docs-site content) — CHR-011 (catalog-import page) shipped. See
   `.backlog/DOCS/PRD.md`.
 - **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped. See
