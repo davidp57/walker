@@ -5,6 +5,8 @@ import { createContext, useContext } from 'react'
 export interface ToastContextValue {
   /** Surface a visible, dismissible error toast. Stacks — an earlier error is never bumped out. */
   notifyError: (message: string) => void
+  /** Surface a visible, dismissible info toast (non-error notice, e.g. tasks due — BIZ-062). */
+  notify: (message: string) => void
 }
 
 export const ToastContext = createContext<ToastContextValue | null>(null)

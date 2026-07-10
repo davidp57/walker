@@ -43,6 +43,7 @@ import {
 } from './lib/theme'
 import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor, soleActivity } from './lib/tasks'
+import { describeDue } from './lib/dueDate'
 import { ToastProvider } from './lib/toast'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
@@ -239,7 +240,7 @@ export default function App() {
 }
 
 function AppInner() {
-  const { notifyError } = useToast()
+  const { notifyError, notify } = useToast()
   const [route, setRoute] = useState<Route>('tracker')
   const [user, setUser] = useState<ShellUser | undefined>(undefined)
   const [codes, setCodes] = useState<TimesheetCode[]>([])
@@ -398,6 +399,34 @@ function AppInner() {
   // Entries still lacking a Timesheet code (BIZ-010) — surfaced as a live count in the shell so
   // nothing is left uncoded before the Timesheet period closes. Mirrors EntryRow's own `flagged` rule.
   const uncategorizedCount = useMemo(() => entries.filter((e) => !e.codeId).length, [entries])
+
+  // Tasks needing attention (BIZ-062): overdue or due today, excluding the terminal (done) state
+  // (ADR-0011). Drives the Tasks nav badge and the one-time startup toast below.
+  const dueTasks = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    const terminalId = taskStates[taskStates.length - 1]?.id
+    return tasks
+      .filter((t) => t.dueDate !== null && t.status !== terminalId)
+      .map((t) => describeDue(t.dueDate as string, today))
+      .filter((d) => d.overdue || d.dueToday)
+  }, [tasks, taskStates])
+  const tasksDueCount = dueTasks.length
+
+  // Surface due tasks once per app load — not on every later task reload — so the user is told
+  // even when they aren't looking at the Tasks screen (BIZ-062).
+  const dueToastShown = useRef(false)
+  useEffect(() => {
+    if (dueToastShown.current || tasksLoading) return
+    dueToastShown.current = true
+    if (dueTasks.length === 0) return
+    const overdue = dueTasks.filter((d) => d.overdue).length
+    const dueToday = dueTasks.filter((d) => d.dueToday).length
+    const parts: string[] = []
+    if (overdue > 0) parts.push(`${overdue} overdue`)
+    if (dueToday > 0) parts.push(`${dueToday} due today`)
+    const n = dueTasks.length
+    notify(`${n} task${n === 1 ? '' : 's'} due — ${parts.join(', ')}`)
+  }, [tasksLoading, dueTasks, notify])
 
   // Tick the clock every second only while a timer is running.
   useEffect(() => {
@@ -1106,6 +1135,7 @@ function AppInner() {
       onNavigate={setRoute}
       timer={timerBar}
       uncategorizedCount={uncategorizedCount}
+      tasksDueCount={tasksDueCount}
       user={user}
     >
       {route === 'tracker' && (

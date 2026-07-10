@@ -16,6 +16,7 @@ import {
 import type { Task, TaskState, TimesheetCode } from '../types'
 import { DEFAULT_TASK_STATES } from '../types'
 import { IconPlay } from './icons'
+import { describeDue } from '../lib/dueDate'
 
 /** In-kanban column-editing callbacks (BIZ-057); omit to render a read-only board. */
 export interface TaskStateEdits {
@@ -221,6 +222,7 @@ function BoardColumn({
 interface BoardCardProps {
   task: Task
   code: TimesheetCode | null
+  today: string // ISO YYYY-MM-DD, for the relative due label (BIZ-062)
   prevState: TaskState | null
   nextState: TaskState | null
   terminal: TaskState | null
@@ -233,6 +235,7 @@ interface BoardCardProps {
 function BoardCard({
   task,
   code,
+  today,
   prevState,
   nextState,
   terminal,
@@ -240,6 +243,9 @@ function BoardCard({
   onMoveTask,
   onStartTask,
 }: BoardCardProps) {
+  const due = task.dueDate ? describeDue(task.dueDate, today) : null
+  // Overdue or due today, unless the task is done (terminal state is never flagged — ADR-0011).
+  const flagged = due !== null && (due.overdue || due.dueToday) && task.status !== terminal?.id
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, isDragging } =
     useDraggable({ id: task.id })
   const style = transform
@@ -288,6 +294,14 @@ function BoardCard({
       <div className="wk-board-card-meta">
         {task.priority && (
           <span className={`wk-task-priority is-${task.priority}`}>{task.priority}</span>
+        )}
+        {due && (
+          <span
+            className={flagged ? 'wk-task-due is-overdue' : 'wk-task-due'}
+            title={task.dueDate ?? undefined}
+          >
+            {due.label}
+          </span>
         )}
         {code && (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -372,6 +386,7 @@ function StatusBoard({
   )
 
   const byStatus = (status: string) => tasks.filter((t) => t.status === status)
+  const today = new Date().toISOString().slice(0, 10)
 
   const handleDragStart = (event: DragStartEvent) => {
     const task = tasks.find((t) => t.id === event.active.id)
@@ -455,6 +470,7 @@ function StatusBoard({
                     key={task.id}
                     task={task}
                     code={code}
+                    today={today}
                     prevState={prevState}
                     nextState={nextState}
                     terminal={terminal}

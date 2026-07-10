@@ -245,10 +245,45 @@ describe('TasksScreen', () => {
     render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
 
     expect(screen.getByText('high')).toBeInTheDocument()
-    expect(screen.getByText('2026-08-01')).toBeInTheDocument()
+    // The due pill carries the exact date as a tooltip regardless of "today" (BIZ-062).
+    expect(screen.getByTitle('2026-08-01')).toBeInTheDocument()
     // Only the task with a priority shows a pill — no empty priority filler on the other row.
     expect(screen.getAllByText('high')).toHaveLength(1)
     expect(document.querySelectorAll('.wk-task-priority')).toHaveLength(1)
+  })
+
+  it('renders the due date as a relative label with the exact date on hover (BIZ-062)', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-10T09:00:00Z'))
+    try {
+      const tasks = [
+        makeTask({ id: '1', title: 'Due tomorrow', dueDate: '2026-07-11' }),
+        makeTask({ id: '2', title: 'Was due', dueDate: '2026-07-08', status: 'todo' }),
+      ]
+      render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+      const soon = screen.getByTitle('2026-07-11')
+      expect(soon).toHaveTextContent('Tomorrow')
+      expect(soon).not.toHaveClass('is-overdue')
+
+      const late = screen.getByTitle('2026-07-08')
+      expect(late).toHaveTextContent('2d overdue')
+      expect(late).toHaveClass('is-overdue')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('never flags a terminal-state task as overdue, even past its due date (BIZ-062)', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-10T09:00:00Z'))
+    try {
+      const done = makeTask({ id: '9', title: 'Shipped', dueDate: '2026-07-01', status: 'done' })
+      render(<TasksScreen tasks={[done]} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+      expect(screen.getByTitle('2026-07-01')).not.toHaveClass('is-overdue')
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('changes a task status inline without opening the panel (BIZ-043)', () => {

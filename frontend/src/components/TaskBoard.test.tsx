@@ -90,6 +90,29 @@ describe('TaskBoard', () => {
     expect(screen.getByTestId('wk-board-column-done')).toBeInTheDocument()
   })
 
+  it('shows a due pill on the card (relative label + exact date on hover), never on terminal tasks (BIZ-062)', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-10T09:00:00Z'))
+    try {
+      const tasks = [
+        makeTask({ id: '1', title: 'Late', dueDate: '2026-07-08', status: 'todo' }),
+        makeTask({ id: '2', title: 'No due', dueDate: null, status: 'todo' }),
+        makeTask({ id: '3', title: 'Done late', dueDate: '2026-07-01', status: 'done' }),
+      ]
+      render(<TaskBoard tasks={tasks} codesById={{}} onOpenTask={vi.fn()} onMoveTask={vi.fn()} />)
+
+      const late = screen.getByTitle('2026-07-08')
+      expect(late).toHaveTextContent('2d overdue')
+      expect(late).toHaveClass('is-overdue')
+
+      // Only the two tasks with a due date render a pill; the terminal task's is not flagged.
+      expect(document.querySelectorAll('.wk-task-due')).toHaveLength(2)
+      expect(screen.getByTitle('2026-07-01')).not.toHaveClass('is-overdue')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('places each task under its status column', () => {
     const tasks = [
       makeTask({ id: '1', title: 'Todo task', status: 'todo' }),
