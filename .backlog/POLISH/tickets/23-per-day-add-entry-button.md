@@ -1,7 +1,7 @@
 # BIZ-064 — Activity view: a per-day "Add" button with the date prefilled
 
 ID: BIZ-064
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 
@@ -50,15 +50,15 @@ is one click with the date already right. Keep the page uncluttered.
 
 ## Acceptance criteria
 
-- [ ] Every day group shows an Add button that opens the entry draft with that group's date
+- [x] Every day group shows an Add button that opens the entry draft with that group's date
       prefilled; saving creates the entry on that day.
-- [ ] The Today group's Add button is primary/blue and always visible; the global header
+- [x] The Today group's Add button is primary/blue and always visible; the global header
       "+ Add entry" button is removed.
-- [ ] Other days' Add buttons are quiet by default and revealed on hover and on keyboard focus
+- [x] Other days' Add buttons are quiet by default and revealed on hover and on keyboard focus
       (`:focus-visible`) on desktop.
-- [ ] A Today group (header + Add) renders even when today has no entries.
-- [ ] On the phone layout, the non-today Add buttons are visible and tappable (not hover-gated).
-- [ ] Frontend tests cover: per-group Add prefills the right date (today vs a past day), the Today
+- [x] A Today group (header + Add) renders even when today has no entries.
+- [x] On the phone layout, the non-today Add buttons are visible and tappable (not hover-gated).
+- [x] Frontend tests cover: per-group Add prefills the right date (today vs a past day), the Today
       group renders with zero entries, and the global header button is gone.
 
 ## Blocked by

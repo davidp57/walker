@@ -44,10 +44,6 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 Ready to pick up (release paused to gather a batch before cutting the next version):
 
-- **BIZ-064** (POLISH, P3) — Activity view: a **per-day Add button** with the day's date prefilled.
-  Today's is primary/blue and always visible (replacing the global header button); other days' are
-  quiet, revealed on hover/focus (always visible on touch). See
-  `.backlog/POLISH/tickets/23-per-day-add-entry-button.md`.
 - **BIZ-065** (POLISH, P2) — **mark manual entries** vs timer entries: a persisted `Entry.source`
   (timer/manual, nullable for legacy) surfaced as a subtle marker in the Activity, Timesheet period,
   and Enter views (a period/Enter cell is marked if it contains any manual minutes). See
