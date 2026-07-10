@@ -40,10 +40,18 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
   (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
-## Now — backlog drained
+## Now
 
-All planned tickets are shipped; no ticket is currently ready or in progress. The three living lots
-stay open as containers for future work, but hold no open tickets:
+Ready to pick up:
+
+- **BIZ-062** (POLISH, P2) — task **due dates**: make them glanceable everywhere (relative labels in
+  the list + a due pill on the kanban card, which has none today) and alert when a deadline arrives
+  (an overdue/due-today count badge on the Tasks nav item + a once-per-load startup toast).
+  Terminal-state tasks are never flagged. See
+  `.backlog/POLISH/tickets/21-task-due-dates-visibility-and-alerts.md`.
+
+Everything else is shipped. The three living lots stay open as containers for future work; apart from
+BIZ-062 they hold no open tickets:
 
 - **POLISH** (living lot of small UX improvements) — fully shipped: BIZ-038…047 (running Timer in
   Activity, absence date range, description de-noise, task priority/due pills + inline status,
