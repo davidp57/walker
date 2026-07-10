@@ -1,7 +1,7 @@
 # BIZ-066 — Timesheet period view: a per-day-column "Add" action with the date prefilled
 
 ID: BIZ-066
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P3
 
@@ -46,15 +46,15 @@ Mirror BIZ-064's visual treatment so the two views feel the same.
 
 ## Acceptance criteria
 
-- [ ] Each working day column (table header + phone day-card header) has an Add action that opens the
+- [x] Each working day column (table header + phone day-card header) has an Add action that opens the
       draft with that day's date prefilled; saving creates the entry on that day.
-- [ ] The global "+ Add entry" button is removed from the period view.
-- [ ] When the viewed period contains today, that column's Add is primary/always-visible and the
+- [x] The global "+ Add entry" button is removed from the period view.
+- [x] When the viewed period contains today, that column's Add is primary/always-visible and the
       others are quiet (hover/focus); when it doesn't, all columns' Adds are quiet.
-- [ ] Weekend/absence columns show no per-day Add (consistent with the empty-cell add rule).
-- [ ] The action appears only in Review mode, not in the Enter/checklist mode.
-- [ ] On the phone layout the per-day Adds are visible and tappable (not hover-gated).
-- [ ] Frontend tests cover: per-column Add prefills the right date; primary-today vs
+- [x] Weekend/absence columns show no per-day Add (consistent with the empty-cell add rule).
+- [x] The action appears only in Review mode, not in the Enter/checklist mode.
+- [x] On the phone layout the per-day Adds are visible and tappable (not hover-gated).
+- [x] Frontend tests cover: per-column Add prefills the right date; primary-today vs
       all-quiet-when-not-current-period; weekend column excluded; absent in Enter mode; global button
       removed.
 
