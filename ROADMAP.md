@@ -44,11 +44,6 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 
 Ready to pick up (release paused to gather a batch before cutting the next version):
 
-- **BIZ-063** (POLISH, P2) — Enter view: **optional intelligent quarter-hour rounding**. A persisted
-  per-user toggle applies error-carried rounding to each day column (day total stays closest to the
-  real total), showing the rounded value prominently and the real value greyed; non-destructive,
-  frontend-only. Introduces **ADR-0013** (amends ADR-0005's "no rounding"). See
-  `.backlog/POLISH/tickets/22-enter-view-quarter-hour-rounding.md`.
 - **BIZ-064** (POLISH, P3) — Activity view: a **per-day Add button** with the day's date prefilled.
   Today's is primary/blue and always visible (replacing the global header button); other days' are
   quiet, revealed on hover/focus (always visible on touch). See

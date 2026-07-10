@@ -1,7 +1,7 @@
 # BIZ-063 — Enter view: optional intelligent quarter-hour rounding
 
 ID: BIZ-063
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -58,18 +58,18 @@ the **real** value small/greyed (so the truth is never hidden). With it off, the
 
 ## Acceptance criteria
 
-- [ ] An Enter-view toggle turns quarter-hour rounding on/off; it is hidden/inert in Review mode.
-- [ ] The toggle state is persisted per user (survives reload) via `ViewPreferences`, defaulting to
+- [x] An Enter-view toggle turns quarter-hour rounding on/off; it is hidden/inert in Review mode.
+- [x] The toggle state is persisted per user (survives reload) via `ViewPreferences`, defaulting to
       off.
-- [ ] With rounding on, every cell and every total is a multiple of 15 minutes, and each day
+- [x] With rounding on, every cell and every total is a multiple of 15 minutes, and each day
       column's rounded total equals the real day total rounded to the nearest quarter-hour.
-- [ ] The error-carry helper is pure and unit-tested, including the "five 6-minute cells → 30 min"
+- [x] The error-carry helper is pure and unit-tested, including the "five 6-minute cells → 30 min"
       case and cases where the naive nearest-quarter would drift.
-- [ ] With rounding on, each cell/total also shows the real value in a small, greyed style; with it
+- [x] With rounding on, each cell/total also shows the real value in a small, greyed style; with it
       off, only real minutes are shown.
-- [ ] Review view and the persisted/exact backend data are unaffected (no rounded value is ever
+- [x] Review view and the persisted/exact backend data are unaffected (no rounded value is ever
       written back).
-- [ ] Frontend tests cover: toggle visibility (Enter only), persistence, and dual (rounded + real)
+- [x] Frontend tests cover: toggle visibility (Enter only), persistence, and dual (rounded + real)
       rendering.
 
 ## Blocked by
