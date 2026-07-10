@@ -6,6 +6,11 @@ Follow these steps in order. Stop and wait for the developer's answer at every s
 **(ask)**. Steps marked **(autonomous)** you carry out yourself once the developer has confirmed
 the plan.
 
+**Working preference:** at every **(ask)** step, the developer prefers you to **propose concrete
+content** (a drafted answer, a suggested version, a written note) derived from the changelog and the
+git history — not to ask an open-ended question and wait. Lead with your proposal and let the
+developer correct or confirm it, rather than making them write the answer from scratch.
+
 ## Step 1 — Analyze what's changed
 
 Read the `## [Unreleased]` section of `CHANGELOG.md` on `develop`. Summarize what it contains
@@ -17,7 +22,9 @@ bump minor at least; pure fixes → patch) but let the developer decide.
 
 ## Step 2 — Consolidation interview
 
-**(ask)** Three questions, one at a time:
+**(ask)** Three questions, one at a time. For each, **propose a drafted answer first** (inferred
+from the changelog + git diff) and ask the developer to confirm or adjust it — don't just pose the
+question:
 
 1. What's the headline theme of this release — the one or two things that matter most?
 2. Any breaking changes, migrations, or regressions the developer (or a future teammate) needs to

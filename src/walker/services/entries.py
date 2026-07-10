@@ -81,6 +81,7 @@ def create_entry(
         activity=activity,
         description=description,
         task_id=task_id,
+        source="manual",  # BIZ-065: hand-composed, not timer-tracked.
     )
     session.add(entry)
     session.commit()
@@ -92,7 +93,7 @@ def start_timer(session: Session, user_id: int, on_date: date, at_minute: int) -
     """Open a running, uncategorized Entry. Rejects a second concurrent timer."""
     if running_entry(session, user_id) is not None:
         raise ValidationError("A timer is already running.")
-    entry = Entry(user_id=user_id, date=on_date, start_minute=at_minute)
+    entry = Entry(user_id=user_id, date=on_date, start_minute=at_minute, source="timer")
     session.add(entry)
     session.commit()
     session.refresh(entry)
@@ -127,6 +128,7 @@ def switch_timer(
         activity=activity,
         description=description,
         task_id=task_id,
+        source="timer",  # BIZ-065: a switch opens a new timer segment.
     )
     session.add(entry)
     session.commit()

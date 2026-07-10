@@ -109,6 +109,24 @@ html[data-theme='light'] body {
   color: var(--wk-text-hi);
   font-weight: var(--wk-fw-semibold);
 }
+/* Global Help link (BIZ-061): looks like a nav item but pinned to the bottom of the nav column,
+   set apart from the route items by a soft divider. */
+.wk-nav-help {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--wk-radius-md);
+  font-size: var(--wk-fs-13);
+  font-weight: var(--wk-fw-medium);
+  color: var(--wk-text-mid);
+  text-decoration: none;
+}
+.wk-nav-help:hover {
+  background: var(--wk-bg-2);
+  color: var(--wk-text-hi);
+}
 .wk-nav-ico {
   width: 19px;
   display: flex;
@@ -207,6 +225,19 @@ html[data-theme='light'] body {
 }
 .wk-tabbar-label {
   line-height: 1.1;
+}
+/* Help link in the phone tab bar (BIZ-061): same shape as a tab, but an external link. */
+.wk-tabbar-help {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px 10px;
+  font-size: var(--wk-fs-10);
+  color: var(--wk-text-mid);
+  text-decoration: none;
 }
 .wk-tabbar-badge {
   position: absolute;
@@ -1350,6 +1381,94 @@ html[data-theme='light'] body {
   background: var(--wk-bg-1);
   border: 1px solid var(--wk-danger);
   color: var(--wk-text-hi);
+}
+/* Info notice (BIZ-062): same shape as an error toast, accent border instead of danger. */
+.wk-toast-info {
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-accent);
+  color: var(--wk-text-hi);
+}
+/* BIZ-063: the real duration shown small + greyed beside a quarter-hour-rounded value (Enter view). */
+.wk-dur-real {
+  margin-left: 5px;
+  font-size: var(--wk-fs-10);
+  color: var(--wk-text-lo);
+  font-family: var(--wk-font-mono);
+}
+/* BIZ-065: subtle marker on manually-added entries (Activity row) and cells with manual time. */
+.wk-manual-mark {
+  margin-left: 5px;
+  font-size: var(--wk-fs-10);
+  color: var(--wk-text-lo);
+  cursor: help;
+}
+/* BIZ-064: per-day "+ Add" on each Activity day group. Today's is primary/always-on; other days'
+   stay quiet until the group is hovered or the button is focused (always shown on touch). */
+.wk-daygroup-add {
+  font-size: var(--wk-fs-11);
+  padding: 3px 10px;
+  border-radius: var(--wk-radius-pill);
+  border: 1px solid var(--wk-line);
+  background: transparent;
+  color: var(--wk-text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wk-daygroup-add:hover {
+  color: var(--wk-text-hi);
+  border-color: var(--wk-accent-line);
+}
+.wk-daygroup-add.is-today {
+  background: var(--wk-accent-soft);
+  border-color: var(--wk-accent-line);
+  color: var(--wk-accent);
+}
+.wk-daygroup-add.is-quiet {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.wk-daygroup:hover .wk-daygroup-add.is-quiet,
+.wk-daygroup-add.is-quiet:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .wk-daygroup-add.is-quiet {
+    opacity: 0.55;
+  }
+}
+/* BIZ-066: per-day-column "+" Add in the Review grid. Today's is primary; other columns stay quiet
+   until the column header is hovered or the button focused (always shown on touch). */
+.wk-period-add {
+  margin-top: 4px;
+  width: 20px;
+  height: 20px;
+  line-height: 1;
+  border-radius: var(--wk-radius-pill);
+  border: 1px solid var(--wk-accent-line);
+  background: transparent;
+  color: var(--wk-text-mid);
+  cursor: pointer;
+}
+.wk-period-add:hover {
+  color: var(--wk-accent);
+}
+.wk-period-add.is-today {
+  background: var(--wk-accent-soft);
+  color: var(--wk-accent);
+}
+.wk-period-add.is-quiet {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.wk-day:hover .wk-period-add.is-quiet,
+.wk-daycard-head:hover .wk-period-add.is-quiet,
+.wk-period-add.is-quiet:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .wk-period-add.is-quiet {
+    opacity: 0.55;
+  }
 }
 .wk-toast-msg {
   flex: 1;

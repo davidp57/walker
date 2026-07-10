@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import type { Entry, TimesheetCode } from './types'
@@ -44,7 +44,7 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
     viewPreferences: DEFAULT_VIEW_PREFERENCES,
     taskStates: DEFAULT_TASK_STATES,
   })
-  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({})
+  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
 }
 
@@ -92,6 +92,9 @@ describe('App — keyboard-driven timer loop (BIZ-009)', () => {
 
     render(<App />)
     await screen.findByPlaceholderText('What are you working on?')
+    // Settle the initial data-loading and the passive effect registering the global key listener
+    // before dispatching, so a late re-render doesn't race the shortcut (flaky on loaded CI).
+    await act(async () => {})
 
     fireEvent.keyDown(window, { key: 'Enter', ctrlKey: true })
 
@@ -125,6 +128,11 @@ describe('App — keyboard-driven timer loop (BIZ-009)', () => {
 
     render(<App />)
     await screen.findByPlaceholderText('What are you working on?')
+    // The Timer bar (and its input) mounts before the initial data-loading fetches resolve, so the
+    // line above can pass while codes/entries/settings are still settling. Flush those pending
+    // resolutions — and the passive effect that registers the global key listener — before firing
+    // the shortcut, so a late re-render doesn't race the picker mount (flaky on loaded CI runners).
+    await act(async () => {})
 
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
 

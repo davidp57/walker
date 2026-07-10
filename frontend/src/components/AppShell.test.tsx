@@ -142,6 +142,93 @@ describe('AppShell — bottom tab bar (BIZ-033)', () => {
   })
 })
 
+describe('AppShell — Help link to the docs site (BIZ-061)', () => {
+  const DOCS_ROOT = 'https://davidp57.github.io/walker/'
+
+  it('shows a Help link to the docs-site root in the sidebar, opening in a new tab', () => {
+    render(
+      <AppShell route="tracker" onNavigate={vi.fn()} timer={null}>
+        <div />
+      </AppShell>,
+    )
+    const nav = screen.getByRole('navigation', { name: /main navigation/i })
+    const help = within(nav).getByRole('link', { name: /help/i })
+    expect(help).toHaveAttribute('href', DOCS_ROOT)
+    expect(help).toHaveAttribute('target', '_blank')
+    expect(help).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  it('shows a Help link to the docs-site root in the bottom tab bar too', () => {
+    render(
+      <AppShell route="tracker" onNavigate={vi.fn()} timer={null}>
+        <div />
+      </AppShell>,
+    )
+    const tabbar = screen.getByRole('navigation', { name: /bottom tab bar/i })
+    const help = within(tabbar).getByRole('link', { name: /help/i })
+    expect(help).toHaveAttribute('href', DOCS_ROOT)
+    expect(help).toHaveAttribute('target', '_blank')
+    expect(help).toHaveAttribute('rel', 'noopener noreferrer')
+  })
+
+  it('does not fire onNavigate when Help is clicked, and never shows the active state', () => {
+    const onNavigate = vi.fn()
+    render(
+      <AppShell route="tracker" onNavigate={onNavigate} timer={null}>
+        <div />
+      </AppShell>,
+    )
+    const help = within(screen.getByRole('navigation', { name: /main navigation/i })).getByRole(
+      'link',
+      { name: /help/i },
+    )
+    help.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    expect(onNavigate).not.toHaveBeenCalled()
+    expect(help).not.toHaveClass('is-active')
+  })
+
+  it('keeps Help out of the five route items (it is not a screen)', () => {
+    render(
+      <AppShell route="tracker" onNavigate={vi.fn()} timer={null}>
+        <div />
+      </AppShell>,
+    )
+    const nav = screen.getByRole('navigation', { name: /main navigation/i })
+    expect(nav.querySelectorAll('.wk-nav-item')).toHaveLength(5)
+    const tabbar = screen.getByRole('navigation', { name: /bottom tab bar/i })
+    expect(tabbar.querySelectorAll('.wk-tabbar-item')).toHaveLength(5)
+  })
+})
+
+describe('AppShell — tasks-due count badge (BIZ-062)', () => {
+  it('shows the due-task count on the Tasks nav item (sidebar + tab bar) when > 0', () => {
+    render(
+      <AppShell route="tracker" onNavigate={vi.fn()} timer={null} tasksDueCount={2}>
+        <div />
+      </AppShell>,
+    )
+    const nav = screen.getByRole('navigation', { name: /main navigation/i })
+    const tasks = within(nav).getByText('Tasks').closest('button')
+    expect(tasks).toHaveTextContent('2')
+
+    const tabbar = screen.getByRole('navigation', { name: /bottom tab bar/i })
+    const tasksTab = Array.from(tabbar.querySelectorAll('.wk-tabbar-item')).find((el) =>
+      el.textContent?.includes('Tasks'),
+    )
+    expect(tasksTab).toHaveTextContent('2')
+  })
+
+  it('hides the badge when the due count is zero', () => {
+    render(
+      <AppShell route="tracker" onNavigate={vi.fn()} timer={null} tasksDueCount={0}>
+        <div />
+      </AppShell>,
+    )
+    expect(screen.queryByTestId('wk-tasks-due-badge')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('wk-tasks-due-badge-tabbar')).not.toBeInTheDocument()
+  })
+})
+
 describe('AppShell — uncategorized-Entry count (BIZ-010)', () => {
   it('shows the count next to the Activity nav item when there are uncategorized Entries', () => {
     render(

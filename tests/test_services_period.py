@@ -7,7 +7,13 @@ from datetime import date
 from sqlalchemy.orm import Session
 
 from walker.models import Entry, TimesheetCode, User
-from walker.services.period import aggregate_period, period_bounds
+from walker.services.period import (
+    PeriodGrid,
+    PeriodRow,
+    aggregate_period,
+    period_bounds,
+    resolve_to_real_codes,
+)
 
 
 def test_semi_monthly_bounds_first_half() -> None:
@@ -134,6 +140,81 @@ def test_aggregate_sums_real_minutes_by_code_activity_day(session: Session) -> N
     assert row.timesheet_code_id == code_id
     assert row.activity == "Bug fixing"
     assert row.minutes_by_day == {1: 90, 2: 60}
+
+
+def test_aggregate_flags_a_cell_manual_when_any_entry_is_manual(session: Session) -> None:
+    # BIZ-065: a cell is "manual" if it aggregates at least one manual entry; timer-only stays False.
+    user_id, code_id = _seed(session)
+    session.add_all(
+        [
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 1),
+                start_minute=540,
+                end_minute=600,
+                timesheet_code_id=code_id,
+                activity="A",
+                source="timer",
+            ),
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 1),
+                start_minute=600,
+                end_minute=630,
+                timesheet_code_id=code_id,
+                activity="A",
+                source="manual",
+            ),
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 2),
+                start_minute=540,
+                end_minute=600,
+                timesheet_code_id=code_id,
+                activity="A",
+                source="timer",
+            ),
+        ]
+    )
+    session.commit()
+
+    row = aggregate_period(session, user_id, "semi_monthly", date(2026, 7, 2)).rows[0]
+    assert row.manual_by_day.get(1) is True  # day 1 mixes a manual entry in
+    assert row.manual_by_day.get(2) is False  # day 2 is timer-only
+
+
+def test_resolve_to_real_codes_or_combines_the_manual_flag(session: Session) -> None:
+    # BIZ-065: when a virtual-code row merges into its real code, the manual flag is OR-combined.
+    user = User(username="me")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    real = TimesheetCode(user_id=user.id, number="N9/1", label="L", name="Real", color="#111")
+    session.add(real)
+    session.commit()
+    session.refresh(real)
+    virtual = TimesheetCode(
+        user_id=user.id, number="N9/1", label="L", name="Virtual", color="#222", real_code_id=real.id
+    )
+    session.add(virtual)
+    session.commit()
+    session.refresh(virtual)
+
+    grid = PeriodGrid(
+        start=date(2026, 7, 1),
+        end=date(2026, 7, 15),
+        rows=[
+            PeriodRow(real.id, "A", {1: 60}, {1: False}),  # real code, timer-only
+            PeriodRow(virtual.id, "A", {1: 30}, {1: True}),  # virtual code, has a manual entry
+        ],
+    )
+
+    resolved = resolve_to_real_codes(session, grid)
+    assert len(resolved.rows) == 1
+    row = resolved.rows[0]
+    assert row.timesheet_code_id == real.id
+    assert row.minutes_by_day == {1: 90}
+    assert row.manual_by_day == {1: True}
 
 
 def test_aggregate_respects_weekly_scheme(session: Session) -> None:

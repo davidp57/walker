@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Logo } from './Logo'
-import { IconTracker, IconPeriod, IconCatalog, IconTasks, IconSettings } from './icons'
+import { IconTracker, IconPeriod, IconCatalog, IconTasks, IconSettings, IconHelp } from './icons'
+import { DOCS_SITE_URL } from '../lib/links'
 
 export type Route = 'tracker' | 'period' | 'tasks' | 'codes' | 'settings'
 
@@ -35,6 +36,11 @@ interface AppShellProps {
    * nav item; hidden at zero so nothing to code reads as a neutral, uncluttered nav.
    */
   uncategorizedCount?: number
+  /**
+   * Count of tasks that are overdue or due today (excluding done — BIZ-062). Shown as a badge on the
+   * Tasks nav item; hidden at zero.
+   */
+  tasksDueCount?: number
   /** The current user, shown in the footer as `name` if set, else `username`. No role/employer line. */
   user?: ShellUser
 }
@@ -45,6 +51,7 @@ export function AppShell({
   timer,
   children,
   uncategorizedCount = 0,
+  tasksDueCount = 0,
   user,
 }: AppShellProps) {
   const displayName = user?.name ?? user?.username ?? ''
@@ -77,8 +84,25 @@ export function AppShell({
                   {uncategorizedCount}
                 </span>
               )}
+              {item.key === 'tasks' && tasksDueCount > 0 && (
+                <span
+                  className="wk-nav-badge"
+                  data-testid="wk-tasks-due-badge"
+                  title={`${tasksDueCount} task${tasksDueCount === 1 ? '' : 's'} overdue or due today`}
+                >
+                  {tasksDueCount}
+                </span>
+              )}
             </button>
           ))}
+          {/* Global Help link to the docs-site root (BIZ-061): an external link, not a Route — it
+              never toggles active state and doesn't call onNavigate. Set apart below the route nav. */}
+          <a className="wk-nav-help" href={DOCS_SITE_URL} target="_blank" rel="noopener noreferrer">
+            <span className="wk-nav-ico">
+              <IconHelp />
+            </span>
+            <span>Help</span>
+          </a>
         </nav>
         {user && (
           <div className="wk-sidebar-foot">
@@ -114,8 +138,29 @@ export function AppShell({
                 {uncategorizedCount}
               </span>
             )}
+            {item.key === 'tasks' && tasksDueCount > 0 && (
+              <span
+                className="wk-tabbar-badge"
+                data-testid="wk-tasks-due-badge-tabbar"
+                title={`${tasksDueCount} task${tasksDueCount === 1 ? '' : 's'} overdue or due today`}
+              >
+                {tasksDueCount}
+              </span>
+            )}
           </button>
         ))}
+        {/* Help entry point in the phone tab bar too (BIZ-061) — external link, not a Route. */}
+        <a
+          className="wk-tabbar-help"
+          href={DOCS_SITE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span className="wk-tabbar-ico">
+            <IconHelp />
+          </span>
+          <span className="wk-tabbar-label">Help</span>
+        </a>
       </nav>
     </div>
   )

@@ -3,6 +3,32 @@ import { useState } from 'react'
 import type { DayColumn, PeriodRow } from '../types'
 import { checklistKey } from '../types'
 import { formatDuration } from '../lib/time'
+import { roundQuarterHourCarry } from '../lib/rounding'
+
+/**
+ * BIZ-063: per-day-column quarter-hour rounding for the Enter view. Error-carry runs over each day's
+ * cells in row order, so the day total stays closest to the real total. Keyed by `checklistKey`.
+ */
+function buildRoundedMap(days: DayColumn[], rows: PeriodRow[]): Record<string, number> {
+  const map: Record<string, number> = {}
+  for (const d of days) {
+    const rounded = roundQuarterHourCarry(rows.map((r) => r.minutesByDay[d.day] || 0))
+    rows.forEach((r, i) => {
+      map[checklistKey(r.key, d.day)] = rounded[i]
+    })
+  }
+  return map
+}
+
+/** Displayed minutes for a cell: the rounded value when rounding is on, else the real minutes. */
+function shownMinutes(
+  rounded: Record<string, number> | undefined,
+  rowKey: string,
+  day: number,
+  real: number,
+): number {
+  return rounded ? (rounded[checklistKey(rowKey, day)] ?? 0) : real
+}
 
 interface BaseProps {
   days: DayColumn[]
@@ -14,6 +40,26 @@ interface PeriodModeProps extends BaseProps {
   runningCell: { key: string; day: number } | null // the live timer's cell — tinted, read-only
   onOpenCell: (rowKey: string, day: number) => void
   onAddCell: (rowKey: string, day: number) => void // click an empty working cell → new entry, prefilled
+  onAddDay: (day: number) => void // BIZ-066: per-column Add → new entry prefilled with that day's date
+}
+
+/** BIZ-066: the per-day-column "+" Add shown on working days in Review mode (today primary). */
+function DayAddButton({ d, onAddDay }: { d: DayColumn; onAddDay: (day: number) => void }) {
+  if (d.isWeekend || d.isAbsence) return null
+  return (
+    <button
+      type="button"
+      className={`wk-period-add${d.isToday ? ' is-today' : ' is-quiet'}`}
+      data-testid={`wk-period-add-${d.day}`}
+      title="Add an entry on this day"
+      onClick={(e) => {
+        e.stopPropagation()
+        onAddDay(d.day)
+      }}
+    >
+      +
+    </button>
+  )
 }
 
 interface ChecklistModeProps extends BaseProps {
@@ -22,9 +68,12 @@ interface ChecklistModeProps extends BaseProps {
   runningCell: { key: string; day: number } | null // the live timer's cell — tinted, read-only, not tickable
   onToggleCell: (rowKey: string, day: number, mods: { shift: boolean; meta: boolean }) => void
   onToggleRow: (rowKey: string) => void
+  rounding?: boolean // BIZ-063: show quarter-hour-rounded durations (real value greyed beside)
 }
 
 type PeriodGridProps = PeriodModeProps | ChecklistModeProps
+/** Internal render props: the union plus the precomputed rounded map when rounding is on. */
+type GridRenderProps = PeriodGridProps & { roundedByKey?: Record<string, number> }
 
 const COPY_FEEDBACK_MS = 1500
 
@@ -64,9 +113,10 @@ function CopyCodeButton({ codeNumber }: { codeNumber: string }) {
  * shown when that row has minutes on that day. Mirrors a single `<td class="wk-cell">` from the
  * table, but rendered as a row-major line inside a day-major card instead of a table cell.
  */
-function DayCardLine({ row, d, props }: { row: PeriodRow; d: DayColumn; props: PeriodGridProps }) {
+function DayCardLine({ row, d, props }: { row: PeriodRow; d: DayColumn; props: GridRenderProps }) {
   const { mode } = props
-  const minutes = row.minutesByDay[d.day] || 0
+  const real = row.minutesByDay[d.day] || 0
+  const minutes = shownMinutes(props.roundedByKey, row.key, d.day, real)
   const key = checklistKey(row.key, d.day)
   const done = mode === 'checklist' && (props as ChecklistModeProps).checked[key]
   const running = props.runningCell?.key === row.key && props.runningCell?.day === d.day
@@ -112,7 +162,17 @@ function DayCardLine({ row, d, props }: { row: PeriodRow; d: DayColumn; props: P
           <div className="wk-daycard-line-act">{row.activity}</div>
         )}
       </div>
-      <div className="wk-daycard-line-dur">{formatDuration(minutes)}</div>
+      <div className="wk-daycard-line-dur">
+        {formatDuration(minutes)}
+        {props.roundedByKey && minutes !== real && (
+          <span className="wk-dur-real">{formatDuration(real)}</span>
+        )}
+        {real > 0 && row.manualByDay?.[d.day] && (
+          <span className="wk-manual-mark" title="Contains manually-added time">
+            ✎
+          </span>
+        )}
+      </div>
     </div>
   )
 }
@@ -123,10 +183,14 @@ function DayCardLine({ row, d, props }: { row: PeriodRow; d: DayColumn; props: P
  * alongside the table — CSS (`@media (max-width: 640px)`) toggles which one is visible, so no JS
  * breakpoint state is needed. See BIZ-034.
  */
-function DayCards(props: PeriodGridProps) {
-  const { days, rows } = props
+function DayCards(props: GridRenderProps) {
+  const { days, rows, roundedByKey } = props
 
-  const colTotal = (day: number) => rows.reduce((sum, r) => sum + (r.minutesByDay[day] || 0), 0)
+  const colTotal = (day: number) =>
+    rows.reduce(
+      (sum, r) => sum + shownMinutes(roundedByKey, r.key, day, r.minutesByDay[day] || 0),
+      0,
+    )
   const grandTotal = days.reduce(
     (sum, d) => (d.isWeekend || d.isAbsence ? sum : sum + colTotal(d.day)),
     0,
@@ -159,6 +223,9 @@ function DayCards(props: PeriodGridProps) {
               {!d.isWeekend && !d.isAbsence && (
                 <div className="wk-daycard-total">{formatDuration(colTotal(d.day))}</div>
               )}
+              {props.mode === 'period' && (
+                <DayAddButton d={d} onAddDay={(props as PeriodModeProps).onAddDay} />
+              )}
             </div>
             <div className="wk-daycard-lines">
               {lines.map((row) => (
@@ -185,8 +252,17 @@ export function PeriodGrid(props: PeriodGridProps) {
   const { days, rows, mode } = props
   const isPeriod = mode === 'period'
 
-  // Column (daily) totals + grand total for the Timesheet period footer.
-  const colTotal = (day: number) => rows.reduce((sum, r) => sum + (r.minutesByDay[day] || 0), 0)
+  // BIZ-063: rounding is opt-in and Enter-mode only; precompute the per-cell rounded map once.
+  const rounding = mode === 'checklist' && props.rounding === true
+  const roundedByKey = rounding ? buildRoundedMap(days, rows) : undefined
+  const renderProps: GridRenderProps = { ...props, roundedByKey }
+
+  // Column (daily) totals + grand total for the Timesheet period footer — over displayed minutes.
+  const colTotal = (day: number) =>
+    rows.reduce(
+      (sum, r) => sum + shownMinutes(roundedByKey, r.key, day, r.minutesByDay[day] || 0),
+      0,
+    )
   const grandTotal = days.reduce(
     (sum, d) => (d.isWeekend || d.isAbsence ? sum : sum + colTotal(d.day)),
     0,
@@ -194,7 +270,7 @@ export function PeriodGrid(props: PeriodGridProps) {
 
   return (
     <>
-      <DayCards {...props} />
+      <DayCards {...renderProps} />
       <table className="wk-grid">
         <thead>
           <tr>
@@ -208,6 +284,7 @@ export function PeriodGrid(props: PeriodGridProps) {
                 >
                   {d.isAbsence ? 'leave' : d.isToday ? 'today' : ''}
                 </div>
+                {isPeriod && <DayAddButton d={d} onAddDay={(props as PeriodModeProps).onAddDay} />}
               </th>
             ))}
             <th className="wk-total-h">Total</th>
@@ -233,7 +310,11 @@ export function PeriodGrid(props: PeriodGridProps) {
                     (d) => (props as ChecklistModeProps).checked[checklistKey(row.key, d.day)],
                   ).length
                 : 0
-            const rowTotal = fillDays.reduce((s, d) => s + (row.minutesByDay[d.day] || 0), 0)
+            const rowTotal = fillDays.reduce(
+              (s, d) =>
+                s + shownMinutes(roundedByKey, row.key, d.day, row.minutesByDay[d.day] || 0),
+              0,
+            )
 
             return (
               <tr key={row.key}>
@@ -268,6 +349,7 @@ export function PeriodGrid(props: PeriodGridProps) {
                 {days.map((d) => {
                   const minutes = row.minutesByDay[d.day] || 0
                   const filled = minutes > 0
+                  const shown = shownMinutes(roundedByKey, row.key, d.day, minutes)
                   const key = checklistKey(row.key, d.day)
                   const done = mode === 'checklist' && (props as ChecklistModeProps).checked[key]
 
@@ -323,10 +405,18 @@ export function PeriodGrid(props: PeriodGridProps) {
                           className="wk-cell-checkbox"
                           checked={!!done}
                           readOnly
-                          aria-label={`Mark ${formatDuration(minutes)} as entered`}
+                          aria-label={`Mark ${formatDuration(shown)} as entered`}
                         />
                       )}
-                      <span>{filled || running ? formatDuration(minutes) : ''}</span>
+                      <span>{filled || running ? formatDuration(shown) : ''}</span>
+                      {roundedByKey && filled && shown !== minutes && (
+                        <span className="wk-dur-real">{formatDuration(minutes)}</span>
+                      )}
+                      {filled && row.manualByDay?.[d.day] && (
+                        <span className="wk-manual-mark" title="Contains manually-added time">
+                          ✎
+                        </span>
+                      )}
                       {running && <span className="wk-cell-live" />}
                       {canAdd && <span className="wk-cell-add">+</span>}
                     </td>

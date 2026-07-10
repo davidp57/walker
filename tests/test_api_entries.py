@@ -36,6 +36,21 @@ def test_start_creates_a_running_uncategorized_entry(client: TestClient) -> None
     assert entry["date"] == TODAY
 
 
+def test_start_marks_the_entry_as_timer_sourced(client: TestClient) -> None:
+    # BIZ-065: a timer-started entry records source="timer".
+    assert client.post("/api/timer/start").json()["source"] == "timer"
+
+
+def test_manual_add_marks_the_entry_as_manual_sourced(client: TestClient) -> None:
+    # BIZ-065: a "+ Add entry" (direct create) records source="manual".
+    response = client.post(
+        "/api/entries",
+        json={"date": TODAY, "start_minute": 540, "end_minute": 600},
+    )
+    assert response.status_code == 201
+    assert response.json()["source"] == "manual"
+
+
 def test_second_start_is_rejected_while_one_is_running(client: TestClient) -> None:
     client.post("/api/timer/start")
 

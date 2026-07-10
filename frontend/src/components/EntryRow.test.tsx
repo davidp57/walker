@@ -155,6 +155,34 @@ describe('EntryRow — Activity dedup', () => {
   })
 })
 
+describe('EntryRow — manual marker (BIZ-065)', () => {
+  const render1 = (overrides: Partial<Entry>) =>
+    render(
+      <EntryRow
+        entry={entry(overrides)}
+        code={code({ name: 'Paper V4' })}
+        onEdit={noop}
+        onCategorize={noop}
+        onOpenEditor={noop}
+        onResume={noop}
+        onDelete={noop}
+      />,
+    )
+
+  it('marks a manually-added entry', () => {
+    render1({ source: 'manual' })
+    expect(document.querySelector('.wk-manual-mark')).toBeInTheDocument()
+  })
+
+  it('does not mark timer or legacy entries', () => {
+    const { unmount } = render1({ source: 'timer' })
+    expect(document.querySelector('.wk-manual-mark')).toBeNull()
+    unmount()
+    render1({ source: null })
+    expect(document.querySelector('.wk-manual-mark')).toBeNull()
+  })
+})
+
 describe('EntryRow — running mode (BIZ-038)', () => {
   it('renders live, read-only: shows "now" + live duration and no edit/resume/delete', () => {
     renderRow({ running: true, liveMinutes: 48, entry: { ...ENTRY, end: null } })

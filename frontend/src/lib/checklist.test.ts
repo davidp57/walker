@@ -71,7 +71,32 @@ describe('resolveChecklistRows', () => {
 
     const result = resolveChecklistRows(rows, codesById)
 
-    expect(result).toEqual(rows)
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject(rows[0])
+  })
+
+  it('OR-combines the manual flag when virtual rows merge into their real code (BIZ-065)', () => {
+    const rows: PeriodRow[] = [
+      {
+        key: '2|Bug fixing',
+        code: virtualA,
+        activity: 'Bug fixing',
+        minutesByDay: { 1: 60 },
+        manualByDay: { 1: false },
+      },
+      {
+        key: '3|Bug fixing',
+        code: virtualB,
+        activity: 'Bug fixing',
+        minutesByDay: { 1: 30 },
+        manualByDay: { 1: true },
+      },
+    ]
+
+    const result = resolveChecklistRows(rows, codesById)
+
+    expect(result).toHaveLength(1)
+    expect(result[0].manualByDay).toEqual({ 1: true })
   })
 
   it('keeps virtual codes on different real codes as separate rows', () => {

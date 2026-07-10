@@ -9,6 +9,9 @@ interface PeriodScreenProps {
   // BIZ-053: controlled Review/Enter mode (persisted). Omit both to keep the mode local (tests).
   mode?: PeriodScreenMode
   onModeChange?: (mode: PeriodScreenMode) => void
+  // BIZ-063: Enter-view quarter-hour rounding toggle (persisted). Omit to keep it local (tests).
+  rounding?: boolean
+  onRoundingChange?: (rounding: boolean) => void
   periodLabel: string // "1 – 15 July 2026"
   days: DayColumn[]
   reviewRows: PeriodRow[] // grouped by code — virtual codes are their own rows (Review)
@@ -23,7 +26,7 @@ interface PeriodScreenProps {
   onThis: () => void // jump back to the current Timesheet period
   onOpenCell: (rowKey: string, day: number) => void // Review: drill into a cell's entries
   onAddCell: (rowKey: string, day: number) => void // Review: click an empty cell → prefilled new entry
-  onAddEntry: () => void // Review: add an entry directly into this period
+  onAddDay: (day: number) => void // BIZ-066: Review per-column Add → new entry prefilled with that day
   onChecklistChange: (next: ChecklistState) => void // Enter in Timesheet system: full next map (entered flags)
   onChecklistReset: () => void // Enter in Timesheet system: clear all marks for the period
 }
@@ -38,6 +41,8 @@ interface PeriodScreenProps {
 export function PeriodScreen({
   mode: modeProp,
   onModeChange,
+  rounding: roundingProp,
+  onRoundingChange,
   periodLabel,
   days,
   reviewRows,
@@ -50,7 +55,7 @@ export function PeriodScreen({
   onThis,
   onOpenCell,
   onAddCell,
-  onAddEntry,
+  onAddDay,
   onChecklistChange,
   onChecklistReset,
 }: PeriodScreenProps) {
@@ -59,6 +64,11 @@ export function PeriodScreen({
   const mode = modeProp ?? localMode
   const setMode = (next: PeriodScreenMode) =>
     onModeChange ? onModeChange(next) : setLocalMode(next)
+  // BIZ-063: rounding toggle — controlled when the parent supplies it (persisted), else local.
+  const [localRounding, setLocalRounding] = useState(false)
+  const rounding = roundingProp ?? localRounding
+  const setRounding = (next: boolean) =>
+    onRoundingChange ? onRoundingChange(next) : setLocalRounding(next)
   const lastIndex = useRef<number | null>(null)
 
   // Column-major fill order over interactive (filled, non-weekend, non-absence, non-running) cells —
@@ -162,16 +172,7 @@ export function PeriodScreen({
             </button>
           </div>
           <div className="wk-period-label">{periodLabel}</div>
-          {mode === 'review' ? (
-            <button
-              type="button"
-              className="wk-btn wk-btn-primary"
-              style={{ padding: '8px 16px' }}
-              onClick={onAddEntry}
-            >
-              + Add entry
-            </button>
-          ) : (
+          {mode === 'review' ? null : (
             <>
               <div style={{ textAlign: 'right' }}>
                 <div className="wk-progress-count">
@@ -179,6 +180,15 @@ export function PeriodScreen({
                 </div>
                 <div className="wk-progress-label">lines entered</div>
               </div>
+              <button
+                type="button"
+                className={`wk-btn-ghost${rounding ? ' is-active' : ''}`}
+                aria-pressed={rounding}
+                title="Round durations to the quarter-hour (display only — your real minutes are kept)"
+                onClick={() => setRounding(!rounding)}
+              >
+                {rounding ? '¼h rounding on' : 'Round to ¼h'}
+              </button>
               <button type="button" className="wk-btn-ghost" onClick={onChecklistReset}>
                 Reset
               </button>
@@ -208,6 +218,7 @@ export function PeriodScreen({
             runningCell={runningCell}
             onOpenCell={onOpenCell}
             onAddCell={onAddCell}
+            onAddDay={onAddDay}
           />
         ) : (
           <PeriodGrid
@@ -218,6 +229,7 @@ export function PeriodScreen({
             runningCell={enterRunningCell}
             onToggleCell={toggleCell}
             onToggleRow={toggleRow}
+            rounding={rounding}
           />
         )}
       </div>

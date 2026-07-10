@@ -13,7 +13,7 @@ original, still-default behavior), and ``monthly``.
 from __future__ import annotations
 
 import calendar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from sqlalchemy import select
@@ -38,6 +38,8 @@ class PeriodRow:
     timesheet_code_id: int
     activity: str
     minutes_by_day: dict[int, int]
+    # BIZ-065: per-day flag — True when the cell aggregates at least one manual (non-timer) entry.
+    manual_by_day: dict[int, bool] = field(default_factory=dict)
 
 
 @dataclass
@@ -98,6 +100,7 @@ def aggregate_period(session: Session, user_id: int, scheme: PeriodScheme, on: d
     ).all()
 
     cells: dict[tuple[int, str], dict[int, int]] = {}
+    manual: dict[tuple[int, str], dict[int, bool]] = {}
     for entry in entries:
         code_id = entry.timesheet_code_id
         end_minute = entry.end_minute
@@ -106,9 +109,17 @@ def aggregate_period(session: Session, user_id: int, scheme: PeriodScheme, on: d
         minutes = max(0, end_minute - entry.start_minute)
         by_day = cells.setdefault((code_id, entry.activity), {})
         by_day[entry.date.day] = by_day.get(entry.date.day, 0) + minutes
+        manual_by_day = manual.setdefault((code_id, entry.activity), {})
+        day = entry.date.day
+        manual_by_day[day] = manual_by_day.get(day, False) or entry.source == "manual"
 
     rows = [
-        PeriodRow(timesheet_code_id=code_id, activity=activity, minutes_by_day=by_day)
+        PeriodRow(
+            timesheet_code_id=code_id,
+            activity=activity,
+            minutes_by_day=by_day,
+            manual_by_day=manual.get((code_id, activity), {}),
+        )
         for (code_id, activity), by_day in cells.items()
     ]
     return PeriodGrid(start=start, end=end, rows=rows)
@@ -130,14 +141,24 @@ def resolve_to_real_codes(session: Session, grid: PeriodGrid) -> PeriodGrid:
     }
 
     cells: dict[tuple[int, str], dict[int, int]] = {}
+    manual: dict[tuple[int, str], dict[int, bool]] = {}
     for row in grid.rows:
         resolved_id = real_code_by_id.get(row.timesheet_code_id, row.timesheet_code_id)
         by_day = cells.setdefault((resolved_id, row.activity), {})
         for day, minutes in row.minutes_by_day.items():
             by_day[day] = by_day.get(day, 0) + minutes
+        # OR-combine the manual flag as virtual rows merge into their real code (BIZ-065).
+        manual_by_day = manual.setdefault((resolved_id, row.activity), {})
+        for day, is_manual in row.manual_by_day.items():
+            manual_by_day[day] = manual_by_day.get(day, False) or is_manual
 
     rows = [
-        PeriodRow(timesheet_code_id=code_id, activity=activity, minutes_by_day=by_day)
+        PeriodRow(
+            timesheet_code_id=code_id,
+            activity=activity,
+            minutes_by_day=by_day,
+            manual_by_day=manual.get((code_id, activity), {}),
+        )
         for (code_id, activity), by_day in cells.items()
     ]
     return PeriodGrid(start=grid.start, end=grid.end, rows=rows)

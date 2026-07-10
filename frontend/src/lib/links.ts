@@ -1,5 +1,12 @@
 /** Helpers for opening links inside a WYSIWYG editor without breaking editing (BIZ-055). */
 
+/**
+ * Root of the published user-facing documentation site (lower-case `/walker/`, see TEC-007).
+ * Single source of truth for every in-app link to the docs (BIZ-061): the global Help link and the
+ * contextual page links both build from it. Keep the trailing slash so page paths append cleanly.
+ */
+export const DOCS_SITE_URL = 'https://davidp57.github.io/walker/'
+
 const SAFE_SCHEMES = new Set(['http', 'https', 'mailto'])
 
 /**

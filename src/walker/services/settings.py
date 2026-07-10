@@ -44,7 +44,11 @@ DEFAULT_VIEW_PREFERENCES: dict[str, object] = {
     "task_sort_dir": "asc",
     "period_mode": "review",
     "done_collapsed": False,
+    "enter_rounding": False,
 }
+
+# The bool view-preference keys (not enum-constrained): handled uniformly in resolve/clean.
+_BOOL_VIEW_PREFERENCES = ("done_collapsed", "enter_rounding")
 
 
 def _resolve_view_preferences(stored: dict[str, object] | None) -> dict[str, object]:
@@ -55,9 +59,10 @@ def _resolve_view_preferences(stored: dict[str, object] | None) -> dict[str, obj
         value = stored.get(key)
         if isinstance(value, str) and value in options:
             resolved[key] = value
-    done = stored.get("done_collapsed")
-    if isinstance(done, bool):
-        resolved["done_collapsed"] = done
+    for key in _BOOL_VIEW_PREFERENCES:
+        value = stored.get(key)
+        if isinstance(value, bool):
+            resolved[key] = value
     return resolved
 
 
@@ -68,9 +73,10 @@ def _clean_view_preferences_patch(patch: dict[str, object]) -> dict[str, object]
         value = patch.get(key)
         if isinstance(value, str) and value in options:
             cleaned[key] = value
-    done = patch.get("done_collapsed")
-    if isinstance(done, bool):
-        cleaned["done_collapsed"] = done
+    for key in _BOOL_VIEW_PREFERENCES:
+        value = patch.get(key)
+        if isinstance(value, bool):
+            cleaned[key] = value
     return cleaned
 
 

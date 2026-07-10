@@ -36,6 +36,130 @@ function findCell(text: string): HTMLTableCellElement {
   return match
 }
 
+describe('PeriodGrid — manual-entry marker (BIZ-065)', () => {
+  it('marks a cell that contains manual time, not a timer-only cell', () => {
+    const r: PeriodRow = {
+      key: 'c1|A',
+      code: code({ name: 'Alpha' }),
+      activity: 'A',
+      minutesByDay: { 1: 60, 2: 30 },
+      manualByDay: { 1: true },
+    }
+    render(
+      <PeriodGrid
+        mode="period"
+        days={[day({ day: 1 }), day({ day: 2 })]}
+        rows={[r]}
+        runningCell={null}
+        onOpenCell={() => {}}
+        onAddCell={() => {}}
+        onAddDay={() => {}}
+      />,
+    )
+    expect(findCell('1:00').querySelector('.wk-manual-mark')).toBeInTheDocument()
+    expect(findCell('0:30').querySelector('.wk-manual-mark')).toBeNull()
+  })
+})
+
+describe('PeriodGrid — per-day-column Add in Review (BIZ-066)', () => {
+  const row: PeriodRow = {
+    key: 'c1|A',
+    code: code({ name: 'Alpha' }),
+    activity: 'A',
+    minutesByDay: { 1: 60 },
+  }
+  const tableEl = () => document.querySelector('.wk-grid') as HTMLTableElement
+
+  it('shows a per-column Add on working days (today primary, others quiet), not weekends', () => {
+    render(
+      <PeriodGrid
+        mode="period"
+        days={[day({ day: 1, isToday: true }), day({ day: 2 }), day({ day: 3, isWeekend: true })]}
+        rows={[row]}
+        runningCell={null}
+        onOpenCell={() => {}}
+        onAddCell={() => {}}
+        onAddDay={() => {}}
+      />,
+    )
+    expect(within(tableEl()).getByTestId('wk-period-add-1')).toHaveClass('is-today')
+    expect(within(tableEl()).getByTestId('wk-period-add-2')).toHaveClass('is-quiet')
+    expect(within(tableEl()).queryByTestId('wk-period-add-3')).toBeNull()
+  })
+
+  it('calls onAddDay with the column’s day', () => {
+    const onAddDay = vi.fn()
+    render(
+      <PeriodGrid
+        mode="period"
+        days={[day({ day: 1, isToday: true })]}
+        rows={[row]}
+        runningCell={null}
+        onOpenCell={() => {}}
+        onAddCell={() => {}}
+        onAddDay={onAddDay}
+      />,
+    )
+    fireEvent.click(within(tableEl()).getByTestId('wk-period-add-1'))
+    expect(onAddDay).toHaveBeenCalledWith(1)
+  })
+})
+
+describe('PeriodGrid — Enter-view quarter-hour rounding (BIZ-063)', () => {
+  const rowA: PeriodRow = {
+    key: 'c1|A',
+    code: code({ name: 'Alpha' }),
+    activity: 'A',
+    minutesByDay: { 1: 23 },
+  }
+  const rowB: PeriodRow = {
+    key: 'c2|B',
+    code: code({ id: 'c2', name: 'Beta' }),
+    activity: 'B',
+    minutesByDay: { 1: 52 },
+  }
+
+  it('shows rounded durations (with the real value beside) and a rounded daily total when on', () => {
+    render(
+      <PeriodGrid
+        mode="checklist"
+        days={[day({ day: 1 })]}
+        rows={[rowA, rowB]}
+        checked={{}}
+        runningCell={null}
+        onToggleCell={() => {}}
+        onToggleRow={() => {}}
+        rounding
+      />,
+    )
+
+    // Error-carry over [23, 52] → [30, 45]; day total 75 min = 1:15 (real total also 75).
+    const cellA = findCell('0:30')
+    expect(cellA).toHaveTextContent('0:30')
+    // The real minutes show beside the rounded value, in the greyed style.
+    expect(within(cellA).getByText('0:23')).toHaveClass('wk-dur-real')
+    const cellB = findCell('0:45')
+    expect(within(cellB).getByText('0:52')).toHaveClass('wk-dur-real')
+  })
+
+  it('shows real minutes (no rounding) when the toggle is off', () => {
+    render(
+      <PeriodGrid
+        mode="checklist"
+        days={[day({ day: 1 })]}
+        rows={[rowA, rowB]}
+        checked={{}}
+        runningCell={null}
+        onToggleCell={() => {}}
+        onToggleRow={() => {}}
+      />,
+    )
+    expect(findCell('0:23')).toBeInTheDocument()
+    expect(findCell('0:52')).toBeInTheDocument()
+    expect(document.querySelector('.wk-dur-real')).toBeNull()
+  })
+})
+
 describe('PeriodGrid — checklist checkbox affordance (BIZ-008)', () => {
   const row: PeriodRow = {
     key: 'c1|Bug fixing',
@@ -119,6 +243,7 @@ describe('PeriodGrid — checklist checkbox affordance (BIZ-008)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -143,6 +268,7 @@ describe('PeriodGrid — Activity dedup', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -168,6 +294,7 @@ describe('PeriodGrid — Activity dedup', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -312,6 +439,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -330,6 +458,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -354,6 +483,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -373,6 +503,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -445,6 +576,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={onOpenCell}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -467,6 +599,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={{ key: 'c1|Bug fixing', day: 1 }}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 
@@ -489,6 +622,7 @@ describe('PeriodGrid — phone day-card layout (BIZ-034)', () => {
         runningCell={null}
         onOpenCell={() => {}}
         onAddCell={() => {}}
+        onAddDay={() => {}}
       />,
     )
 

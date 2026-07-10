@@ -3,6 +3,7 @@ import type { Task, TaskState, TaskStatus, TimesheetCode, ViewPreferences } from
 import { DEFAULT_TASK_STATES } from '../types'
 import { IconPlay } from '../components/icons'
 import { TaskBoard, type TaskStateEdits } from '../components/TaskBoard'
+import { describeDue } from '../lib/dueDate'
 
 export type TaskSortField = 'status' | 'priority' | 'due' | 'title'
 export type TaskGroupField = 'none' | 'status' | 'priority' | 'due' | 'code'
@@ -205,7 +206,9 @@ export function TasksScreen({
   const terminalId = taskStates[taskStates.length - 1]?.id
   const renderRow = (task: Task) => {
     const code = task.codeId ? (codesById[task.codeId] ?? null) : null
-    const overdue = task.dueDate !== null && task.dueDate < today && task.status !== terminalId
+    const due = task.dueDate ? describeDue(task.dueDate, today) : null
+    // Overdue or due today, unless the task is done (terminal state is never flagged — ADR-0011).
+    const flagged = due !== null && (due.overdue || due.dueToday) && task.status !== terminalId
     return (
       <tr
         key={task.id}
@@ -221,9 +224,12 @@ export function TasksScreen({
               {task.priority && (
                 <span className={`wk-task-priority is-${task.priority}`}>{task.priority}</span>
               )}
-              {task.dueDate && (
-                <span className={overdue ? 'wk-task-due is-overdue' : 'wk-task-due'}>
-                  {task.dueDate}
+              {due && (
+                <span
+                  className={flagged ? 'wk-task-due is-overdue' : 'wk-task-due'}
+                  title={task.dueDate ?? undefined}
+                >
+                  {due.label}
                 </span>
               )}
               {task.tags.map((tag) => (

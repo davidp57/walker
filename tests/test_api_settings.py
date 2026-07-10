@@ -25,6 +25,7 @@ def test_get_settings_includes_default_view_preferences(client: TestClient) -> N
         "task_sort_dir": "asc",
         "period_mode": "review",
         "done_collapsed": False,
+        "enter_rounding": False,
     }
 
 

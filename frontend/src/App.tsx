@@ -43,6 +43,7 @@ import {
 } from './lib/theme'
 import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor, soleActivity } from './lib/tasks'
+import { describeDue } from './lib/dueDate'
 import { ToastProvider } from './lib/toast'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
@@ -239,7 +240,7 @@ export default function App() {
 }
 
 function AppInner() {
-  const { notifyError } = useToast()
+  const { notifyError, notify } = useToast()
   const [route, setRoute] = useState<Route>('tracker')
   const [user, setUser] = useState<ShellUser | undefined>(undefined)
   const [codes, setCodes] = useState<TimesheetCode[]>([])
@@ -250,6 +251,8 @@ function AppInner() {
   const [now, setNow] = useState(Date.now())
   const [anchor, setAnchor] = useState<string>(TODAY)
   const [matrix, setMatrix] = useState<Record<string, Record<number, number>>>({})
+  // BIZ-065: parallel per-cell "has a manual entry" matrix, same `${codeId}|${activity}` keys.
+  const [manualMatrix, setManualMatrix] = useState<Record<string, Record<number, boolean>>>({})
   const [checked, setChecked] = useState<ChecklistState>({})
   const [picker, setPicker] = useState<{ target: 'timer' | string } | null>(null)
   // `prefill` populates the editor from a reference-catalog entry being activated (BIZ-049);
@@ -378,7 +381,10 @@ function AppInner() {
   useEffect(() => {
     const ref = periodStartFor(periodScheme, anchor)
     fetchPeriod(ref)
-      .then(setMatrix)
+      .then(({ minutes, manual }) => {
+        setMatrix(minutes)
+        setManualMatrix(manual)
+      })
       .catch((err: unknown) =>
         notifyError(errorMessage(err, 'Could not load the Timesheet period grid.')),
       )
@@ -398,6 +404,34 @@ function AppInner() {
   // Entries still lacking a Timesheet code (BIZ-010) — surfaced as a live count in the shell so
   // nothing is left uncoded before the Timesheet period closes. Mirrors EntryRow's own `flagged` rule.
   const uncategorizedCount = useMemo(() => entries.filter((e) => !e.codeId).length, [entries])
+
+  // Tasks needing attention (BIZ-062): overdue or due today, excluding the terminal (done) state
+  // (ADR-0011). Drives the Tasks nav badge and the one-time startup toast below.
+  const dueTasks = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10)
+    const terminalId = taskStates[taskStates.length - 1]?.id
+    return tasks
+      .filter((t) => t.dueDate !== null && t.status !== terminalId)
+      .map((t) => describeDue(t.dueDate as string, today))
+      .filter((d) => d.overdue || d.dueToday)
+  }, [tasks, taskStates])
+  const tasksDueCount = dueTasks.length
+
+  // Surface due tasks once per app load — not on every later task reload — so the user is told
+  // even when they aren't looking at the Tasks screen (BIZ-062).
+  const dueToastShown = useRef(false)
+  useEffect(() => {
+    if (dueToastShown.current || tasksLoading) return
+    dueToastShown.current = true
+    if (dueTasks.length === 0) return
+    const overdue = dueTasks.filter((d) => d.overdue).length
+    const dueToday = dueTasks.filter((d) => d.dueToday).length
+    const parts: string[] = []
+    if (overdue > 0) parts.push(`${overdue} overdue`)
+    if (dueToday > 0) parts.push(`${dueToday} due today`)
+    const n = dueTasks.length
+    notify(`${n} task${n === 1 ? '' : 's'} due — ${parts.join(', ')}`)
+  }, [tasksLoading, dueTasks, notify])
 
   // Tick the clock every second only while a timer is running.
   useEffect(() => {
@@ -550,24 +584,7 @@ function AppInner() {
 
   // Compose a manual entry (no timer): default to today 9:00–10:00. Nothing is written until Save
   // (BIZ-011) — cancelling the editor leaves no phantom entry, matching the Timesheet period add path.
-  const addEntry = () => {
-    setAddDraft({
-      id: 'new',
-      date: TODAY,
-      start: 9 * 60,
-      end: 10 * 60,
-      codeId: null,
-      activity: null,
-      description: '',
-    })
-  }
-
-  // Compose an entry inside the Timesheet period view. Nothing is written until Save (no phantom on
-  // cancel). Default the date to today when viewing the current period, else the first day of the
-  // viewed one.
-  const openAddEntryInPeriod = () => {
-    const periodStart = periodStartFor(periodScheme, anchor)
-    const date = periodStart === periodStartFor(periodScheme, TODAY) ? TODAY : periodStart
+  const addEntry = (date: string = TODAY) => {
     setAddDraft({
       id: 'new',
       date,
@@ -578,6 +595,7 @@ function AppInner() {
       description: '',
     })
   }
+
   const saveAddDraft = (patch: Partial<Entry>) => {
     if (!addDraft) return
     const e = { ...addDraft, ...patch }
@@ -847,13 +865,15 @@ function AppInner() {
 
   const rows: PeriodRow[] = useMemo(
     () =>
-      Object.keys(matrix)
-        .map((key) => {
-          const [codeId, activity] = key.split('|') as [string, ActivityName]
-          return { key, code: codesById[codeId], activity, minutesByDay: matrix[key] }
-        })
-        .filter((r): r is PeriodRow => Boolean(r.code)),
-    [matrix, codesById],
+      Object.keys(matrix).flatMap((key) => {
+        const [codeId, activity] = key.split('|') as [string, ActivityName]
+        const code = codesById[codeId]
+        if (!code) return []
+        return [
+          { key, code, activity, minutesByDay: matrix[key], manualByDay: manualMatrix[key] ?? {} },
+        ]
+      }),
+    [matrix, manualMatrix, codesById],
   )
 
   // The running timer as a Timesheet period cell: shown live in its code × activity row, but only
@@ -897,7 +917,10 @@ function AppInner() {
           : r,
       )
     }
-    return [...rows, { key, code, activity, minutesByDay: { [day]: runningMinutes } }]
+    return [
+      ...rows,
+      { key, code, activity, minutesByDay: { [day]: runningMinutes }, manualByDay: {} },
+    ]
   }, [rows, runningCell, runningMinutes])
 
   // Enter-in-Timesheet-system view (ADR-0008): resolve virtual codes to their real code and collapse rows that
@@ -955,6 +978,10 @@ function AppInner() {
       description: recent?.description ?? '',
     })
   }
+
+  // BIZ-066: per-day-column Add in the Review grid — a code-agnostic new entry prefilled with that
+  // column's date (day-of-month resolved within the viewed period).
+  const openAddEntryOnDay = (day: number) => addEntry(cellDayIso(day))
 
   // ---- Checklist (server-backed — BIZ-005) ----
   const applyChecklistChange = (next: ChecklistState) => {
@@ -1106,6 +1133,7 @@ function AppInner() {
       onNavigate={setRoute}
       timer={timerBar}
       uncategorizedCount={uncategorizedCount}
+      tasksDueCount={tasksDueCount}
       user={user}
     >
       {route === 'tracker' && (
@@ -1132,12 +1160,15 @@ function AppInner() {
           }}
           onLoadEarlier={() => setTrackerFrom((f) => addDays(f, -14))}
           onAddEntry={addEntry}
+          today={TODAY}
         />
       )}
       {route === 'period' && (
         <PeriodScreen
           mode={viewPreferences.period_mode}
           onModeChange={(mode) => updateViewPreferences({ period_mode: mode })}
+          rounding={viewPreferences.enter_rounding}
+          onRoundingChange={(enter_rounding) => updateViewPreferences({ enter_rounding })}
           periodLabel={periodLabel}
           days={days}
           reviewRows={gridRows}
@@ -1150,7 +1181,7 @@ function AppInner() {
           onThis={() => setAnchor(TODAY)}
           onOpenCell={openCell}
           onAddCell={openAddInCell}
-          onAddEntry={openAddEntryInPeriod}
+          onAddDay={openAddEntryOnDay}
           onChecklistChange={applyChecklistChange}
           onChecklistReset={resetChecklistMarks}
         />
