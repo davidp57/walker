@@ -40,10 +40,18 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
   (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
-## Now — backlog drained
+## Now
 
-All planned tickets are shipped; no ticket is currently ready or in progress. The three living lots
-stay open as containers for future work, but hold no open tickets:
+Ready to pick up (release paused to gather a batch before cutting the next version):
+
+- **BIZ-063** (POLISH, P2) — Enter view: **optional intelligent quarter-hour rounding**. A persisted
+  per-user toggle applies error-carried rounding to each day column (day total stays closest to the
+  real total), showing the rounded value prominently and the real value greyed; non-destructive,
+  frontend-only. Introduces **ADR-0013** (amends ADR-0005's "no rounding"). See
+  `.backlog/POLISH/tickets/22-enter-view-quarter-hour-rounding.md`.
+
+Everything else is shipped. The three living lots stay open as containers for future work; apart from
+the above they hold no open tickets:
 
 - **POLISH** (living lot of small UX improvements) — fully shipped: BIZ-038…047 (running Timer in
   Activity, absence date range, description de-noise, task priority/due pills + inline status,

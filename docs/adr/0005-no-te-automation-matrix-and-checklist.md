@@ -24,3 +24,7 @@ into the timesheet system, so nothing is missed or double-entered.
   durations.
 - Model an **entry progress** (checklist): "to enter / entered" state per line or cell.
 - Reconsider only if an official **timesheet-system API** becomes available.
+
+> **Amended by [ADR-0013](0013-optional-quarter-hour-rounding-enter-view.md)**: the "no rounding"
+> consequence is relaxed — the Enter view gains an *optional, non-destructive* quarter-hour rounding
+> (display layer only; real minutes stay the system of record). Every other consequence here stands.
