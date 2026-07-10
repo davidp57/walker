@@ -53,6 +53,10 @@ Ready to pick up (release paused to gather a batch before cutting the next versi
   Today's is primary/blue and always visible (replacing the global header button); other days' are
   quiet, revealed on hover/focus (always visible on touch). See
   `.backlog/POLISH/tickets/23-per-day-add-entry-button.md`.
+- **BIZ-065** (POLISH, P2) — **mark manual entries** vs timer entries: a persisted `Entry.source`
+  (timer/manual, nullable for legacy) surfaced as a subtle marker in the Activity, Timesheet period,
+  and Enter views (a period/Enter cell is marked if it contains any manual minutes). See
+  `.backlog/POLISH/tickets/24-mark-manual-vs-timer-entries.md`.
 
 Everything else is shipped. The three living lots stay open as containers for future work; apart from
 the above they hold no open tickets:
