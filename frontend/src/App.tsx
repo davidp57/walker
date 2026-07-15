@@ -1244,64 +1244,6 @@ function AppInner() {
         />
       )}
 
-      {picker && (
-        <CodePicker
-          title={
-            picker.target === 'timer'
-              ? 'Change code'
-              : picker.target === 'new'
-                ? 'Pick code & activity'
-                : 'Categorize entry'
-          }
-          codes={codes}
-          onCreateNew={(q) => setEditor({ code: null, initialName: q })}
-          onCreateNewVirtual={() => {
-            const reopenPicker = picker.target
-            setPicker(null)
-            setVirtualEditor({ code: null, reopenPicker })
-          }}
-          onSearchReference={searchReference}
-          onActivateReference={(ref) => activateReference(ref)}
-          onPick={(codeId, activity) => {
-            // This picker always chooses an activity (never code-only, BIZ-037); the guard narrows
-            // `activity` to a string for the entry/timer paths below.
-            if (activity === undefined) return
-            // Prefill from the last comment used on this code (real or virtual) + activity, when one
-            // exists (BIZ-013) — otherwise leave the description as it was.
-            const lastDescription = lastDescriptionFor(entries, codeId, activity)
-            if (picker.target === 'timer') {
-              pickTask(codeId, activity)
-              if (lastDescription !== null) {
-                setDraft((d) => ({ ...d, description: lastDescription }))
-                if (running) {
-                  apiPatchEntry(running.id, { description: lastDescription })
-                    .then(reload)
-                    .catch((err: unknown) =>
-                      notifyError(errorMessage(err, 'Could not save the entry.')),
-                    )
-                }
-              }
-            } else if (picker.target === 'new') {
-              setAddDraft((d) =>
-                d ? { ...d, codeId, activity, description: lastDescription ?? d.description } : d,
-              )
-            } else {
-              apiPatchEntry(picker.target, {
-                codeId,
-                activity,
-                ...(lastDescription !== null ? { description: lastDescription } : {}),
-              })
-                .then(reload)
-                .catch((err: unknown) =>
-                  notifyError(errorMessage(err, 'Could not save the entry.')),
-                )
-            }
-            setPicker(null)
-          }}
-          onClose={() => setPicker(null)}
-        />
-      )}
-
       {virtualEditor && (
         <VirtualCodeEditor
           code={virtualEditor.code}
@@ -1380,6 +1322,67 @@ function AppInner() {
             if (found) deleteEntryWithUndo(found, refreshCell)
           }}
           onClose={() => setCellDrill(null)}
+        />
+      )}
+
+      {/* Rendered after CellEntriesModal (and the other openers above) so the picker stacks above the
+          modal it was opened from: modals share one z-index, so DOM order alone decides stacking, and
+          the picker is opened from within the cell drill-down (TEC-009). */}
+      {picker && (
+        <CodePicker
+          title={
+            picker.target === 'timer'
+              ? 'Change code'
+              : picker.target === 'new'
+                ? 'Pick code & activity'
+                : 'Categorize entry'
+          }
+          codes={codes}
+          onCreateNew={(q) => setEditor({ code: null, initialName: q })}
+          onCreateNewVirtual={() => {
+            const reopenPicker = picker.target
+            setPicker(null)
+            setVirtualEditor({ code: null, reopenPicker })
+          }}
+          onSearchReference={searchReference}
+          onActivateReference={(ref) => activateReference(ref)}
+          onPick={(codeId, activity) => {
+            // This picker always chooses an activity (never code-only, BIZ-037); the guard narrows
+            // `activity` to a string for the entry/timer paths below.
+            if (activity === undefined) return
+            // Prefill from the last comment used on this code (real or virtual) + activity, when one
+            // exists (BIZ-013) — otherwise leave the description as it was.
+            const lastDescription = lastDescriptionFor(entries, codeId, activity)
+            if (picker.target === 'timer') {
+              pickTask(codeId, activity)
+              if (lastDescription !== null) {
+                setDraft((d) => ({ ...d, description: lastDescription }))
+                if (running) {
+                  apiPatchEntry(running.id, { description: lastDescription })
+                    .then(reload)
+                    .catch((err: unknown) =>
+                      notifyError(errorMessage(err, 'Could not save the entry.')),
+                    )
+                }
+              }
+            } else if (picker.target === 'new') {
+              setAddDraft((d) =>
+                d ? { ...d, codeId, activity, description: lastDescription ?? d.description } : d,
+              )
+            } else {
+              apiPatchEntry(picker.target, {
+                codeId,
+                activity,
+                ...(lastDescription !== null ? { description: lastDescription } : {}),
+              })
+                .then(reload)
+                .catch((err: unknown) =>
+                  notifyError(errorMessage(err, 'Could not save the entry.')),
+                )
+            }
+            setPicker(null)
+          }}
+          onClose={() => setPicker(null)}
         />
       )}
 
