@@ -59,6 +59,9 @@ function defaultRuleFor(kind: RecurrenceKind): RecurrenceRule {
 
 interface TaskPanelProps {
   task: Task | null // null = creating a new Task
+  // Code to prefill when creating a new Task (BIZ-067: "Add" from a project section); ignored when
+  // editing an existing Task.
+  initialCodeId?: string | null
   codes: TimesheetCode[]
   taskStates?: TaskState[] // the user's ordered states (BIZ-056) — drives the dropdown; defaults to the five
   tagSuggestions: string[] // every tag used across the user's Tasks, for autocomplete
@@ -84,6 +87,7 @@ const PRIORITY_OPTIONS: { value: TaskPriority | ''; label: string }[] = [
 /** Side panel to view/edit a Task's fields (BIZ-021) — create when `task` is null, edit otherwise. */
 export function TaskPanel({
   task,
+  initialCodeId = null,
   codes,
   taskStates = DEFAULT_TASK_STATES,
   tagSuggestions,
@@ -102,7 +106,7 @@ export function TaskPanel({
   const [dueDate, setDueDate] = useState<string>(task?.dueDate ?? '')
   const [tags, setTags] = useState<string[]>(task?.tags ?? [])
   const [tagInput, setTagInput] = useState('')
-  const [codeId, setCodeId] = useState<string | null>(task?.codeId ?? null)
+  const [codeId, setCodeId] = useState<string | null>(task?.codeId ?? initialCodeId)
   const [codePickerOpen, setCodePickerOpen] = useState(false)
   const selectedCode = codeId ? (codes.find((c) => c.id === codeId) ?? null) : null
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(

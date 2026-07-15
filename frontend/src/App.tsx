@@ -292,7 +292,10 @@ function AppInner() {
   const [tasksLoading, setTasksLoading] = useState(true)
   const [taskTags, setTaskTags] = useState<string[]>([])
   // `{ task: null }` = creating a new Task; `{ task }` = editing an existing one.
-  const [taskPanel, setTaskPanel] = useState<{ task: Task | null } | null>(null)
+  const [taskPanel, setTaskPanel] = useState<{
+    task: Task | null
+    initialCodeId?: string | null
+  } | null>(null)
 
   // Settings (drive the Timesheet period grid + density)
   const [workdays, setWorkdays] = useState<boolean[]>([false, true, true, true, true, true, false]) // Sun..Sat
@@ -1194,6 +1197,7 @@ function AppInner() {
           stateEdits={stateEdits}
           loading={tasksLoading}
           onNew={() => setTaskPanel({ task: null })}
+          onNewInCode={(codeId) => setTaskPanel({ task: null, initialCodeId: codeId })}
           onOpenTask={(task) => setTaskPanel({ task })}
           onStartTask={startTaskTimer}
           onMoveTask={moveTask}
@@ -1285,6 +1289,7 @@ function AppInner() {
       {taskPanel && (
         <TaskPanel
           task={taskPanel.task}
+          initialCodeId={taskPanel.initialCodeId ?? null}
           codes={codes}
           taskStates={taskStates}
           tagSuggestions={taskTags}

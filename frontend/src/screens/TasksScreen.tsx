@@ -22,6 +22,9 @@ interface TasksScreenProps {
   stateEdits?: TaskStateEdits // in-kanban column editing (BIZ-057); omit to hide the controls
   loading?: boolean
   onNew: () => void
+  // BIZ-067: "Add" a Task from a project section header, prefilled with that section's code (null
+  // for "No project"). Used only when grouping by project (code); omit to hide the per-section Add.
+  onNewInCode?: (codeId: string | null) => void
   onOpenTask: (task: Task) => void
   // Start a Timer from this Task (BIZ-023) — title as comment, code prefilled. Omit to hide the
   // row action (e.g. a read-only context).
@@ -103,6 +106,7 @@ export function TasksScreen({
   stateEdits,
   loading = false,
   onNew,
+  onNewInCode,
   onOpenTask,
   onStartTask,
   onMoveTask,
@@ -369,6 +373,7 @@ export function TasksScreen({
           states={taskStates}
           stateEdits={group === 'code' ? undefined : stateEdits}
           groupByCode={group === 'code'}
+          onNewInCode={onNewInCode}
           onOpenTask={onOpenTask}
           onMoveTask={onMoveTask ?? (() => {})}
           onStartTask={onStartTask}
@@ -398,7 +403,20 @@ export function TasksScreen({
                 {g.label && (
                   <tr className="wk-task-group-row">
                     <td colSpan={columnCount}>
-                      <div className="wk-task-group-title">{g.label}</div>
+                      <div className="wk-task-group-title">
+                        <span>{g.label}</span>
+                        {group === 'code' && onNewInCode && (
+                          <button
+                            type="button"
+                            className="wk-btn-icon wk-task-group-add"
+                            title={`Add a task in ${g.label}`}
+                            data-testid={`wk-task-group-add-${g.items[0]?.codeId ?? 'none'}`}
+                            onClick={() => onNewInCode(g.items[0]?.codeId ?? null)}
+                          >
+                            +
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )}
