@@ -44,11 +44,14 @@ a = Analysis(
         "uvicorn.protocols.websockets.auto",
         "uvicorn.lifespan",
         "uvicorn.lifespan.on",
-        "alembic",
         "walker.models",
         "pydantic_settings",
         "pydantic_settings.sources",
     ]
+    # Alembic loads command/config/ddl submodules dynamically at runtime (standalone._run_migrations
+    # does `from alembic.command import upgrade`); collect the whole package so the frozen exe can
+    # migrate on startup (a bare "alembic" hidden-import misses alembic.command → ModuleNotFoundError).
+    + collect_submodules("alembic")
     + collect_submodules("pydantic_settings")
     + collect_submodules("walker"),
     hookspath=[],
