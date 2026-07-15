@@ -24,4 +24,8 @@ class ReferenceCode(TimestampMixin, Base):
     number: Mapped[str] = mapped_column(String(50), index=True)
     label: Mapped[str] = mapped_column(String(255))
     name: Mapped[str] = mapped_column(String(255))
+    # T&E grid ordering keys (BIZ-068): client name + single-char type (C/N/A). Nullable — absent from
+    # the pre-enrichment CSV layouts.
+    customer: Mapped[str | None] = mapped_column(String(255), default=None)
+    code_type: Mapped[str | None] = mapped_column(String(1), default=None)
     activities: Mapped[list[dict[str, str]]] = mapped_column(JSON, default=list)

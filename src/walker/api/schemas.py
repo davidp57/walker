@@ -64,6 +64,10 @@ class CodeRead(BaseModel):
     name: str
     color: str
     activities: list[ActivityRead]
+    # T&E grid-ordering keys (BIZ-068), resolved virtual→real like number/label; null when the code
+    # predates the enriched catalog import.
+    customer: str | None = None
+    type: str | None = None
     is_virtual: bool = False
     real_code_id: int | None = None
     real_code_number: str | None = None

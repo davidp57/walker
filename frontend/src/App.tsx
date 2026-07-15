@@ -292,7 +292,10 @@ function AppInner() {
   const [tasksLoading, setTasksLoading] = useState(true)
   const [taskTags, setTaskTags] = useState<string[]>([])
   // `{ task: null }` = creating a new Task; `{ task }` = editing an existing one.
-  const [taskPanel, setTaskPanel] = useState<{ task: Task | null } | null>(null)
+  const [taskPanel, setTaskPanel] = useState<{
+    task: Task | null
+    initialCodeId?: string | null
+  } | null>(null)
 
   // Settings (drive the Timesheet period grid + density)
   const [workdays, setWorkdays] = useState<boolean[]>([false, true, true, true, true, true, false]) // Sun..Sat
@@ -1194,6 +1197,7 @@ function AppInner() {
           stateEdits={stateEdits}
           loading={tasksLoading}
           onNew={() => setTaskPanel({ task: null })}
+          onNewInCode={(codeId) => setTaskPanel({ task: null, initialCodeId: codeId })}
           onOpenTask={(task) => setTaskPanel({ task })}
           onStartTask={startTaskTimer}
           onMoveTask={moveTask}
@@ -1244,6 +1248,91 @@ function AppInner() {
         />
       )}
 
+      {virtualEditor && (
+        <VirtualCodeEditor
+          code={virtualEditor.code}
+          realCodes={codes.filter((c) => !c.isVirtual)}
+          codes={codes}
+          onSave={saveVirtualCode}
+          onDelete={
+            virtualEditor.code && !isCodeInUse(virtualEditor.code.id)
+              ? () => deleteCode(virtualEditor.code!)
+              : undefined
+          }
+          onClose={() => setVirtualEditor(null)}
+          onSearchReference={searchReference}
+          onActivateReference={activateReference}
+        />
+      )}
+
+      {editorEntry && (
+        <EntryEditor
+          entry={editorEntry}
+          code={editorEntry.codeId ? (codesById[editorEntry.codeId] ?? null) : null}
+          onSave={(patch) =>
+            apiPatchEntry(editorEntry.id, patch)
+              .then(() => {
+                refreshCell()
+                return reload()
+              })
+              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
+          }
+          onOpenPicker={() => {
+            setPicker({ target: editorEntry.id })
+            setEditorEntry(null)
+          }}
+          onDelete={() => deleteEntryWithUndo(editorEntry, refreshCell)}
+          onClose={() => setEditorEntry(null)}
+        />
+      )}
+
+      {taskPanel && (
+        <TaskPanel
+          task={taskPanel.task}
+          initialCodeId={taskPanel.initialCodeId ?? null}
+          codes={codes}
+          taskStates={taskStates}
+          tagSuggestions={taskTags}
+          onSave={saveTask}
+          onDelete={taskPanel.task ? () => deleteTask(taskPanel.task!) : undefined}
+          onClose={() => setTaskPanel(null)}
+          onSearchReference={searchReference}
+          onActivateReference={activateReference}
+          onCreateNew={(q) => setEditor({ code: null, initialName: q })}
+          onCreateNewVirtual={() => setVirtualEditor({ code: null, reopenPicker: null })}
+        />
+      )}
+
+      {cellDrill && (
+        <CellEntriesModal
+          title={cellDrill.title}
+          entries={cellEntries}
+          codesById={codesById}
+          onEditEntry={(id, patch) =>
+            apiPatchEntry(id, patch)
+              .then(() => {
+                refreshCell()
+                return reload()
+              })
+              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
+          }
+          onCategorizeEntry={(id) => setPicker({ target: id })}
+          onOpenEntry={(id) => {
+            const found = cellEntries.find((e) => e.id === id)
+            if (found) setEditorEntry(found)
+          }}
+          onResumeEntry={resumeEntry}
+          onDeleteEntry={(id) => {
+            const found = cellEntries.find((e) => e.id === id)
+            if (found) deleteEntryWithUndo(found, refreshCell)
+          }}
+          onClose={() => setCellDrill(null)}
+        />
+      )}
+
+      {/* Rendered after CellEntriesModal (and the other openers above) so the picker stacks above the
+          modal it was opened from: modals share one z-index, so DOM order alone decides stacking, and
+          the picker is opened from within the cell drill-down (TEC-009). */}
       {picker && (
         <CodePicker
           title={
@@ -1299,87 +1388,6 @@ function AppInner() {
             setPicker(null)
           }}
           onClose={() => setPicker(null)}
-        />
-      )}
-
-      {virtualEditor && (
-        <VirtualCodeEditor
-          code={virtualEditor.code}
-          realCodes={codes.filter((c) => !c.isVirtual)}
-          codes={codes}
-          onSave={saveVirtualCode}
-          onDelete={
-            virtualEditor.code && !isCodeInUse(virtualEditor.code.id)
-              ? () => deleteCode(virtualEditor.code!)
-              : undefined
-          }
-          onClose={() => setVirtualEditor(null)}
-          onSearchReference={searchReference}
-          onActivateReference={activateReference}
-        />
-      )}
-
-      {editorEntry && (
-        <EntryEditor
-          entry={editorEntry}
-          code={editorEntry.codeId ? (codesById[editorEntry.codeId] ?? null) : null}
-          onSave={(patch) =>
-            apiPatchEntry(editorEntry.id, patch)
-              .then(() => {
-                refreshCell()
-                return reload()
-              })
-              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
-          }
-          onOpenPicker={() => {
-            setPicker({ target: editorEntry.id })
-            setEditorEntry(null)
-          }}
-          onDelete={() => deleteEntryWithUndo(editorEntry, refreshCell)}
-          onClose={() => setEditorEntry(null)}
-        />
-      )}
-
-      {taskPanel && (
-        <TaskPanel
-          task={taskPanel.task}
-          codes={codes}
-          taskStates={taskStates}
-          tagSuggestions={taskTags}
-          onSave={saveTask}
-          onDelete={taskPanel.task ? () => deleteTask(taskPanel.task!) : undefined}
-          onClose={() => setTaskPanel(null)}
-          onSearchReference={searchReference}
-          onActivateReference={activateReference}
-          onCreateNew={(q) => setEditor({ code: null, initialName: q })}
-          onCreateNewVirtual={() => setVirtualEditor({ code: null, reopenPicker: null })}
-        />
-      )}
-
-      {cellDrill && (
-        <CellEntriesModal
-          title={cellDrill.title}
-          entries={cellEntries}
-          codesById={codesById}
-          onEditEntry={(id, patch) =>
-            apiPatchEntry(id, patch)
-              .then(() => {
-                refreshCell()
-                return reload()
-              })
-              .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
-          }
-          onCategorizeEntry={(id) => setPicker({ target: id })}
-          onOpenEntry={(id) => {
-            const found = cellEntries.find((e) => e.id === id)
-            if (found) setEditorEntry(found)
-          }}
-          onResumeEntry={resumeEntry}
-          onDeleteEntry={(id) => {
-            const found = cellEntries.find((e) => e.id === id)
-            if (found) deleteEntryWithUndo(found, refreshCell)
-          }}
-          onClose={() => setCellDrill(null)}
         />
       )}
 

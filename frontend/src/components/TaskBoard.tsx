@@ -42,6 +42,9 @@ interface StatusBoardProps {
 export interface TaskBoardProps extends StatusBoardProps {
   /** Split the board into one swimlane per project (code), plus a "No project" lane (BIZ-036). */
   groupByCode?: boolean
+  // BIZ-067: "Add" a Task straight into a project swimlane, prefilled with that lane's code (null
+  // for the "No project" lane). Only used when `groupByCode`; omit to hide the per-lane Add.
+  onNewInCode?: (codeId: string | null) => void
 }
 
 /**
@@ -604,6 +607,7 @@ export function TaskBoard({
   doneCollapsed,
   onDoneCollapsedChange,
   groupByCode = false,
+  onNewInCode,
 }: TaskBoardProps) {
   if (!groupByCode) {
     return (
@@ -625,7 +629,21 @@ export function TaskBoard({
     <div className="wk-board-lanes">
       {laneOrder(tasks, codesById).map((lane) => (
         <div key={lane.key} className="wk-board-lane" data-testid={`wk-board-lane-${lane.key}`}>
-          <div className="wk-board-lane-head">{lane.label}</div>
+          <div className="wk-board-lane-head">
+            <span>{lane.label}</span>
+            {onNewInCode && (
+              <button
+                type="button"
+                className="wk-btn-icon wk-board-lane-add"
+                title={`Add a task in ${lane.label}`}
+                aria-label={`Add a task in ${lane.label}`}
+                data-testid={`wk-board-lane-add-${lane.key}`}
+                onClick={() => onNewInCode(lane.key === 'none' ? null : lane.key)}
+              >
+                +
+              </button>
+            )}
+          </div>
           <StatusBoard
             tasks={lane.tasks}
             codesById={codesById}

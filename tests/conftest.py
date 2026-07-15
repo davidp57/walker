@@ -17,7 +17,7 @@ from sqlalchemy.pool import StaticPool
 
 from walker.api.app import create_app
 from walker.config import settings
-from walker.db import get_session
+from walker.db import _configure_sqlite_engine, get_session
 from walker.models import Base
 
 
@@ -30,6 +30,9 @@ def session_factory() -> Iterator[sessionmaker[Session]]:
         poolclass=StaticPool,
         future=True,
     )
+    # Apply the same per-connection PRAGMAs as production (foreign_keys=ON, WAL) so tests exercise
+    # real foreign-key enforcement rather than SQLite's default lax behavior.
+    _configure_sqlite_engine(engine)
     Base.metadata.create_all(engine)
     try:
         yield sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)

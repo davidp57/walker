@@ -49,6 +49,28 @@ describe('TaskPanel', () => {
     )
   })
 
+  it('prefills the code for a new task from initialCodeId (BIZ-067)', () => {
+    const onSave = vi.fn()
+    render(
+      <TaskPanel
+        task={null}
+        initialCodeId={CODE.id}
+        codes={[CODE]}
+        tagSuggestions={[]}
+        onSave={onSave}
+        onClose={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByTestId('wk-task-code-trigger')).toHaveTextContent('Paper V4')
+    fireEvent.change(screen.getByTestId('wk-task-title-input'), {
+      target: { value: 'New paper task' },
+    })
+    fireEvent.click(screen.getByTestId('wk-task-save'))
+
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ codeId: '9' }))
+  })
+
   it('disables Save while the title is blank', () => {
     render(
       <TaskPanel task={null} codes={[]} tagSuggestions={[]} onSave={vi.fn()} onClose={vi.fn()} />,

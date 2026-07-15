@@ -10,9 +10,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 
 from walker.db import _configure_sqlite_engine
+from walker.models import Task
 
 
 def test_configure_sqlite_engine_enables_wal_mode(tmp_path: Path) -> None:
@@ -62,3 +66,15 @@ def test_configure_sqlite_engine_applies_pragmas_to_new_connections(tmp_path: Pa
 
     assert journal_mode.lower() == "wal"
     assert foreign_keys == 1
+
+
+def test_in_memory_test_session_enforces_foreign_keys(session: Session) -> None:
+    """The shared in-memory test session rejects a dangling foreign key, matching production.
+
+    Guards the suite-wide invariant wired in ``conftest`` (``_configure_sqlite_engine`` on the test
+    engine): without ``foreign_keys=ON`` SQLite silently accepts orphan rows, which is exactly why
+    the code-deletion FK crash slipped past the tests before.
+    """
+    session.add(Task(user_id=999, title="orphan"))
+    with pytest.raises(IntegrityError):
+        session.commit()

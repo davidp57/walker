@@ -16,7 +16,13 @@ from walker.services.catalog import ParsedActivity, ParsedCode
 
 
 def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -> tuple[int, int]:
-    """Upsert parsed codes into the reference catalog by number. Returns ``(created, updated)``."""
+    """Upsert parsed codes into the reference catalog by number. Returns ``(created, updated)``.
+
+    When the import carries the enriched T&E ordering keys (``customer``/``code_type``, BIZ-068), they
+    are stored on the reference codes and also **backfilled onto the matching already-active real
+    codes** (by number, within the user's visible catalog) so the Enter-in-Timesheet-system view can
+    order to match T&E without re-activating each code.
+    """
     existing = {
         ref.number: ref for ref in session.scalars(select(ReferenceCode).where(ReferenceCode.user_id == user_id))
     }
@@ -31,6 +37,8 @@ def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -
                 number=entry.number,
                 label=entry.label,
                 name=entry.name,
+                customer=entry.customer,
+                code_type=entry.code_type,
                 activities=activities,
             )
             session.add(ref)
@@ -39,8 +47,30 @@ def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -
         else:
             ref.label = entry.label
             ref.name = entry.name
+            # Only overwrite the ordering keys when the import actually carries them, so a later
+            # legacy (non-enriched) re-import can't wipe values loaded from an enriched file (BIZ-068).
+            if entry.customer is not None:
+                ref.customer = entry.customer
+            if entry.code_type is not None:
+                ref.code_type = entry.code_type
             ref.activities = activities
             updated += 1
+
+    # Backfill the ordering keys onto already-active real codes sharing the number (BIZ-068), again
+    # only for the keys the import provides (never clobber existing values with None).
+    active_real: dict[str, TimesheetCode] | None = None
+    for entry in parsed:
+        if entry.customer is None and entry.code_type is None:
+            continue
+        if active_real is None:
+            active_real = {c.number: c for c in catalog.list_codes(session, user_id) if not c.is_virtual}
+        code = active_real.get(entry.number)
+        if code is not None:
+            if entry.customer is not None:
+                code.customer = entry.customer
+            if entry.code_type is not None:
+                code.code_type = entry.code_type
+
     session.commit()
     return created, updated
 
@@ -84,4 +114,6 @@ def add_from_reference(session: Session, user_id: int, number: str) -> Timesheet
         name=ref.name,
         color=None,
         activities=[ParsedActivity(code=a["code"], label=a["label"]) for a in ref.activities],
+        customer=ref.customer,
+        code_type=ref.code_type,
     )

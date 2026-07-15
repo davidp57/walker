@@ -1,12 +1,43 @@
 import { Editor, rootCtx, defaultValueCtx, editorViewOptionsCtx } from '@milkdown/core'
-import { commonmark, paragraphAttr } from '@milkdown/preset-commonmark'
+import { commonmark } from '@milkdown/preset-commonmark'
 import { gfm } from '@milkdown/preset-gfm'
 import { listener, listenerCtx } from '@milkdown/plugin-listener'
 import { clipboard } from '@milkdown/plugin-clipboard'
 import { history } from '@milkdown/plugin-history'
 import { Milkdown, MilkdownProvider, useEditor } from '@milkdown/react'
+import { $prose } from '@milkdown/utils'
+import { Plugin, type EditorState } from '@milkdown/prose/state'
+import { Decoration, DecorationSet } from '@milkdown/prose/view'
 import { taskListItemView } from './markdownTaskListView'
 import { safeExternalHref, wantsLinkOpen } from '../lib/links'
+
+/**
+ * A placeholder shown while the description is a single empty paragraph. Implemented as a
+ * ProseMirror decoration (recomputed on every state) rather than a derived node attribute: node
+ * attributes go stale because ProseMirror reuses the `<p>` element across content changes, so the
+ * `is-empty` marker survived a paste and the placeholder stayed visible behind the pasted text.
+ */
+const placeholderPlugin = (text: string) =>
+  $prose(
+    () =>
+      new Plugin({
+        props: {
+          decorations: (state: EditorState): DecorationSet | null => {
+            const { doc } = state
+            const first = doc.firstChild
+            const isSoleEmptyParagraph =
+              doc.childCount === 1 &&
+              first != null &&
+              first.type.name === 'paragraph' &&
+              first.content.size === 0
+            if (!isSoleEmptyParagraph) return null
+            return DecorationSet.create(doc, [
+              Decoration.node(0, first.nodeSize, { class: 'is-empty', 'data-placeholder': text }),
+            ])
+          },
+        },
+      }),
+  )
 
 interface MarkdownEditorProps {
   value: string // the initial markdown; the editor is uncontrolled after mount (see BIZ-024)
@@ -26,40 +57,30 @@ interface MarkdownEditorProps {
  * uninterrupted (no controlled-input re-render fights with ProseMirror).
  */
 function MilkdownEditorInner({ value, onChange, placeholder, readOnly }: MarkdownEditorProps) {
-  useEditor(
-    (root) =>
-      Editor.make()
-        .config((ctx) => {
-          ctx.set(rootCtx, root)
-          ctx.set(defaultValueCtx, value)
-          ctx.update(editorViewOptionsCtx, (prev) => ({
-            ...prev,
-            editable: () => !readOnly,
-          }))
-          if (placeholder) {
-            // Mark the (single) empty leading paragraph so CSS can render a placeholder — Milkdown's
-            // Kit API has no built-in placeholder plugin; Crepe's is Vue-only, so this stays plain.
-            ctx.set(paragraphAttr.key, (node) => {
-              const isSoleEmptyParagraph = node.content.size === 0 && node.nodeSize === 2
-              return isSoleEmptyParagraph
-                ? { 'data-placeholder': placeholder, class: 'is-empty' }
-                : {}
-            })
+  useEditor((root) => {
+    const editor = Editor.make()
+      .config((ctx) => {
+        ctx.set(rootCtx, root)
+        ctx.set(defaultValueCtx, value)
+        ctx.update(editorViewOptionsCtx, (prev) => ({
+          ...prev,
+          editable: () => !readOnly,
+        }))
+        ctx.get(listenerCtx).markdownUpdated((_ctx, markdown, prevMarkdown) => {
+          if (markdown !== prevMarkdown) {
+            onChange(markdown)
           }
-          ctx.get(listenerCtx).markdownUpdated((_ctx, markdown, prevMarkdown) => {
-            if (markdown !== prevMarkdown) {
-              onChange(markdown)
-            }
-          })
         })
-        .use(commonmark)
-        .use(gfm)
-        .use(taskListItemView)
-        .use(listener)
-        .use(clipboard)
-        .use(history),
-    [],
-  )
+      })
+      .use(commonmark)
+      .use(gfm)
+      .use(taskListItemView)
+      .use(listener)
+      .use(clipboard)
+      .use(history)
+    if (placeholder) editor.use(placeholderPlugin(placeholder))
+    return editor
+  }, [])
 
   return <Milkdown />
 }

@@ -5,6 +5,12 @@
 * {
   box-sizing: border-box;
 }
+/* Reset the UA body margin: without it the ~8px margin pushes the 100vh `.wk-app` past the viewport,
+   adding a whole-page scrollbar on top of `.wk-outlet`'s (the "double scrollbar" fix). */
+html,
+body {
+  margin: 0;
+}
 /* Tells the browser the page itself is dark/light (native scrollbars, form controls, etc. — TEC-006),
    driven by the resolved theme (BIZ-032). `:not([data-theme="light"])` covers both the default (no
    attribute yet, before the first paint sets it) and an explicit `data-theme="dark"`. */
@@ -1828,6 +1834,15 @@ html[data-theme='light'] body {
   text-transform: uppercase;
   color: var(--wk-text-lo);
   padding: 6px 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* BIZ-067: per-project-section "Add a task" affordance (list section header + kanban lane head). */
+.wk-task-group-add,
+.wk-board-lane-add {
+  font-size: var(--wk-fs-15);
+  line-height: 1;
 }
 /* BIZ-051: group headers as section rows inside the single task table (aligned columns). */
 .wk-task-group-row td {
@@ -2005,6 +2020,9 @@ html[data-theme='light'] body {
   text-transform: uppercase;
   color: var(--wk-text-lo);
   margin-bottom: var(--wk-space-2);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .wk-board-column {
   flex: 1 1 0;

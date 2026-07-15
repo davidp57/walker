@@ -60,8 +60,36 @@ describe('fetchCodes', () => {
         isVirtual: false,
         realCodeId: null,
         realCodeNumber: null,
+        customer: null,
+        type: null,
       },
     ])
+  })
+
+  it('maps the T&E ordering keys (customer/type) when present (BIZ-068)', async () => {
+    const payload = [
+      {
+        id: 3,
+        number: 'N9/1042',
+        label: 'MNT - PAP V4',
+        name: 'Paper V4',
+        color: '#5b9cf6',
+        activities: [],
+        is_virtual: false,
+        real_code_id: null,
+        real_code_number: null,
+        customer: 'PricewaterhouseCoopers',
+        type: 'N',
+      },
+    ]
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })),
+    )
+
+    const codes = await fetchCodes()
+
+    expect(codes[0]).toMatchObject({ customer: 'PricewaterhouseCoopers', type: 'N' })
   })
 
   it('maps a virtual code, resolving its real-code link to a string id', async () => {

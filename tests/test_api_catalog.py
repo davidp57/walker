@@ -73,3 +73,24 @@ def test_delete_code_blocked_when_referenced_by_entry(client: TestClient) -> Non
 
     assert response.status_code == 409
     assert len(client.get("/api/codes").json()) == 1
+
+
+def test_delete_code_orphans_referencing_tasks(client: TestClient) -> None:
+    code_id = client.post("/api/codes", json={"number": "N9/1", "label": "L", "activities": []}).json()["id"]
+    task_id = client.post("/api/tasks", json={"title": "T", "timesheet_code_id": code_id}).json()["id"]
+
+    assert client.delete(f"/api/codes/{code_id}").status_code == 204
+    assert client.get("/api/codes").json() == []
+    orphaned = next(task for task in client.get("/api/tasks").json() if task["id"] == task_id)
+    assert orphaned["timesheet_code_id"] is None
+
+
+def test_delete_code_clears_referencing_checklist_marks(client: TestClient) -> None:
+    code_id = client.post("/api/codes", json={"number": "N9/1", "label": "L", "activities": []}).json()["id"]
+    client.patch(
+        "/api/period/2026-07-15/checklist",
+        json={"timesheet_code_id": code_id, "activity": "0001", "day": 15, "entered": True},
+    )
+
+    assert client.delete(f"/api/codes/{code_id}").status_code == 204
+    assert client.get("/api/codes").json() == []

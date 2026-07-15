@@ -189,6 +189,81 @@ describe('TasksScreen', () => {
     ).toBeInTheDocument()
   })
 
+  it('adds a task from a list project section, prefilled with that section code (BIZ-067)', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4') }
+    const tasks = [
+      makeTask({ id: '1', title: 'Paper task', codeId: '9' }),
+      makeTask({ id: '2', title: 'Orphan task', codeId: null }),
+    ]
+    const onNewInCode = vi.fn()
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={codesById}
+        onNew={vi.fn()}
+        onNewInCode={onNewInCode}
+        onOpenTask={vi.fn()}
+      />,
+    )
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'code' } })
+
+    fireEvent.click(screen.getByTestId('wk-task-group-add-9'))
+    expect(onNewInCode).toHaveBeenCalledWith('9')
+    fireEvent.click(screen.getByTestId('wk-task-group-add-none'))
+    expect(onNewInCode).toHaveBeenCalledWith(null)
+  })
+
+  it('adds a task from a board project swimlane, prefilled with that lane code (BIZ-067)', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4') }
+    const tasks = [
+      makeTask({ id: '1', title: 'Paper task', codeId: '9' }),
+      makeTask({ id: '2', title: 'Orphan task', codeId: null }),
+    ]
+    const onNewInCode = vi.fn()
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={codesById}
+        onNew={vi.fn()}
+        onNewInCode={onNewInCode}
+        onOpenTask={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('wk-task-view-board'))
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'code' } })
+
+    fireEvent.click(screen.getByTestId('wk-board-lane-add-9'))
+    expect(onNewInCode).toHaveBeenCalledWith('9')
+    fireEvent.click(screen.getByTestId('wk-board-lane-add-none'))
+    expect(onNewInCode).toHaveBeenCalledWith(null)
+  })
+
+  it('hides the per-section Add unless grouping by project with onNewInCode (BIZ-067)', () => {
+    const codesById = { '9': makeCode('9', 'Paper V4') }
+    const tasks = [makeTask({ id: '1', title: 'Paper task', codeId: '9' })]
+
+    // Grouped by project but no handler → no button.
+    const { unmount } = render(
+      <TasksScreen tasks={tasks} codesById={codesById} onNew={vi.fn()} onOpenTask={vi.fn()} />,
+    )
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'code' } })
+    expect(screen.queryByTestId('wk-task-group-add-9')).not.toBeInTheDocument()
+    unmount()
+
+    // Handler present but grouped by status → no project-section button.
+    render(
+      <TasksScreen
+        tasks={tasks}
+        codesById={codesById}
+        onNew={vi.fn()}
+        onNewInCode={vi.fn()}
+        onOpenTask={vi.fn()}
+      />,
+    )
+    fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
+    expect(screen.queryByTestId('wk-task-group-add-9')).not.toBeInTheDocument()
+  })
+
   it('shows the list view by default, with a toggle to switch to the board', () => {
     const task = makeTask({ id: '1', title: 'Fix bug' })
     render(<TasksScreen tasks={[task]} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
