@@ -1,7 +1,7 @@
 # BIZ-068 — "Enter in Timesheet system" view: order rows to match the T&E grid
 
 ID: BIZ-068
-Status: 🧑 waiting-human
+Status: ⬜ ready
 Type: feature
 Priority: P2
 
@@ -71,23 +71,30 @@ Proposed design:
 1. **Data model** — add nullable `type` (`C`/`N`/`A`) and `customer` (string) to the code catalog
    (`ReferenceCode`, and `TimesheetCode` real codes). Nullable so pre-extension codes still load; a
    missing key sorts last within its comparison step. Alembic migration.
-2. **Catalog import** — extend the CSV format with optional `code_type` and `customer` columns,
-   backward-compatible (absent columns → `NULL`). Update `services/catalog.parse_catalog_csv` +
-   the API schema. Document the new columns.
+2. **Catalog import** — extend the CSV format with **two new optional columns**, header frozen as:
+
+   ```
+   code_number,code_label,code_name,customer,code_type,activity_code,activity_label
+   ```
+
+   `code_type` ∈ {C, N, A}; `customer` = the client name. Backward-compatible: the existing 5-column
+   headered layout and the headerless 4-column export still parse (absent columns → `NULL`). Update
+   `services/catalog.parse_catalog_csv` + the API schema + docs.
 3. **Sort** — implement the comparator (Type block C<N<A → `customer` → `label` → activity label),
    **case-sensitive, no locale/accent normalization** to match T&E exactly, and apply it to the
    Enter-in-Timesheet-system rows (after `resolveChecklistRows`). Review mode ordering is unchanged.
 4. Codes missing `type`/`customer` degrade gracefully (grouped last / by label only) so the view is
    never worse than today.
 
-## Open questions (resolve before building)
+## Data source (resolved)
 
-- **Source of `type` + `customer` values.** T&E's own API is the natural source but scraping/
-  automating T&E is excluded by ADR-0005. Options: (a) an enriched catalog CSV the user fills in
-  once; (b) a one-off manual/paste import; (c) revisit ADR-0005 for a read-only lookup. **This is the
-  blocking decision** — the schema/import/sort work only pays off once values exist.
-- Whether the schema change warrants a short ADR (new persisted fields + import-format change are
-  moderately hard to reverse).
+The enriched catalog CSV is produced **outside Walker** by a read-only SQL export against the firm's
+data warehouse and imported as usual — Walker itself stays pwc-agnostic (no external system access,
+no PwC SQL in this repo). The export provides `customer` and `code_type` alongside the existing
+columns. The concrete query + schema notes live in the maintainer's private agent memory, not here.
+
+Open (minor): whether the schema change warrants a short ADR (new persisted fields + import-format
+change are moderately hard to reverse) — decide at implementation time.
 
 ## Acceptance criteria (once the data source is settled)
 
@@ -102,4 +109,4 @@ Proposed design:
 
 ## Blocked by
 
-Decision on the source of `type`/`customer` data (see Open questions) — do not build until settled.
+None — data source settled (enriched catalog CSV). Ready to build.
