@@ -47,19 +47,28 @@ def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -
         else:
             ref.label = entry.label
             ref.name = entry.name
-            ref.customer = entry.customer
-            ref.code_type = entry.code_type
+            # Only overwrite the ordering keys when the import actually carries them, so a later
+            # legacy (non-enriched) re-import can't wipe values loaded from an enriched file (BIZ-068).
+            if entry.customer is not None:
+                ref.customer = entry.customer
+            if entry.code_type is not None:
+                ref.code_type = entry.code_type
             ref.activities = activities
             updated += 1
 
-    # Backfill the ordering keys onto already-active real codes sharing the number (BIZ-068).
-    enriched = {e.number: e for e in parsed if e.customer is not None or e.code_type is not None}
-    if enriched:
-        active_real = {c.number: c for c in catalog.list_codes(session, user_id) if not c.is_virtual}
-        for number, entry in enriched.items():
-            code = active_real.get(number)
-            if code is not None:
+    # Backfill the ordering keys onto already-active real codes sharing the number (BIZ-068), again
+    # only for the keys the import provides (never clobber existing values with None).
+    active_real: dict[str, TimesheetCode] | None = None
+    for entry in parsed:
+        if entry.customer is None and entry.code_type is None:
+            continue
+        if active_real is None:
+            active_real = {c.number: c for c in catalog.list_codes(session, user_id) if not c.is_virtual}
+        code = active_real.get(entry.number)
+        if code is not None:
+            if entry.customer is not None:
                 code.customer = entry.customer
+            if entry.code_type is not None:
                 code.code_type = entry.code_type
 
     session.commit()

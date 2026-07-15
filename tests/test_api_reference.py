@@ -81,6 +81,19 @@ def test_enriched_import_backfills_active_code_ordering_keys(client: TestClient)
     assert code["type"] == "C"
 
 
+def test_legacy_reimport_preserves_enriched_ordering_keys(client: TestClient) -> None:
+    """A later non-enriched import must not wipe customer/type loaded from an enriched one (BIZ-068)."""
+    code_id = client.post("/api/codes", json={"number": "N1/6016508/010", "label": "PRJ - Connect"}).json()["id"]
+    client.post("/api/catalog/import", files={"file": ("e.csv", ENRICHED_CSV.encode(), "text/csv")})
+
+    legacy = "N1/6016508/010,PRJ - Connect,0001,Project management\n"
+    client.post("/api/catalog/import", files={"file": ("l.csv", legacy.encode(), "text/csv")})
+
+    code = next(c for c in client.get("/api/codes").json() if c["id"] == code_id)
+    assert code["customer"] == "ACME Corp"
+    assert code["type"] == "C"
+
+
 def test_add_from_reference_carries_customer_and_type(client: TestClient) -> None:
     client.post("/api/catalog/import", files={"file": ("c.csv", ENRICHED_CSV.encode(), "text/csv")})
 
