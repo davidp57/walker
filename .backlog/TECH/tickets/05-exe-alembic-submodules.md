@@ -1,7 +1,7 @@
 # CHR-012 — Standalone .exe crashes on startup (missing alembic submodules)
 
 ID: CHR-012
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 Priority: P1
 
@@ -38,7 +38,9 @@ BIZ-068.
 
 ## Delivery
 
-In review — [PR #122](https://github.com/davidp57/walker/pull/122) → `develop`.
+Shipped in [PR #122](https://github.com/davidp57/walker/pull/122) → merged to `develop`. Also
+deployed locally: rebuilt `walker.exe` installed to `%APPDATA%\Walker\`, verified it migrates on
+startup and serves the enriched catalog (BIZ-068 now live on the user's real data).
 
 ## Notes
 
