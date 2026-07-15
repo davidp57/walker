@@ -636,6 +636,7 @@ export function TaskBoard({
                 type="button"
                 className="wk-btn-icon wk-board-lane-add"
                 title={`Add a task in ${lane.label}`}
+                aria-label={`Add a task in ${lane.label}`}
                 data-testid={`wk-board-lane-add-${lane.key}`}
                 onClick={() => onNewInCode(lane.key === 'none' ? null : lane.key)}
               >

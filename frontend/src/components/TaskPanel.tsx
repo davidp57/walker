@@ -106,7 +106,9 @@ export function TaskPanel({
   const [dueDate, setDueDate] = useState<string>(task?.dueDate ?? '')
   const [tags, setTags] = useState<string[]>(task?.tags ?? [])
   const [tagInput, setTagInput] = useState('')
-  const [codeId, setCodeId] = useState<string | null>(task?.codeId ?? initialCodeId)
+  // initialCodeId prefills only when creating (task is null); editing always keeps the task's own
+  // code, even when that is null — never override an existing Task's code with a section's code.
+  const [codeId, setCodeId] = useState<string | null>(task ? task.codeId : initialCodeId)
   const [codePickerOpen, setCodePickerOpen] = useState(false)
   const selectedCode = codeId ? (codes.find((c) => c.id === codeId) ?? null) : null
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(

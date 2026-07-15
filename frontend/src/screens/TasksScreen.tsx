@@ -410,6 +410,7 @@ export function TasksScreen({
                             type="button"
                             className="wk-btn-icon wk-task-group-add"
                             title={`Add a task in ${g.label}`}
+                            aria-label={`Add a task in ${g.label}`}
                             data-testid={`wk-task-group-add-${g.items[0]?.codeId ?? 'none'}`}
                             onClick={() => onNewInCode(g.items[0]?.codeId ?? null)}
                           >
