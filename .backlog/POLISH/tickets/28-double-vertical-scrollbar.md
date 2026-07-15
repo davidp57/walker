@@ -1,7 +1,7 @@
 # BIZ-069 — Double vertical scrollbar on the Walker screen
 
 ID: BIZ-069
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 Priority: P3
 
@@ -32,7 +32,8 @@ scrollbar on top of the intended `.wk-outlet` scroll. Confirmed in-browser: `doc
 
 ## Delivery
 
-In review — [PR #123](https://github.com/davidp57/walker/pull/123) → `develop`.
+Shipped in [PR #123](https://github.com/davidp57/walker/pull/123) → merged to `develop`. Visible to
+the user once a build carrying it is deployed (rebuild `walker.exe` from `develop`, as for BIZ-068).
 
 ## Notes
 
