@@ -63,6 +63,32 @@ def test_add_from_reference_copies_into_active(client: TestClient) -> None:
     assert len(client.get("/api/codes").json()) == 1
 
 
+ENRICHED_CSV = (
+    "code_number,code_label,code_name,customer,code_type,activity_code,activity_label\n"
+    "N1/6016508/010,PRJ - Connect,Connect,ACME Corp,C,0001,Project management\n"
+)
+
+
+def test_enriched_import_backfills_active_code_ordering_keys(client: TestClient) -> None:
+    """An enriched re-import fills customer/type on an already-active code (BIZ-068)."""
+    code_id = client.post("/api/codes", json={"number": "N1/6016508/010", "label": "PRJ - Connect"}).json()["id"]
+
+    resp = client.post("/api/catalog/import", files={"file": ("c.csv", ENRICHED_CSV.encode(), "text/csv")})
+    assert resp.status_code == 200
+
+    code = next(c for c in client.get("/api/codes").json() if c["id"] == code_id)
+    assert code["customer"] == "ACME Corp"
+    assert code["type"] == "C"
+
+
+def test_add_from_reference_carries_customer_and_type(client: TestClient) -> None:
+    client.post("/api/catalog/import", files={"file": ("c.csv", ENRICHED_CSV.encode(), "text/csv")})
+
+    activated = client.post("/api/codes/from-reference", json={"number": "N1/6016508/010"}).json()
+    assert activated["customer"] == "ACME Corp"
+    assert activated["type"] == "C"
+
+
 def test_add_from_reference_unknown_is_404(client: TestClient) -> None:
     response = client.post("/api/codes/from-reference", json={"number": "N9/9999"})
 

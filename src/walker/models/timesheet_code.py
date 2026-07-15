@@ -34,6 +34,11 @@ class TimesheetCode(TimestampMixin, Base):
     label: Mapped[str] = mapped_column(String(255))
     name: Mapped[str] = mapped_column(String(255))
     color: Mapped[str] = mapped_column(String(32))
+    # T&E grid ordering keys (BIZ-068), populated from the enriched catalog import; nullable so codes
+    # imported/created before the enrichment still load. ``customer`` is the client name; ``code_type``
+    # is the single-char T&E type (``C`` Chargeable · ``N`` Non-chargeable · ``A`` Absence).
+    customer: Mapped[str | None] = mapped_column(String(255), default=None)
+    code_type: Mapped[str | None] = mapped_column(String(1), default=None)
     real_code_id: Mapped[int | None] = mapped_column(ForeignKey("timesheet_codes.id"), default=None, index=True)
 
     activities: Mapped[list[Activity]] = relationship(
@@ -65,3 +70,13 @@ class TimesheetCode(TimestampMixin, Base):
     def resolved_activities(self) -> list[Activity]:
         """The Activities available: own for a real code, borrowed for a virtual one."""
         return self.real_code.activities if self.real_code is not None else self.activities
+
+    @property
+    def resolved_customer(self) -> str | None:
+        """The client name (BIZ-068): own for a real code, borrowed from the real code for a virtual one."""
+        return self.real_code.customer if self.real_code is not None else self.customer
+
+    @property
+    def resolved_type(self) -> str | None:
+        """The T&E type C/N/A (BIZ-068): own for a real code, borrowed for a virtual one."""
+        return self.real_code.code_type if self.real_code is not None else self.code_type

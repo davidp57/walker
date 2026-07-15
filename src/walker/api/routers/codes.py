@@ -39,6 +39,8 @@ def _code_read(code: TimesheetCode) -> CodeRead:
         name=code.name,
         color=code.color,
         activities=[ActivityRead(code=a.code, label=a.label) for a in code.resolved_activities],
+        customer=code.resolved_customer,
+        type=code.resolved_type,
         is_virtual=code.is_virtual,
         real_code_id=code.real_code_id,
         real_code_number=code.real_code.number if code.real_code is not None else None,
