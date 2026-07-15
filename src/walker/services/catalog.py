@@ -10,11 +10,11 @@ import csv
 import io
 from dataclasses import dataclass, field
 
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from walker.exceptions import CatalogImportError, NotFoundError, ValidationError
-from walker.models import Activity, Entry, TimesheetCode, User
+from walker.models import Activity, ChecklistMark, Entry, Task, TimesheetCode, User
 from walker.services.palette import suggest_color
 
 _REQUIRED_COLUMNS = ["code_number", "code_label", "code_name", "activity_code", "activity_label"]
@@ -263,6 +263,12 @@ def delete_code(session: Session, user_id: int, code_id: int) -> None:
 
     A real code's in-use guard checks the whole Organization: any member's Entry or virtual code
     depending on it blocks the deletion, not just the acting user's (BIZ-030).
+
+    The other two references to a code are cleaned up rather than blocking, matching the domain:
+    Tasks referencing the code are orphaned (``timesheet_code_id`` reset to ``None`` — orphan Tasks
+    are explicitly allowed, see the Task model), and its ChecklistMarks (per-period derived ticks,
+    meaningless without the code) are removed. Both prevent the foreign-key violation that would
+    otherwise crash the deletion.
     """
     code = get_visible_code(session, user_id, code_id)
     references = session.scalar(select(func.count()).select_from(Entry).where(Entry.timesheet_code_id == code_id))
@@ -274,6 +280,8 @@ def delete_code(session: Session, user_id: int, code_id: int) -> None:
         )
         if virtual_children:
             raise ValidationError(f"Code {code.number} has virtual codes pointing to it and cannot be deleted.")
+    session.execute(update(Task).where(Task.timesheet_code_id == code_id).values(timesheet_code_id=None))
+    session.execute(delete(ChecklistMark).where(ChecklistMark.timesheet_code_id == code_id))
     session.delete(code)
     session.commit()
 

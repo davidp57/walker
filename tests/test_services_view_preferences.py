@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+import pytest
 from sqlalchemy.orm import Session
 
+from walker.models import User
 from walker.services.settings import (
     DEFAULT_VIEW_PREFERENCES,
     get_settings,
     update_view_preferences,
 )
+
+
+@pytest.fixture(autouse=True)
+def _seed_user(session: Session) -> None:
+    """Seed user 1: ``settings.user_id`` is a foreign key to ``users.id``."""
+    session.add(User(id=1, username="user-1"))
+    session.commit()
 
 
 def test_defaults_when_nothing_stored(session: Session) -> None:
