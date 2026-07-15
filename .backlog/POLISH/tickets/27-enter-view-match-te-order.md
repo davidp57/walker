@@ -1,7 +1,7 @@
 # BIZ-068 — "Enter in Timesheet system" view: order rows to match the T&E grid
 
 ID: BIZ-068
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -109,8 +109,9 @@ change are moderately hard to reverse) — decide at implementation time.
 
 ## Delivery
 
-In review — [PR #121](https://github.com/davidp57/walker/pull/121) → `develop`. Follow-up: document
-the two new optional CSV columns on the bilingual docs-site catalog-import page (EN + FR).
+Shipped in [PR #121](https://github.com/davidp57/walker/pull/121) → merged to `develop`. Follow-up
+(not done here): document the two new optional CSV columns on the bilingual docs-site catalog-import
+page (EN + FR); requires an enriched export + re-import to see the ordering take effect.
 
 ## Blocked by
 
