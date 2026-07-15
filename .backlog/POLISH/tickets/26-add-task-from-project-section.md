@@ -1,7 +1,7 @@
 # BIZ-067 — Add a task straight from a project section (kanban + list)
 
 ID: BIZ-067
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 Priority: P3
 
@@ -47,7 +47,7 @@ when grouping by project (code); other groupings are unchanged.
 
 ## Delivery
 
-In review — [PR #120](https://github.com/davidp57/walker/pull/120) → `develop`.
+Shipped in [PR #120](https://github.com/davidp57/walker/pull/120) → merged to `develop`.
 
 ## Blocked by
 
