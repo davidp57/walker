@@ -5,6 +5,38 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-15
+
+### Added
+
+- **Enter view ordered like the Timesheet system's grid** (BIZ-068): the *Enter in Timesheet system*
+  view sorts its rows to match the Timesheet system's weekly grid — by type block (Chargeable →
+  Non-chargeable → Absence), then customer, then code label, then activity (case-sensitive, no locale
+  normalization). Codes gain nullable `customer` and `code_type` keys, populated from an enriched
+  catalog import; codes without them still show, ordered by label.
+- **Add a task from a project section** (BIZ-067): when tasks are grouped by project, each list
+  section header and each kanban swimlane gets an "Add" button that opens the new-task panel with
+  that project's code prefilled ("No project" adds an orphan task).
+
+### Fixed
+
+- **Deleting a code referenced by a task or checklist tick** no longer errors (BIZ/TEC-008): tasks are
+  orphaned (code cleared), stale checklist ticks removed; codes referenced by tracked entries or
+  virtual codes still block deletion.
+- **Code selector stacked beneath the cell drill-down** in the Timesheet-period view — now opens above
+  it (TEC-009).
+- **Task description placeholder** stayed visible after pasting text — now clears (TEC-010).
+- **Double vertical scrollbar** removed (BIZ-069).
+- **Standalone `.exe` startup** — a packaging issue kept the frozen executable from running its
+  on-startup migration; fixed so a rebuilt `.exe` boots and migrates (CHR-012).
+
+### Migrations
+
+- Adds nullable `customer` and `code_type` columns to `timesheet_codes` and `reference_codes`
+  (BIZ-068, revision `b1c2d3e4f5a6`). Run `alembic upgrade head`. Existing codes keep `NULL` (sorted
+  last); the catalog import gains an optional 7-column layout carrying these keys, with the previous
+  layouts still accepted.
+
 ## [1.5.0] - 2026-07-10
 
 ### Added
