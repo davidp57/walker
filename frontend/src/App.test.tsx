@@ -869,3 +869,47 @@ describe('App — task due dates: nav badge + startup toast (BIZ-062)', () => {
     expect(screen.queryByTestId('wk-tasks-due-badge')).not.toBeInTheDocument()
   })
 })
+
+describe('App — code picker stacks above the Timesheet-period cell modal (TEC-009)', () => {
+  it('opens the Categorize picker after the cell modal in the DOM so it renders on top', async () => {
+    const categorized: Entry = {
+      id: '20',
+      date: TODAY_ISO,
+      start: 540,
+      end: 600, // 1:00, categorized on the real code
+      codeId: realCode.id,
+      activity: 'Bug fixing',
+      description: '',
+    }
+    mockBaseApi([realCode], [categorized])
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({
+      minutes: { '1|Bug fixing': { 1: 60 } },
+      manual: {},
+    })
+
+    render(<App />)
+    await clickNav('Timesheet period')
+
+    // Drill into the filled cell → the cell-entries modal.
+    const cell = (await screen.findAllByText('1:00'))
+      .map((el) => el.closest('td.wk-cell'))
+      .find((td): td is HTMLTableCellElement => td !== null)
+    expect(cell).toBeTruthy()
+    fireEvent.click(cell!)
+
+    // The cell modal is titled "<code> · <activity> · <day>".
+    const cellModalTitle = await screen.findByText(/Paper V4 · Bug fixing ·/)
+    const cellOverlay = cellModalTitle.closest('.wk-overlay')
+    expect(cellOverlay).toBeTruthy()
+
+    // Click the entry's code to open the Categorize picker (both modals now open at once).
+    fireEvent.click(cellOverlay!.querySelector('.wk-code-cell') as HTMLElement)
+
+    // Shared z-index means DOM order decides stacking: the picker must come AFTER the cell modal.
+    const pickerOverlay = (await screen.findByText('Categorize entry')).closest('.wk-overlay')
+    expect(pickerOverlay).toBeTruthy()
+    expect(
+      cellOverlay!.compareDocumentPosition(pickerOverlay!) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+})
