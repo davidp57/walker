@@ -8,9 +8,16 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from walker.models import Settings
+from walker.models import Settings, User
 from walker.models.settings import DEFAULT_PERIOD_SCHEME, DEFAULT_WORKDAYS
 from walker.services.settings import get_settings, resolve_theme, update_settings
+
+
+@pytest.fixture(autouse=True)
+def _seed_users(session: Session) -> None:
+    """Seed the users these tests reference: ``settings.user_id`` is a foreign key to ``users.id``."""
+    session.add_all([User(id=7, username="user-7"), User(id=42, username="user-42")])
+    session.commit()
 
 
 def test_get_settings_recovers_from_a_concurrent_create_for_the_same_user(session: Session) -> None:
