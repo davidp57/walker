@@ -1,7 +1,7 @@
 # TEC-010 — Task description placeholder stays visible after pasting text
 
 ID: TEC-010
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 Priority: P3
 
@@ -40,7 +40,7 @@ paste the paragraph had content but kept its `is-empty` marker.
 
 ## Delivery
 
-In review — [PR #119](https://github.com/davidp57/walker/pull/119) → `develop`.
+Shipped in [PR #119](https://github.com/davidp57/walker/pull/119) → merged to `develop`.
 
 ## Blocked by
 
