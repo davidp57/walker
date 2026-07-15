@@ -1,7 +1,7 @@
 # TEC-009 — Code picker renders beneath the Timesheet-period cell modal (z-order)
 
 ID: TEC-009
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 Priority: P2
 
@@ -40,7 +40,7 @@ modal, so the modal painted on top of it.
 
 ## Delivery
 
-In review — [PR #118](https://github.com/davidp57/walker/pull/118) → `develop`.
+Shipped in [PR #118](https://github.com/davidp57/walker/pull/118) → merged to `develop`.
 
 ## Blocked by
 
