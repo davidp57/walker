@@ -30,6 +30,8 @@ interface ApiCode {
   is_virtual: boolean
   real_code_id: number | null
   real_code_number: string | null
+  customer?: string | null
+  type?: string | null
 }
 
 /** An API error carrying the HTTP status, so callers can distinguish e.g. 401 from other failures. */
@@ -61,6 +63,8 @@ function mapCode(code: ApiCode): TimesheetCode {
     isVirtual: code.is_virtual,
     realCodeId: code.real_code_id == null ? null : String(code.real_code_id),
     realCodeNumber: code.real_code_number,
+    customer: code.customer ?? null,
+    type: code.type ?? null,
   }
 }
 

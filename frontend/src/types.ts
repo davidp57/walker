@@ -25,6 +25,10 @@ export interface TimesheetCode {
   isVirtual: boolean
   realCodeId: string | null // the backing real code, when this is a virtual code
   realCodeNumber: string | null // the backing real code's number, for display in the catalog
+  // T&E grid-ordering keys (BIZ-068), resolved virtual→real; null/absent before the enriched catalog
+  // import. Optional so the many test fixtures predating the field stay valid.
+  customer?: string | null // the client name
+  type?: string | null // T&E type: "C" chargeable · "N" non-chargeable · "A" absence
 }
 
 /** A code from the reference catalog — searched to add into your active codes. */

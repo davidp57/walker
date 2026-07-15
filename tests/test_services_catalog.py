@@ -55,6 +55,34 @@ def test_parse_headerless_pwc_export() -> None:
     assert by_number["N0/6010218/010"].label == "Attend-HOW TO ATTRACT, SUSTAIN AND DEVEL"
 
 
+ENRICHED = """code_number,code_label,code_name,customer,code_type,activity_code,activity_label
+N9/1042,MNT - PAP V4,Paper V4,PricewaterhouseCoopers,N,0001,Bug fixing
+N9/1042,MNT - PAP V4,Paper V4,PricewaterhouseCoopers,N,0002,Change request
+C1/500,Client work,,ACME Corp,c,0001,Analysis
+"""
+
+
+def test_parse_enriched_reads_customer_and_type() -> None:
+    parsed = parse_catalog_csv(ENRICHED)
+
+    by_number = {p.number: p for p in parsed}
+    assert by_number["N9/1042"].customer == "PricewaterhouseCoopers"
+    assert by_number["N9/1042"].code_type == "N"
+    # code_type is normalised to a single upper-case char (matches T&E's C/N/A).
+    assert by_number["C1/500"].code_type == "C"
+    assert by_number["C1/500"].customer == "ACME Corp"
+    # activities still group correctly under the enriched layout
+    assert [(a.code, a.label) for a in by_number["N9/1042"].activities] == [
+        ("0001", "Bug fixing"),
+        ("0002", "Change request"),
+    ]
+
+
+def test_parse_legacy_layouts_leave_customer_and_type_null() -> None:
+    for parsed in (parse_catalog_csv(CSV), parse_catalog_csv(PWC_HEADERLESS)):
+        assert all(p.customer is None and p.code_type is None for p in parsed)
+
+
 def test_parse_missing_columns_raises() -> None:
     with pytest.raises(CatalogImportError):
         parse_catalog_csv("wrong,header\n1,2")

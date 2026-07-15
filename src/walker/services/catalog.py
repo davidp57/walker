@@ -18,6 +18,17 @@ from walker.models import Activity, ChecklistMark, Entry, Task, TimesheetCode, U
 from walker.services.palette import suggest_color
 
 _REQUIRED_COLUMNS = ["code_number", "code_label", "code_name", "activity_code", "activity_label"]
+# BIZ-068: the enriched layout adds ``customer`` + ``code_type`` (T&E grid ordering keys) between
+# ``code_name`` and the activity columns.
+_ENRICHED_COLUMNS = [
+    "code_number",
+    "code_label",
+    "code_name",
+    "customer",
+    "code_type",
+    "activity_code",
+    "activity_label",
+]
 
 
 @dataclass
@@ -35,6 +46,8 @@ class ParsedCode:
     number: str
     label: str
     name: str
+    customer: str | None = None
+    code_type: str | None = None
     activities: list[ParsedActivity] = field(default_factory=list)
 
 
@@ -122,11 +135,14 @@ def create_code(
     name: str | None,
     color: str | None,
     activities: list[ParsedActivity],
+    customer: str | None = None,
+    code_type: str | None = None,
 ) -> TimesheetCode:
     """Create a new real code (+ activities), scoped to the user's Organization (ADR-0010).
 
     Rejects a duplicate ``number`` within the Organization. A user with no Organization (not yet
     migrated) gets a code visible only to themselves (``organization_id`` stays ``None``).
+    ``customer``/``code_type`` are the optional T&E grid-ordering keys (BIZ-068).
     """
     organization_id = _organization_id(session, user_id)
     scope: ColumnElement[bool]
@@ -146,6 +162,8 @@ def create_code(
         label=label,
         name=name or label,
         color=color or _suggested_color(session, user_id, organization_id),
+        customer=customer,
+        code_type=code_type,
         activities=[Activity(code=a.code, label=a.label) for a in activities],
     )
     session.add(code)
@@ -289,9 +307,13 @@ def delete_code(session: Session, user_id: int, code_id: int) -> None:
 def parse_catalog_csv(text: str) -> list[ParsedCode]:
     """Parse a hierarchical catalog CSV, grouped by ``code_number`` (one row per code × activity).
 
-    Two layouts are accepted:
+    Three layouts are accepted:
 
-    * **Headered** — first row is ``code_number,code_label,code_name,activity_code,activity_label``.
+    * **Enriched headered** (BIZ-068) — first row is
+      ``code_number,code_label,code_name,customer,code_type,activity_code,activity_label``; carries
+      the T&E grid-ordering keys (``customer`` client name, ``code_type`` single char C/N/A).
+    * **Headered** — first row is ``code_number,code_label,code_name,activity_code,activity_label``
+      (``customer``/``code_type`` default to ``None``).
     * **Headerless export** — four columns
       ``code_number,code_label,activity_code,activity_label`` (``code_name`` defaults to
       ``code_label``); quoted fields may contain commas.
@@ -302,9 +324,11 @@ def parse_catalog_csv(text: str) -> list[ParsedCode]:
     if not rows:
         raise CatalogImportError("The import file is empty.")
 
-    headered = [cell.strip().lower() for cell in rows[0]] == _REQUIRED_COLUMNS
-    data_rows = rows[1:] if headered else rows
-    min_columns = 5 if headered else 4
+    header = [cell.strip().lower() for cell in rows[0]]
+    enriched = header == _ENRICHED_COLUMNS
+    headered = header == _REQUIRED_COLUMNS
+    data_rows = rows[1:] if (enriched or headered) else rows
+    min_columns = 7 if enriched else 5 if headered else 4
 
     codes: dict[str, ParsedCode] = {}
     for row in data_rows:
@@ -314,7 +338,15 @@ def parse_catalog_csv(text: str) -> list[ParsedCode]:
         if not number:
             continue
         label = row[1].strip()
-        if headered:
+        customer: str | None = None
+        code_type: str | None = None
+        if enriched:
+            name = row[2].strip() or label
+            customer = row[3].strip() or None
+            code_type = (row[4].strip().upper()[:1]) or None
+            activity_code = row[5].strip()
+            activity_label = ",".join(row[6:]).strip()
+        elif headered:
             name = row[2].strip() or label
             activity_code = row[3].strip()
             activity_label = ",".join(row[4:]).strip()
@@ -325,7 +357,7 @@ def parse_catalog_csv(text: str) -> list[ParsedCode]:
 
         parsed = codes.get(number)
         if parsed is None:
-            parsed = ParsedCode(number=number, label=label, name=name)
+            parsed = ParsedCode(number=number, label=label, name=name, customer=customer, code_type=code_type)
             codes[number] = parsed
         if activity_code or activity_label:
             parsed.activities.append(ParsedActivity(code=activity_code, label=activity_label))
