@@ -44,6 +44,22 @@ describe('MarkdownEditor', () => {
     })
   })
 
+  it('clears the placeholder when text is pasted into an empty description', async () => {
+    const user = userEvent.setup()
+    render(<MarkdownEditor value="" onChange={vi.fn()} placeholder="Markdown notes…" />)
+
+    const editable = await screen.findByTestId('wk-markdown-editor')
+    await waitFor(() => expect(editable.querySelector('p.is-empty')).toBeInTheDocument())
+
+    const editor = editable.querySelector('[contenteditable="true"]') as HTMLElement
+    await user.click(editor)
+    await user.paste('pasted content')
+
+    await waitFor(() => {
+      expect(editable.querySelector('p.is-empty')).not.toBeInTheDocument()
+    })
+  })
+
   it('clicking a task-list checkbox toggles it and serialises the change to markdown', async () => {
     const onChange = vi.fn()
     const user = userEvent.setup()
