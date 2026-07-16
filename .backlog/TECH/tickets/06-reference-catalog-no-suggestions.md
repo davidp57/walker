@@ -1,9 +1,28 @@
 # TEC-011 — Reference-catalog suggestions no longer appear when adding a code not yet in your list
 
 ID: TEC-011
-Status: 🧑 waiting-human
+Status: ✅ done
 Type: fix
 Priority: P2
+
+## Resolution (2026-07-16)
+
+**Not a bug in the reported form, and not a scoping issue.** The reference API and both picker
+surfaces work (see the investigation findings below). The user's real pain — reproduced with them —
+was searching a **long catalog of their own codes**: the Code catalog screen never filtered the
+displayed list, plain substring matching missed `HRHUB` → `Mnt - HR Hub`, and ordering wasn't
+alphabetical. That is fixed in **BIZ-073** (`.backlog/POLISH/tickets/32-…`, PR #126).
+
+Two latent gaps found here are **not fixed** and left as optional low-priority follow-ups (they don't
+bite the current user — sparse active set):
+
+1. Reference (Tier 2) search is server-side `ilike`, so it is not fuzzy (`HRHUB` won't match `HR Hub`
+   in the *reference* catalog — only in the user's own codes).
+2. `searchReference` applies `limit=20` **before** the client-side active-number filter; if the first
+   20 matches are all already-active, addable matches below are never fetched. Clean fix: exclude
+   active numbers server-side so the limit applies after exclusion.
+
+Reopen or file a new TEC ticket if either follow-up becomes worth doing.
 
 ## Problem
 
