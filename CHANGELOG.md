@@ -5,6 +5,40 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-07-16
+
+### Added
+
+- **Fuzzy code search** (BIZ-073): code search now matches on a normalized key — case, accents,
+  spaces, and punctuation are ignored, so `HRHUB` finds "HR Hub" and `developpement` finds
+  "Développement". Applies to your own codes across the Code catalog screen and every code picker.
+  The Code catalog screen also filters its displayed list of codes in place (not just the reference
+  suggestions) and lists codes alphabetically.
+- **Fuzzy reference-catalog search with add-able-only suggestions** (TEC-011): the reference search
+  matches on the same normalized key, and excludes codes already active in your catalog **server-side**
+  so the result limit returns codes you can actually add (rather than being spent on ones the client
+  would hide).
+- **Uncategorized time surfaced in the Timesheet period** (BIZ-070): the by-code matrix only counts
+  fully-categorized entries (code + activity), so its total could silently fall below the captured
+  total. The Review grid now shows an amber "Uncategorized" footer row (per day and for the period) so
+  matrix total + uncategorized = captured total; entries with a code but no activity are flagged
+  ("pick an activity") and included in the incomplete-entry count. New additive API field
+  `uncategorized_by_day` on `GET /api/period/{date}`.
+- **Overlap detection includes the running timer** (BIZ-072): a completed entry that crosses the
+  running timer's start is flagged, with a one-click trim on the completed entry; the running timer
+  itself stays read-only.
+
+### Changed
+
+- **Edit the running timer's start time by clicking the whole clock widget** (BIZ-071) — the entire
+  running-clock area is now the click target, not just the small "since HH:MM" line.
+
+### Migrations
+
+- Adds `reference_codes.search_blob` — a precomputed, normalized fuzzy-search key — and backfills
+  existing rows (TEC-011, revision `c2d3e4f5a6b7`). Run `alembic upgrade head`; the standalone
+  `walker.exe` applies it automatically on startup. Reversible (the downgrade drops the column).
+
 ## [1.6.0] - 2026-07-15
 
 ### Added
