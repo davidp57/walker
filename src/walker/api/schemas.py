@@ -171,6 +171,8 @@ class PeriodRead(BaseModel):
     start: date
     end: date
     rows: list[PeriodRowRead]
+    # BIZ-070: per-day minutes tracked but excluded from the matrix (missing a code or activity).
+    uncategorized_by_day: dict[int, int]
 
 
 class ChecklistItemRead(BaseModel):

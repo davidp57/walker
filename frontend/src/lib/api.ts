@@ -320,12 +320,15 @@ interface ApiPeriod {
   start: string
   end: string
   rows: ApiPeriodRow[]
+  uncategorized_by_day: Record<string, number>
 }
 
 /** Both matrices for the period grid, keyed `${codeId}|${activity}` → day → value (BIZ-065). */
 export interface PeriodMatrices {
   minutes: Record<string, Record<number, number>>
   manual: Record<string, Record<number, boolean>>
+  // BIZ-070: per-day minutes tracked but missing a code or activity — captured yet off the matrix.
+  uncategorizedByDay: Record<number, number>
 }
 
 /** Fetch the aggregated Timesheet period grid: minutes per cell + a per-cell manual flag (BIZ-065). */
@@ -344,7 +347,11 @@ export async function fetchPeriod(date: string): Promise<PeriodMatrices> {
     }
     manual[key] = manualByDay
   }
-  return { minutes, manual }
+  const uncategorizedByDay: Record<number, number> = {}
+  for (const [day, m] of Object.entries(grid.uncategorized_by_day ?? {})) {
+    uncategorizedByDay[Number(day)] = m
+  }
+  return { minutes, manual, uncategorizedByDay }
 }
 
 interface ApiChecklistItem {

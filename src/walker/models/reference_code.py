@@ -29,3 +29,7 @@ class ReferenceCode(TimestampMixin, Base):
     customer: Mapped[str | None] = mapped_column(String(255), default=None)
     code_type: Mapped[str | None] = mapped_column(String(1), default=None)
     activities: Mapped[list[dict[str, str]]] = mapped_column(JSON, default=list)
+    # TEC-011: precomputed fuzzy-search key — number + name + label + activity labels, normalized
+    # (lower-cased, accents stripped, non-alphanumerics dropped) so "HRHUB" matches "HR Hub". Kept in
+    # sync on every import; searched with a substring LIKE.
+    search_blob: Mapped[str] = mapped_column(String(1000), default="", index=False)

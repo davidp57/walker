@@ -49,6 +49,10 @@ class PeriodGrid:
     start: date
     end: date
     rows: list[PeriodRow]
+    # BIZ-070: per-day minutes of completed entries that are excluded from the matrix because they
+    # lack a code or an activity. The matrix daily total plus this equals the captured (tracked)
+    # total, so the gap between the two views is explainable rather than silent.
+    uncategorized_by_day: dict[int, int] = field(default_factory=dict)
 
 
 def _weekly_bounds(on: date) -> tuple[date, date]:
@@ -89,28 +93,34 @@ def period_bounds(scheme: PeriodScheme, on: date) -> tuple[date, date]:
 def aggregate_period(session: Session, user_id: int, scheme: PeriodScheme, on: date) -> PeriodGrid:
     """Aggregate a user's entries into the Code × Activity × Day grid for ``on``'s Timesheet period."""
     start, end = period_bounds(scheme, on)
+    # Every completed entry in the window (BIZ-070): fully-categorized ones build the matrix, the rest
+    # (missing a code or an activity) are summed per day as uncategorized so the gap to the captured
+    # total is explainable. Running entries (no end) belong to neither and are excluded.
     entries = session.scalars(
         select(Entry).where(
             Entry.user_id == user_id,
             Entry.date >= start,
             Entry.date <= end,
             Entry.end_minute.is_not(None),
-            Entry.timesheet_code_id.is_not(None),
         )
     ).all()
 
     cells: dict[tuple[int, str], dict[int, int]] = {}
     manual: dict[tuple[int, str], dict[int, bool]] = {}
+    uncategorized: dict[int, int] = {}
     for entry in entries:
         code_id = entry.timesheet_code_id
         end_minute = entry.end_minute
-        if not entry.activity or code_id is None or end_minute is None:
+        if end_minute is None:
             continue
         minutes = max(0, end_minute - entry.start_minute)
-        by_day = cells.setdefault((code_id, entry.activity), {})
-        by_day[entry.date.day] = by_day.get(entry.date.day, 0) + minutes
-        manual_by_day = manual.setdefault((code_id, entry.activity), {})
         day = entry.date.day
+        if not entry.activity or code_id is None:
+            uncategorized[day] = uncategorized.get(day, 0) + minutes
+            continue
+        by_day = cells.setdefault((code_id, entry.activity), {})
+        by_day[day] = by_day.get(day, 0) + minutes
+        manual_by_day = manual.setdefault((code_id, entry.activity), {})
         manual_by_day[day] = manual_by_day.get(day, False) or entry.source == "manual"
 
     rows = [
@@ -122,7 +132,7 @@ def aggregate_period(session: Session, user_id: int, scheme: PeriodScheme, on: d
         )
         for (code_id, activity), by_day in cells.items()
     ]
-    return PeriodGrid(start=start, end=end, rows=rows)
+    return PeriodGrid(start=start, end=end, rows=rows, uncategorized_by_day=uncategorized)
 
 
 def resolve_to_real_codes(session: Session, grid: PeriodGrid) -> PeriodGrid:
@@ -161,4 +171,5 @@ def resolve_to_real_codes(session: Session, grid: PeriodGrid) -> PeriodGrid:
         )
         for (code_id, activity), by_day in cells.items()
     ]
-    return PeriodGrid(start=grid.start, end=grid.end, rows=rows)
+    # Uncategorized minutes are code-agnostic, so virtual→real collapsing leaves them untouched.
+    return PeriodGrid(start=grid.start, end=grid.end, rows=rows, uncategorized_by_day=grid.uncategorized_by_day)

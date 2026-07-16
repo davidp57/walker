@@ -1,42 +1,45 @@
-# Walker v1.6.0
+# Walker v1.7.0
 
-**Headline:** timesheet entry that lines up with the Timesheet system. The *Enter in Timesheet
-system* view now lists rows in the **same order as the Timesheet system's weekly grid**, and you can
-**create a task straight from a project section**. The rest of the release hardens reliability — no
-more crash when deleting a code, several UI fixes, and a packaging fix that restores the standalone
-`.exe`.
+**Faster code entry, a more honest Timesheet period.** This release makes picking codes quick even
+with a long catalog, and makes the by-code view reconcile to the time you actually tracked.
 
 ## Highlights
 
-### Enter view ordered like the Timesheet system's grid
-- Rows in *Enter in Timesheet system* are now sorted the way the Timesheet system's weekly grid sorts
-  them — by type block (Chargeable → Non-chargeable → Absence), then customer, then code label, then
-  activity — so you can key Walker's checklist and the Timesheet system in lockstep.
-- **Visible once your catalog carries the ordering data:** re-import an enriched catalog CSV providing
-  the new `customer` and `code_type` columns (a re-import also backfills your already-active codes).
-  Codes without that data still show, ordered by label.
+### Fuzzy code search, everywhere
+- Type the way you think — `HRHUB` finds **HR Hub**, `developpement` finds **Développement**, and a
+  bare number fragment finds the full code. Case, accents, spaces, and punctuation are all ignored.
+- Applies to **your own codes** (the Code catalog screen and every code picker) *and* to the
+  **reference catalog** search.
+- On the **Code catalog** screen the search box now filters your displayed list of codes in place
+  (not just the "add from reference" suggestions), and every code list is sorted alphabetically.
 
-### Add a task from a project section
-- When tasks are grouped by project, each list section header and each kanban swimlane gets an **Add**
-  button that opens the new-task panel with that project's code already filled in.
+### The Timesheet period no longer under-reports in silence
+The **by-code** matrix only counts entries that are fully categorized (code **+** activity) — that's
+what the Timesheet system needs. Time tracked without a code or activity used to vanish from the
+matrix total with no explanation. Now:
+- the **Review** grid shows an amber **"Uncategorized"** footer row (per day and for the period), so
+  the matrix total plus the uncategorized time reconciles to your captured total;
+- entries that have a code but **no activity** are flagged ("⚑ pick an activity"), and the
+  incomplete-entry count now includes them — so nothing is left half-categorized before the period
+  closes.
 
-### Reliability & UI fixes
-- Deleting a code that a task or a checklist tick referenced no longer errors — the tasks are kept
-  (their code cleared) and the stale ticks removed. Codes still in use by tracked time stay protected.
-- The code selector now opens **above** the cell drill-down dialog in the Timesheet-period view,
-  instead of behind it.
-- The task description no longer keeps its placeholder text visible after you paste into it.
-- Removed the second, unintended vertical scrollbar.
+### Overlap detection covers the running timer
+A completed entry that overlaps the **currently running** timer is now flagged, with a one-click trim
+on the completed entry. The running timer itself stays read-only.
+
+### Easier timer start-time edit
+Click **anywhere on the running clock** to correct its start time — no longer just the small "since"
+line.
+
+### Add-able reference suggestions only
+Reference-catalog suggestions now exclude codes already in your catalog **on the server side**, so
+every suggestion you see is genuinely one you can add — and the result limit is never spent on codes
+you already have.
 
 ## Upgrade notes
-- **Database migration required.** Run `alembic upgrade head` (revision `b1c2d3e4f5a6`); it adds two
-  **nullable** columns (`customer`, `code_type`) to the code tables. Backward-compatible — existing
-  codes keep loading (keys `NULL`, sorted last), no data touched. The standalone `walker.exe` applies
-  this automatically on startup.
-- **Catalog import format extended (backward-compatible).** A new 7-column layout
-  `code_number,code_label,code_name,customer,code_type,activity_code,activity_label` is accepted; the
-  previous 5-column (headered) and 4-column (headerless) layouts still work. `customer`/`code_type`
-  are optional.
-- **Standalone `.exe` startup fix.** A packaging issue prevented a freshly built `walker.exe` from
-  running its startup migration. Rebuild from 1.6.0 to get a working executable.
-- No breaking API or behaviour changes.
+- **No breaking changes.**
+- **Database migration** (revision `c2d3e4f5a6b7`): adds a normalized search key
+  (`reference_codes.search_blob`) and backfills existing rows. The standalone `walker.exe` applies it
+  automatically on startup; other deployments run `alembic upgrade head`. Reversible (the downgrade
+  drops the column).
+- New additive API field `uncategorized_by_day` on `GET /api/period/{date}`.

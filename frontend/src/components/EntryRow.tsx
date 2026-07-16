@@ -204,7 +204,21 @@ export function EntryRow({
             </div>
             <div className="wk-code-meta">
               {code?.number}
-              {entry.activity && entry.activity !== code?.name ? ` · ${entry.activity}` : ''}
+              {entry.activity ? (
+                entry.activity !== code?.name ? (
+                  ` · ${entry.activity}`
+                ) : (
+                  ''
+                )
+              ) : (
+                // BIZ-070: coded but no activity → won't reach the matrix; flag it (click categorizes).
+                <span
+                  className="wk-needs-activity"
+                  title="Pick an activity so this reaches the matrix"
+                >
+                  {' · ⚑ pick an activity'}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -285,7 +299,9 @@ export function EntryRow({
       {overlapPartner && (
         <div className="wk-overlap-note">
           <span className="wk-overlap-badge">
-            ⚠ overlaps {formatClock(overlapPartner.start)}–{formatClock(overlapPartner.end)}
+            {overlapPartner.end == null
+              ? `⚠ overlaps running timer (since ${formatClock(overlapPartner.start)})`
+              : `⚠ overlaps ${formatClock(overlapPartner.start)}–${formatClock(overlapPartner.end)}`}
             {overlap && overlap.partners.length > 1 ? ` +${overlap.partners.length - 1}` : ''}
           </span>
           {overlapFixEnd != null && (

@@ -130,11 +130,14 @@ export function TrackerScreen({
                   <div className="wk-entry-list">
                     {(() => {
                       const groupMax = Math.max(1, ...group.entries.map(durationOf))
-                      // BIZ-052: detect time overlaps within the day, excluding the live running entry.
+                      // BIZ-052/BIZ-072: detect time overlaps within the day, including the live
+                      // running entry (its null end is treated as an open interval by detectOverlaps).
                       const overlaps = detectOverlaps(
-                        group.entries
-                          .filter((e) => e.id !== runningId)
-                          .map((e) => ({ id: e.id, start: e.start, end: e.end ?? null })),
+                        group.entries.map((e) => ({
+                          id: e.id,
+                          start: e.start,
+                          end: e.end ?? null,
+                        })),
                       )
                       return group.entries.map((entry) => (
                         <EntryRow

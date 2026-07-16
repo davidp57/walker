@@ -142,6 +142,78 @@ def test_aggregate_sums_real_minutes_by_code_activity_day(session: Session) -> N
     assert row.minutes_by_day == {1: 90, 2: 60}
 
 
+def test_aggregate_reports_uncategorized_minutes_by_day(session: Session) -> None:
+    """Completed entries missing a code or an activity are excluded from the matrix but summed as
+    per-day uncategorized minutes (BIZ-070) so the gap to the captured total is explainable."""
+    user_id, code_id = _seed(session)
+    session.add_all(
+        [
+            # Fully categorized → on the matrix, not uncategorized.
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 1),
+                start_minute=540,
+                end_minute=600,
+                timesheet_code_id=code_id,
+                activity="Bug fixing",
+            ),
+            # Code but no activity → uncategorized (60 min on day 1).
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 1),
+                start_minute=600,
+                end_minute=660,
+                timesheet_code_id=code_id,
+                activity=None,
+            ),
+            # No code at all → uncategorized (30 min on day 2).
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 2),
+                start_minute=540,
+                end_minute=570,
+                timesheet_code_id=None,
+                activity=None,
+            ),
+            # Running (no end) → excluded from both the matrix and the uncategorized total.
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 2),
+                start_minute=570,
+                end_minute=None,
+                timesheet_code_id=None,
+                activity=None,
+            ),
+            # Outside the period → ignored.
+            Entry(
+                user_id=user_id,
+                date=date(2026, 7, 20),
+                start_minute=540,
+                end_minute=600,
+                timesheet_code_id=None,
+                activity=None,
+            ),
+        ]
+    )
+    session.commit()
+
+    grid = aggregate_period(session, user_id, "semi_monthly", date(2026, 7, 2))
+
+    assert grid.rows[0].minutes_by_day == {1: 60}
+    assert grid.uncategorized_by_day == {1: 60, 2: 30}
+
+
+def test_resolve_to_real_codes_preserves_uncategorized_minutes(session: Session) -> None:
+    """Collapsing virtual codes to real ones doesn't touch the per-day uncategorized totals (BIZ-070)."""
+    grid = PeriodGrid(
+        start=date(2026, 7, 1),
+        end=date(2026, 7, 15),
+        rows=[],
+        uncategorized_by_day={3: 45},
+    )
+    assert resolve_to_real_codes(session, grid).uncategorized_by_day == {3: 45}
+
+
 def test_aggregate_flags_a_cell_manual_when_any_entry_is_manual(session: Session) -> None:
     # BIZ-065: a cell is "manual" if it aggregates at least one manual entry; timer-only stays False.
     user_id, code_id = _seed(session)

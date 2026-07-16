@@ -61,6 +61,52 @@ describe('PeriodGrid — manual-entry marker (BIZ-065)', () => {
   })
 })
 
+describe('PeriodGrid — uncategorized footer row (BIZ-070)', () => {
+  const r: PeriodRow = {
+    key: 'c1|A',
+    code: code({ name: 'Alpha' }),
+    activity: 'A',
+    minutesByDay: { 1: 60 },
+    manualByDay: {},
+  }
+
+  it('shows an Uncategorized row with per-day + total minutes off the matrix (Review)', () => {
+    render(
+      <PeriodGrid
+        mode="period"
+        days={[day({ day: 1 }), day({ day: 2 })]}
+        rows={[r]}
+        uncategorizedByDay={{ 1: 17, 2: 30 }}
+        runningCell={null}
+        onOpenCell={() => {}}
+        onAddCell={() => {}}
+        onAddDay={() => {}}
+      />,
+    )
+    const foot = document.querySelector('.wk-foot-uncat') as HTMLElement
+    expect(foot).not.toBeNull()
+    expect(within(foot).getByText(/Uncategorized/)).toBeInTheDocument()
+    expect(within(foot).getByText('0:17')).toBeInTheDocument()
+    expect(within(foot).getByText('0:47')).toBeInTheDocument() // 17 + 30 total
+  })
+
+  it('omits the Uncategorized row when there is none', () => {
+    render(
+      <PeriodGrid
+        mode="period"
+        days={[day({ day: 1 })]}
+        rows={[r]}
+        uncategorizedByDay={{}}
+        runningCell={null}
+        onOpenCell={() => {}}
+        onAddCell={() => {}}
+        onAddDay={() => {}}
+      />,
+    )
+    expect(document.querySelector('.wk-foot-uncat')).toBeNull()
+  })
+})
+
 describe('PeriodGrid — per-day-column Add in Review (BIZ-066)', () => {
   const row: PeriodRow = {
     key: 'c1|A',

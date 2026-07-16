@@ -56,9 +56,32 @@ describe('EntryRow — overlap note (BIZ-052)', () => {
     expect(screen.queryByRole('button', { name: /trim to/i })).toBeNull()
   })
 
+  it('names the running timer as the partner when overlapping the live entry (BIZ-072)', () => {
+    const handlers = renderRow({
+      overlap: { partners: [{ id: 'run', start: 600, end: null }], fixEnd: 600 },
+    })
+
+    expect(screen.getByText(/overlaps running timer \(since 10:00\)/i)).toBeInTheDocument()
+    const trim = screen.getByRole('button', { name: /trim to 10:00/i })
+    fireEvent.click(trim)
+    expect(handlers.onEdit).toHaveBeenCalledWith({ end: 600 })
+  })
+
   it('renders no overlap note when the entry overlaps nothing', () => {
     renderRow()
     expect(screen.queryByText(/overlaps/i)).toBeNull()
+  })
+})
+
+describe('EntryRow — coded but no activity (BIZ-070)', () => {
+  it('flags an entry that has a code but no activity (won’t reach the matrix)', () => {
+    renderRow({ entry: { ...ENTRY, activity: null } })
+    expect(screen.getByText(/pick an activity/i)).toBeInTheDocument()
+  })
+
+  it('does not flag a fully-categorized entry', () => {
+    renderRow()
+    expect(screen.queryByText(/pick an activity/i)).toBeNull()
   })
 })
 

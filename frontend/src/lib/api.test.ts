@@ -407,17 +407,19 @@ describe('fetchPeriod', () => {
           manual_by_day: { '1': true, '2': false },
         },
       ],
+      uncategorized_by_day: { '2': 45 },
     }
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })),
     )
 
-    const { minutes, manual } = await fetchPeriod('2026-07-02')
+    const { minutes, manual, uncategorizedByDay } = await fetchPeriod('2026-07-02')
 
     expect(fetch).toHaveBeenCalledWith('/api/period/2026-07-02')
     expect(minutes).toEqual({ '3|Bug fixing': { 1: 90, 2: 60 } })
     expect(manual).toEqual({ '3|Bug fixing': { 1: true, 2: false } })
+    expect(uncategorizedByDay).toEqual({ 2: 45 }) // BIZ-070: numeric day keys
   })
 })
 
