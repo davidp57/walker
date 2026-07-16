@@ -47,13 +47,45 @@ describe('detectOverlaps', () => {
     expect(info.b.fixEnd).toBeNull()
   })
 
-  it('excludes the running entry (null end) from detection', () => {
+  it('flags a completed entry that overlaps the running timer and offers a trim to its start (BIZ-072)', () => {
     const info = detectOverlaps([
-      { id: 'a', start: 540, end: 660 },
-      { id: 'run', start: 600, end: null }, // running timer
+      { id: 'a', start: 540, end: 660 }, // 9:00–11:00
+      { id: 'run', start: 600, end: null }, // running timer since 10:00
+    ])
+    // The running timer is a partner (its open end is kept as null for display), and the earlier
+    // completed entry can be trimmed back to the timer's start.
+    expect(info.a.partners).toEqual([{ id: 'run', start: 600, end: null }])
+    expect(info.a.fixEnd).toBe(600)
+    // The running entry itself is never assigned a trim (its live end is unknown, BIZ-038).
+    expect(info.run.fixEnd).toBeNull()
+    expect(info.run.partners).toEqual([{ id: 'a', start: 540, end: 660 }])
+  })
+
+  it('flags a same-start overlap with the running timer but offers no trim (BIZ-072)', () => {
+    const info = detectOverlaps([
+      { id: 'a', start: 600, end: 660 },
+      { id: 'run', start: 600, end: null }, // same start as a
+    ])
+    expect(info.a.partners).toEqual([{ id: 'run', start: 600, end: null }])
+    expect(info.a.fixEnd).toBeNull()
+  })
+
+  it('flags a completed entry that starts after the running timer began but offers no trim (BIZ-072)', () => {
+    const info = detectOverlaps([
+      { id: 'run', start: 540, end: null }, // running since 9:00
+      { id: 'a', start: 600, end: 660 }, // 10:00–11:00, starts after the timer began
+    ])
+    expect(info.a.partners).toEqual([{ id: 'run', start: 540, end: null }])
+    expect(info.a.fixEnd).toBeNull() // trimming would need to edit the live entry — flag only
+  })
+
+  it('does not flag a completed entry that merely touches the running timer start (BIZ-072)', () => {
+    const info = detectOverlaps([
+      { id: 'a', start: 540, end: 600 }, // ends exactly when the timer starts
+      { id: 'run', start: 600, end: null },
     ])
     expect(info.a.partners).toEqual([])
-    expect(info.run).toBeUndefined()
+    expect(info.run.partners).toEqual([])
   })
 
   it('trims to the earliest later start when an entry overlaps several', () => {

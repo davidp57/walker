@@ -882,8 +882,10 @@ describe('App — code picker stacks above the Timesheet-period cell modal (TEC-
       description: '',
     }
     mockBaseApi([realCode], [categorized])
+    // Key the cell by today's day-of-month so it lands in the current period column whichever half of
+    // the month the suite runs in (the grid only renders the active period's days).
     vi.spyOn(api, 'fetchPeriod').mockResolvedValue({
-      minutes: { '1|Bug fixing': { 1: 60 } },
+      minutes: { '1|Bug fixing': { [new Date().getDate()]: 60 } },
       manual: {},
     })
 
