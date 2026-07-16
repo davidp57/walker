@@ -27,9 +27,13 @@ def normalize_for_search(text: str) -> str:
 
 
 def _search_blob(entry: ParsedCode) -> str:
-    """Build a ReferenceCode's normalized search key from its number, names, and activity labels."""
+    """Build a ReferenceCode's normalized search key from its number, names, and activity labels.
+
+    Fields are typed ``str``, but each part is coerced with ``or ""`` so a stray ``None`` (e.g. from a
+    loosely-typed importer) can never blow up the ``join``.
+    """
     parts = [entry.number, entry.name, entry.label, *(a.label for a in entry.activities)]
-    return normalize_for_search(" ".join(parts))
+    return normalize_for_search(" ".join(part or "" for part in parts))
 
 
 def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -> tuple[int, int]:
@@ -106,7 +110,7 @@ def search_reference(session: Session, user_id: int, query: str, limit: int = 20
 
     active_numbers = {code.resolved_number for code in catalog.list_codes(session, user_id)}
     if active_numbers:
-        stmt = stmt.where(ReferenceCode.number.not_in(active_numbers))
+        stmt = stmt.where(ReferenceCode.number.notin_(active_numbers))
 
     term = normalize_for_search(query)
     if term:
