@@ -1,7 +1,7 @@
 # BIZ-073 — Fuzzy code search, in-place catalog filtering, name-sorted everywhere
 
 ID: BIZ-073
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -47,7 +47,9 @@ hypothesis (disproven).
 
 ## Delivery
 
-In review — [PR #126](https://github.com/davidp57/walker/pull/126) → `develop`.
+Shipped in [PR #126](https://github.com/davidp57/walker/pull/126) → merged to `develop`. Sourcery
+review addressed (Unicode `\p{L}`/`\p{N}` normalization; precompute-cache suggestion declined as
+negligible at this scale).
 
 ## Blocked by
 
