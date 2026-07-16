@@ -1,11 +1,26 @@
 # TEC-011 — Reference-catalog suggestions no longer appear when adding a code not yet in your list
 
 ID: TEC-011
-Status: ✅ done
+Status: 🔄 in-progress
 Type: fix
 Priority: P2
 
-## Resolution (2026-07-16)
+## Reopened (2026-07-16) — the two latent gaps are now being fixed
+
+Per the user's request, the two follow-ups below are implemented in
+[PR #129](https://github.com/davidp57/walker/pull/129) → `develop`:
+
+1. **Fuzzy reference search.** A precomputed, normalized `reference_codes.search_blob` (case/accents/
+   spaces/punctuation folded, mirroring the frontend `normalizeForSearch`) is matched with a substring
+   `LIKE`, so `HRHUB` now finds `HR Hub` in the reference catalog too. New migration adds + backfills it.
+2. **Limit after exclusion.** `search_reference` excludes numbers already active in the user's catalog
+   **in SQL**, so `limit` returns that many add-able results instead of being spent on already-active
+   codes the client would hide.
+
+Frontend unchanged (its client-side active-number filter becomes a harmless no-op). Ships with an
+Alembic column migration (`alembic upgrade head` on deploy).
+
+## Original resolution (2026-07-16)
 
 **Not a bug in the reported form, and not a scoping issue.** The reference API and both picker
 surfaces work (see the investigation findings below). The user's real pain — reproduced with them —
