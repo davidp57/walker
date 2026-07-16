@@ -117,3 +117,40 @@ describe('TimerBar — Stop | Complete split (BIZ-023)', () => {
     expect(screen.queryByRole('button', { name: 'Complete' })).not.toBeInTheDocument()
   })
 })
+
+describe('TimerBar — edit start time by clicking the clock widget (BIZ-071)', () => {
+  const runningProps = {
+    ...baseProps,
+    running: true,
+    elapsedSeconds: 3600, // "1:00:00"
+    startMinute: 600, // 10:00
+  }
+
+  it('opens the start editor when the big clock (not just the "since" line) is clicked', () => {
+    const onEditStart = vi.fn()
+    render(<TimerBar {...runningProps} onEditStart={onEditStart} />)
+
+    expect(screen.queryByDisplayValue('10:00')).toBeNull()
+    fireEvent.click(screen.getByText('1:00:00'))
+    const input = screen.getByDisplayValue('10:00')
+    fireEvent.change(input, { target: { value: '10:30' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(onEditStart).toHaveBeenCalledWith(630)
+  })
+
+  it('wraps the clock area in a button affordance when the start is editable', () => {
+    render(<TimerBar {...runningProps} onEditStart={vi.fn()} />)
+    expect(screen.getByText('1:00:00').closest('button')).not.toBeNull()
+  })
+
+  it('still opens the editor from the "since" line', () => {
+    render(<TimerBar {...runningProps} onEditStart={vi.fn()} />)
+    fireEvent.click(screen.getByText(/since 10:00/i))
+    expect(screen.getByDisplayValue('10:00')).toBeInTheDocument()
+  })
+
+  it('does not make the clock clickable when stopped', () => {
+    render(<TimerBar {...baseProps} running={false} elapsedSeconds={0} />)
+    expect(screen.getByText('0:00:00').closest('button')).toBeNull()
+  })
+})
