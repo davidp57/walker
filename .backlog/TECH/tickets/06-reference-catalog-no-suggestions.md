@@ -1,14 +1,14 @@
 # TEC-011 — Reference-catalog suggestions no longer appear when adding a code not yet in your list
 
 ID: TEC-011
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 Priority: P2
 
 ## Reopened (2026-07-16) — the two latent gaps are now being fixed
 
-Per the user's request, the two follow-ups below are implemented in
-[PR #129](https://github.com/davidp57/walker/pull/129) → `develop`:
+Per the user's request, the two follow-ups below are shipped in
+[PR #129](https://github.com/davidp57/walker/pull/129) → merged to `develop`:
 
 1. **Fuzzy reference search.** A precomputed, normalized `reference_codes.search_blob` (case/accents/
    spaces/punctuation folded, mirroring the frontend `normalizeForSearch`) is matched with a substring

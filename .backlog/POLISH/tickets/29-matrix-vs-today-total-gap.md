@@ -1,7 +1,7 @@
 # BIZ-070 — Explain the gap between the "by code" matrix total and the "Today" list total
 
 ID: BIZ-070
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -11,7 +11,7 @@ Option **3 (both)** chosen: surface the delta *and* flag uncategorized entries.
 
 ## Delivery
 
-In review — [PR #128](https://github.com/davidp57/walker/pull/128) → `develop`. Backend adds
+Shipped in [PR #128](https://github.com/davidp57/walker/pull/128) → merged to `develop`. Backend adds
 `uncategorized_by_day` to the period aggregation/API; the Review grid shows an amber "Uncategorized"
 footer row (per-day + total) reconciling matrix + uncategorized = captured; the incomplete-entry
 count and `EntryRow` flag broaden from no-code to also cover coded-but-no-activity ("pick an
