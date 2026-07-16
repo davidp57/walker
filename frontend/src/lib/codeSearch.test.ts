@@ -71,6 +71,29 @@ describe('searchUserCodes', () => {
     const [match] = searchUserCodes([c], 'meet')
     expect(match.activities.map((a) => a.label)).toEqual(['Meetings'])
   })
+
+  it('matches fuzzily, ignoring spaces, case, and punctuation (BIZ-073)', () => {
+    const hrhub = code({ id: '1', name: 'Mnt - HR Hub', number: 'N9/6149505/020', label: 'HR' })
+    // "HRHUB" (no space) must find "HR Hub"; a number fragment must still match too.
+    expect(searchUserCodes([hrhub], 'HRHUB').map((r) => r.code.id)).toEqual(['1'])
+    expect(searchUserCodes([hrhub], '6149505').map((r) => r.code.id)).toEqual(['1'])
+    expect(searchUserCodes([hrhub], 'zzz')).toEqual([])
+  })
+
+  it('matches ignoring accents (BIZ-073)', () => {
+    const c = code({ id: '1', name: 'Développement', label: 'L', number: 'N9/1' })
+    expect(searchUserCodes([c], 'developpement').map((r) => r.code.id)).toEqual(['1'])
+  })
+
+  it('keeps non-Latin letters so other alphabets stay searchable (BIZ-073)', () => {
+    const c = code({ id: '1', name: 'Проект Alpha', label: 'L', number: 'N9/1' })
+    expect(searchUserCodes([c], 'проект').map((r) => r.code.id)).toEqual(['1'])
+  })
+
+  it('treats a whitespace-only query as empty (returns all, name-sorted)', () => {
+    const result = searchUserCodes([zebra, apple], '   ')
+    expect(result.map((r) => r.code.name)).toEqual(['Apple', 'Zebra'])
+  })
 })
 
 describe('sortReferenceByName', () => {

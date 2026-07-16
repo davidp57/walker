@@ -24,20 +24,36 @@ interface SearchOptions {
 const byName = (a: { name: string }, b: { name: string }): number =>
   a.name.localeCompare(b.name) || 0
 
-/** Tier 1: the user's codes matching `query`, name-sorted. Matches number / name / label (+ activity). */
+/**
+ * Normalize a string for fuzzy matching (BIZ-073): lower-case, strip diacritics, and drop everything
+ * that isn't a Unicode letter or digit (`\p{L}`/`\p{N}`, so non-Latin alphabets survive). So "HRHUB"
+ * matches "HR Hub", "developpement" matches "Développement", and "6149505" matches "N9/6149505/020" —
+ * spaces, case, accents, and punctuation are ignored.
+ */
+export function normalizeForSearch(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]/gu, '')
+}
+
+/** Tier 1: the user's codes matching `query`, name-sorted. Fuzzy-matches number / name / label (+ activity). */
 export function searchUserCodes(
   codes: TimesheetCode[],
   query: string,
   { codeOnly = false, realOnly = false }: SearchOptions = {},
 ): CodeMatch[] {
-  const q = query.trim().toLowerCase()
+  const q = normalizeForSearch(query)
   const pool = realOnly ? codes.filter((c) => !c.isVirtual) : codes
   return pool
     .map((c) => {
-      const codeMatch = `${c.number} ${c.name} ${c.label}`.toLowerCase().includes(q)
+      const codeMatch = normalizeForSearch(`${c.number} ${c.name} ${c.label}`).includes(q)
       const activities = codeOnly
         ? []
-        : c.activities.filter((a) => q === '' || codeMatch || a.label.toLowerCase().includes(q))
+        : c.activities.filter(
+            (a) => q === '' || codeMatch || normalizeForSearch(a.label).includes(q),
+          )
       const matches = codeOnly ? q === '' || codeMatch : activities.length > 0
       return { code: c, activities, matches }
     })
