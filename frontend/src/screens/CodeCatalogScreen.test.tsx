@@ -116,6 +116,44 @@ describe('CodeCatalogScreen', () => {
     expect(screen.getByText('Gamma')).toBeInTheDocument()
   })
 
+  it('fuzzy-filters the displayed list by the search query (BIZ-073)', () => {
+    const hrhub: TimesheetCode = {
+      ...realCode,
+      id: '9',
+      name: 'Mnt - HR Hub',
+      number: 'N9/6149505/020',
+      label: 'HR',
+    }
+    renderScreen([realCode, hrhub])
+    // Both codes visible before searching.
+    expect(screen.getByText('Paper V4')).toBeInTheDocument()
+    expect(screen.getByText('Mnt - HR Hub')).toBeInTheDocument()
+
+    // "HRHUB" (no space) fuzzy-matches "HR Hub" and hides the non-matching code.
+    fireEvent.change(screen.getByPlaceholderText(/search your catalog/i), {
+      target: { value: 'HRHUB' },
+    })
+    expect(screen.getByText('Mnt - HR Hub')).toBeInTheDocument()
+    expect(screen.queryByText('Paper V4')).not.toBeInTheDocument()
+  })
+
+  it('shows a no-match message when the query matches none of your codes (BIZ-073)', () => {
+    renderScreen([realCode])
+    fireEvent.change(screen.getByPlaceholderText(/search your catalog/i), {
+      target: { value: 'zzzznomatch' },
+    })
+    expect(screen.getByText(/No codes match/i)).toBeInTheDocument()
+    expect(screen.queryByText('Paper V4')).not.toBeInTheDocument()
+  })
+
+  it('lists codes alphabetically by name (BIZ-073)', () => {
+    const zebra: TimesheetCode = { ...realCode, id: '7', name: 'Zebra' }
+    const apple: TimesheetCode = { ...realCode, id: '8', name: 'Apple' }
+    renderScreen([zebra, apple])
+    const names = screen.getAllByText(/Zebra|Apple/).map((el) => el.textContent)
+    expect(names).toEqual(['Apple', 'Zebra'])
+  })
+
   it('guides the two-tier model and links the docs in the empty state (BIZ-046)', () => {
     renderScreen([])
 

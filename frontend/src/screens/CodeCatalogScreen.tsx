@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { ReferenceCode, TimesheetCode } from '../types'
-import { sortReferenceByName } from '../lib/codeSearch'
+import { searchUserCodes, sortReferenceByName } from '../lib/codeSearch'
 import { DOCS_SITE_URL } from '../lib/links'
 
 interface CodeCatalogScreenProps {
@@ -39,6 +39,9 @@ export function CodeCatalogScreen({
   const activeNumbers = new Set(codes.map((c) => c.number))
   // Name-sorted, already-active codes dropped (BIZ-049).
   const suggestions = sortReferenceByName(results, activeNumbers)
+  // BIZ-073: the displayed list is fuzzy-filtered by the same query and always name-sorted, so a long
+  // catalog is searchable in place (an empty query returns every code).
+  const shownCodes = searchUserCodes(codes, query, { codeOnly: true }).map((m) => m.code)
 
   // Debounced autocomplete over the reference catalog.
   useEffect(() => {
@@ -149,7 +152,7 @@ export function CodeCatalogScreen({
         <div className="wk-loading">Loading…</div>
       ) : (
         <div className="wk-catalog-list">
-          {codes.map((c) => (
+          {shownCodes.map((c) => (
             <CatalogCard
               key={c.id}
               code={c}
@@ -167,6 +170,15 @@ export function CodeCatalogScreen({
                 <span className="wk-accent">Import reference</span>), then search above to add the
                 handful of codes you actually charge to. See{' '}
                 <a href={`${DOCS_SITE_URL}catalog-import/`}>Importing your code catalog</a>.
+              </div>
+            </div>
+          )}
+          {codes.length > 0 && shownCodes.length === 0 && (
+            <div className="wk-empty">
+              <div className="wk-empty-title">No codes match “{query.trim()}”.</div>
+              <div className="wk-empty-sub">
+                None of your codes match that search. Clear it to see them all, or add a code from
+                your reference catalog above.
               </div>
             </div>
           )}
