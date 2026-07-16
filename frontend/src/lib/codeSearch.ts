@@ -26,15 +26,16 @@ const byName = (a: { name: string }, b: { name: string }): number =>
 
 /**
  * Normalize a string for fuzzy matching (BIZ-073): lower-case, strip diacritics, and drop everything
- * that isn't a letter or digit. So "HRHUB" matches "HR Hub", "developpement" matches "Développement",
- * and "6149505" matches "N9/6149505/020" — spaces, case, accents, and punctuation are ignored.
+ * that isn't a Unicode letter or digit (`\p{L}`/`\p{N}`, so non-Latin alphabets survive). So "HRHUB"
+ * matches "HR Hub", "developpement" matches "Développement", and "6149505" matches "N9/6149505/020" —
+ * spaces, case, accents, and punctuation are ignored.
  */
 export function normalizeForSearch(s: string): string {
   return s
     .normalize('NFD')
     .replace(/[̀-ͯ]/g, '')
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
+    .replace(/[^\p{L}\p{N}]/gu, '')
 }
 
 /** Tier 1: the user's codes matching `query`, name-sorted. Fuzzy-matches number / name / label (+ activity). */

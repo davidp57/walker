@@ -85,6 +85,11 @@ describe('searchUserCodes', () => {
     expect(searchUserCodes([c], 'developpement').map((r) => r.code.id)).toEqual(['1'])
   })
 
+  it('keeps non-Latin letters so other alphabets stay searchable (BIZ-073)', () => {
+    const c = code({ id: '1', name: 'Проект Alpha', label: 'L', number: 'N9/1' })
+    expect(searchUserCodes([c], 'проект').map((r) => r.code.id)).toEqual(['1'])
+  })
+
   it('treats a whitespace-only query as empty (returns all, name-sorted)', () => {
     const result = searchUserCodes([zebra, apple], '   ')
     expect(result.map((r) => r.code.name)).toEqual(['Apple', 'Zebra'])
