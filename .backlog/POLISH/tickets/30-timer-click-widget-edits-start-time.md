@@ -1,7 +1,7 @@
 # BIZ-071 — Edit the running timer's start time by clicking the whole widget, not just the "since" line
 
 ID: BIZ-071
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: feature
 Priority: P3
 
@@ -46,6 +46,10 @@ obvious big element rather than the small caption:
 - [ ] Clicking the widget while **stopped** does nothing (no edit field, no phantom start).
 - [ ] Frontend quality gate (lint, format, build, test) clean, with a test asserting a click on the
       clock area (not the `since` line) opens the editor.
+
+## Delivery
+
+In review — [PR #127](https://github.com/davidp57/walker/pull/127) → `develop`.
 
 ## Blocked by
 
