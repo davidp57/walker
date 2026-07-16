@@ -79,7 +79,7 @@ export function AppShell({
                 <span
                   className="wk-nav-badge"
                   data-testid="wk-uncategorized-badge"
-                  title={`${uncategorizedCount} entr${uncategorizedCount === 1 ? 'y' : 'ies'} without a Timesheet code`}
+                  title={`${uncategorizedCount} incomplete entr${uncategorizedCount === 1 ? 'y' : 'ies'} (missing a code or activity)`}
                 >
                   {uncategorizedCount}
                 </span>
@@ -133,7 +133,7 @@ export function AppShell({
               <span
                 className="wk-tabbar-badge"
                 data-testid="wk-uncategorized-badge-tabbar"
-                title={`${uncategorizedCount} entr${uncategorizedCount === 1 ? 'y' : 'ies'} without a Timesheet code`}
+                title={`${uncategorizedCount} incomplete entr${uncategorizedCount === 1 ? 'y' : 'ies'} (missing a code or activity)`}
               >
                 {uncategorizedCount}
               </span>

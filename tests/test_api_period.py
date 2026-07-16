@@ -46,6 +46,15 @@ def test_period_returns_aggregated_grid(client: TestClient, session: Session) ->
                 timesheet_code_id=code.id,
                 activity="Bug fixing",
             ),
+            # Completed but missing an activity → uncategorized, not on the matrix (BIZ-070).
+            Entry(
+                user_id=user.id,
+                date=date(2026, 7, 2),
+                start_minute=600,
+                end_minute=660,
+                timesheet_code_id=code.id,
+                activity=None,
+            ),
         ]
     )
     session.commit()
@@ -61,6 +70,7 @@ def test_period_returns_aggregated_grid(client: TestClient, session: Session) ->
     assert row["timesheet_code_id"] == code.id
     assert row["activity"] == "Bug fixing"
     assert row["minutes_by_day"] == {"1": 90, "2": 60}
+    assert body["uncategorized_by_day"] == {"2": 60}
 
 
 def test_period_reshapes_per_settings_scheme(client: TestClient, session: Session) -> None:

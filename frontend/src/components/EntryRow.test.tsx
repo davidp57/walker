@@ -73,6 +73,18 @@ describe('EntryRow — overlap note (BIZ-052)', () => {
   })
 })
 
+describe('EntryRow — coded but no activity (BIZ-070)', () => {
+  it('flags an entry that has a code but no activity (won’t reach the matrix)', () => {
+    renderRow({ entry: { ...ENTRY, activity: null } })
+    expect(screen.getByText(/pick an activity/i)).toBeInTheDocument()
+  })
+
+  it('does not flag a fully-categorized entry', () => {
+    renderRow()
+    expect(screen.queryByText(/pick an activity/i)).toBeNull()
+  })
+})
+
 describe('EntryRow row actions', () => {
   it('exposes an unambiguous accessible name for each row action', () => {
     renderRow()

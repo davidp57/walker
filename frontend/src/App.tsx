@@ -253,6 +253,8 @@ function AppInner() {
   const [matrix, setMatrix] = useState<Record<string, Record<number, number>>>({})
   // BIZ-065: parallel per-cell "has a manual entry" matrix, same `${codeId}|${activity}` keys.
   const [manualMatrix, setManualMatrix] = useState<Record<string, Record<number, boolean>>>({})
+  // BIZ-070: per-day minutes tracked but excluded from the matrix (missing a code or activity).
+  const [uncategorizedByDay, setUncategorizedByDay] = useState<Record<number, number>>({})
   const [checked, setChecked] = useState<ChecklistState>({})
   const [picker, setPicker] = useState<{ target: 'timer' | string } | null>(null)
   // `prefill` populates the editor from a reference-catalog entry being activated (BIZ-049);
@@ -384,9 +386,10 @@ function AppInner() {
   useEffect(() => {
     const ref = periodStartFor(periodScheme, anchor)
     fetchPeriod(ref)
-      .then(({ minutes, manual }) => {
+      .then(({ minutes, manual, uncategorizedByDay: uncat }) => {
         setMatrix(minutes)
         setManualMatrix(manual)
+        setUncategorizedByDay(uncat)
       })
       .catch((err: unknown) =>
         notifyError(errorMessage(err, 'Could not load the Timesheet period grid.')),
@@ -404,9 +407,13 @@ function AppInner() {
   const running = entries.find((e) => e.end === null) ?? null
   const runningId = running?.id ?? null
 
-  // Entries still lacking a Timesheet code (BIZ-010) — surfaced as a live count in the shell so
-  // nothing is left uncoded before the Timesheet period closes. Mirrors EntryRow's own `flagged` rule.
-  const uncategorizedCount = useMemo(() => entries.filter((e) => !e.codeId).length, [entries])
+  // Entries not fully categorized (BIZ-010, BIZ-070) — missing a code *or* an activity, so they
+  // won't reach the Timesheet-system matrix. Surfaced as a live count in the shell so nothing is left
+  // incomplete before the Timesheet period closes. Mirrors EntryRow's own `flagged` rule.
+  const uncategorizedCount = useMemo(
+    () => entries.filter((e) => !e.codeId || !e.activity).length,
+    [entries],
+  )
 
   // Tasks needing attention (BIZ-062): overdue or due today, excluding the terminal (done) state
   // (ADR-0011). Drives the Tasks nav badge and the one-time startup toast below.
@@ -1176,6 +1183,7 @@ function AppInner() {
           days={days}
           reviewRows={gridRows}
           enterRows={checklistRows}
+          uncategorizedByDay={uncategorizedByDay}
           runningCell={runningCell ? { key: runningCell.key, day: runningCell.day } : null}
           enterRunningCell={enterRunningCell}
           checked={checked}
