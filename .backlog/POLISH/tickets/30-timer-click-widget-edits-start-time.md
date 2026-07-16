@@ -1,7 +1,7 @@
 # BIZ-071 — Edit the running timer's start time by clicking the whole widget, not just the "since" line
 
 ID: BIZ-071
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 Priority: P3
 
@@ -49,7 +49,9 @@ obvious big element rather than the small caption:
 
 ## Delivery
 
-In review — [PR #127](https://github.com/davidp57/walker/pull/127) → `develop`.
+Shipped in [PR #127](https://github.com/davidp57/walker/pull/127) → merged to `develop`. Sourcery
+review addressed (added a `:focus-visible` ring; kept the TS-narrowing null guard and the
+stopwatch-text test with rationale).
 
 ## Blocked by
 
