@@ -37,6 +37,9 @@ interface BaseProps {
 
 interface PeriodModeProps extends BaseProps {
   mode: 'period'
+  // BIZ-070: per-day minutes tracked but off the matrix (missing a code or activity). Shown as an
+  // "Uncategorized" footer row so the matrix total + this reconciles to the captured (tracked) total.
+  uncategorizedByDay?: Record<number, number>
   runningCell: { key: string; day: number } | null // the live timer's cell — tinted, read-only
   onOpenCell: (rowKey: string, day: number) => void
   onAddCell: (rowKey: string, day: number) => void // click an empty working cell → new entry, prefilled
@@ -239,6 +242,24 @@ function DayCards(props: GridRenderProps) {
         <span>Total</span>
         <span>{formatDuration(grandTotal)}</span>
       </div>
+      {props.mode === 'period' &&
+        (() => {
+          // BIZ-070: tracked-but-off-matrix minutes, shown so the mobile total isn't misleading.
+          const uncatTotal = Object.values(props.uncategorizedByDay ?? {}).reduce(
+            (s, m) => s + m,
+            0,
+          )
+          if (uncatTotal === 0) return null
+          return (
+            <div
+              className="wk-daycards-grandtotal wk-uncat"
+              title="Tracked but missing a code or activity, so it isn’t on the matrix."
+            >
+              <span>⚑ Uncategorized</span>
+              <span>{formatDuration(uncatTotal)}</span>
+            </div>
+          )
+        })()}
     </div>
   )
 }
@@ -267,6 +288,13 @@ export function PeriodGrid(props: PeriodGridProps) {
     (sum, d) => (d.isWeekend || d.isAbsence ? sum : sum + colTotal(d.day)),
     0,
   )
+
+  // BIZ-070: tracked-but-off-matrix minutes (Review only), surfaced so the gap to the captured total
+  // is explicit instead of silent.
+  const uncatByDay = isPeriod ? ((props as PeriodModeProps).uncategorizedByDay ?? {}) : {}
+  const uncatTotal = Object.values(uncatByDay).reduce((s, m) => s + m, 0)
+  const uncatTitle =
+    'Tracked but missing a code or activity, so it isn’t on the matrix. Add a code and activity to include it.'
 
   return (
     <>
@@ -442,6 +470,20 @@ export function PeriodGrid(props: PeriodGridProps) {
             })}
             <td className="wk-grandtotal">{formatDuration(grandTotal)}</td>
           </tr>
+          {isPeriod && uncatTotal > 0 && (
+            <tr className="wk-foot-uncat" title={uncatTitle}>
+              <td className="wk-foot-label wk-uncat">⚑ Uncategorized</td>
+              {days.map((d) => {
+                const u = uncatByDay[d.day] || 0
+                return (
+                  <td key={d.day} className="wk-coltotal wk-uncat">
+                    {u > 0 ? formatDuration(u) : ''}
+                  </td>
+                )
+              })}
+              <td className="wk-grandtotal wk-uncat">{formatDuration(uncatTotal)}</td>
+            </tr>
+          )}
         </tfoot>
       </table>
     </>

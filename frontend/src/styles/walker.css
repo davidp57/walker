@@ -759,6 +759,11 @@ html[data-theme='light'] body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* BIZ-070: coded-but-no-activity marker in an entry's meta line — amber to match the uncategorized flag. */
+.wk-needs-activity {
+  color: var(--wk-amber);
+  font-weight: var(--wk-fw-medium);
+}
 
 .wk-pill-add {
   display: inline-flex;
@@ -1175,6 +1180,18 @@ html[data-theme='light'] body {
   border-top: 1px solid var(--wk-line);
   border-left: 1px solid var(--wk-line);
   font-weight: var(--wk-fw-semibold);
+}
+/* BIZ-070: the "Uncategorized" footer row — tracked-but-off-matrix minutes, amber to read as a
+   to-do distinct from the matrix (accent) total. Compound selectors win over the base cell colour. */
+.wk-foot-uncat .wk-uncat {
+  color: var(--wk-amber);
+}
+.wk-foot-uncat .wk-coltotal.wk-uncat,
+.wk-foot-uncat .wk-grandtotal.wk-uncat {
+  background: var(--wk-amber-soft);
+}
+.wk-daycards-grandtotal.wk-uncat {
+  color: var(--wk-amber);
 }
 
 /* ---------- Grid — phone day-card layout (BIZ-034) ----------

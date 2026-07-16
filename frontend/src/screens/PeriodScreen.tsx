@@ -16,6 +16,8 @@ interface PeriodScreenProps {
   days: DayColumn[]
   reviewRows: PeriodRow[] // grouped by code — virtual codes are their own rows (Review)
   enterRows: PeriodRow[] // resolved to the real code (ADR-0008) — Enter in Timesheet system
+  // BIZ-070: per-day minutes tracked but off the matrix (missing a code or activity), shown in Review.
+  uncategorizedByDay?: Record<number, number>
   runningCell: { key: string; day: number } | null // the live timer's cell (read-only, tinted) — Review
   // The running cell's key, resolved virtual→real (ADR-0008) so it matches `enterRows`' keys. Falls
   // back to `runningCell` when omitted (equivalent when the running entry is on a real code already).
@@ -47,6 +49,7 @@ export function PeriodScreen({
   days,
   reviewRows,
   enterRows,
+  uncategorizedByDay,
   runningCell,
   enterRunningCell = runningCell,
   checked,
@@ -215,6 +218,7 @@ export function PeriodScreen({
             mode="period"
             days={days}
             rows={reviewRows}
+            uncategorizedByDay={uncategorizedByDay}
             runningCell={runningCell}
             onOpenCell={onOpenCell}
             onAddCell={onAddCell}

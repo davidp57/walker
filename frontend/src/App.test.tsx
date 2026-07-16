@@ -65,7 +65,11 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[], theme: Theme = 's
     viewPreferences: DEFAULT_VIEW_PREFERENCES,
     taskStates: DEFAULT_TASK_STATES,
   })
-  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
+  vi.spyOn(api, 'fetchPeriod').mockResolvedValue({
+    minutes: {},
+    manual: {},
+    uncategorizedByDay: {},
+  })
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
   vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
   vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -209,7 +213,11 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       viewPreferences: DEFAULT_VIEW_PREFERENCES,
       taskStates: DEFAULT_TASK_STATES,
     })
-    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({
+      minutes: {},
+      manual: {},
+      uncategorizedByDay: {},
+    })
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -248,7 +256,11 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
       viewPreferences: DEFAULT_VIEW_PREFERENCES,
       taskStates: DEFAULT_TASK_STATES,
     })
-    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({
+      minutes: {},
+      manual: {},
+      uncategorizedByDay: {},
+    })
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -313,6 +325,19 @@ describe('App — uncategorized-Entry count in the shell (BIZ-010)', () => {
 
     await screen.findByText('Today')
     expect(screen.queryByTestId('wk-uncategorized-badge')).not.toBeInTheDocument()
+  })
+
+  it('counts a coded-but-no-activity entry as incomplete (BIZ-070)', async () => {
+    const codedNoActivity: Entry = {
+      ...uncategorizedEntry,
+      codeId: realCode.id,
+      activity: null,
+    }
+    mockBaseApi([realCode], [codedNoActivity])
+
+    render(<App />)
+
+    expect(await screen.findByTestId('wk-uncategorized-badge')).toHaveTextContent('1')
   })
 })
 
@@ -565,7 +590,11 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
 
   it('persists the chosen period scheme via updateSettings', async () => {
     mockBaseApi([realCode], [])
-    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({
+      minutes: {},
+      manual: {},
+      uncategorizedByDay: {},
+    })
     const updateSettings = vi.spyOn(api, 'updateSettings').mockResolvedValue({
       workdays: [false, true, true, true, true, true, false],
       density: 'comfortable',
@@ -677,7 +706,11 @@ describe('App — theme preference applied to the document (BIZ-032)', () => {
     window.localStorage.setItem('wk-last-theme-preference', 'light')
     vi.spyOn(api, 'fetchCodes').mockResolvedValue([realCode])
     vi.spyOn(api, 'fetchEntriesRange').mockResolvedValue([])
-    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({ minutes: {}, manual: {} })
+    vi.spyOn(api, 'fetchPeriod').mockResolvedValue({
+      minutes: {},
+      manual: {},
+      uncategorizedByDay: {},
+    })
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
@@ -887,6 +920,7 @@ describe('App — code picker stacks above the Timesheet-period cell modal (TEC-
     vi.spyOn(api, 'fetchPeriod').mockResolvedValue({
       minutes: { '1|Bug fixing': { [new Date().getDate()]: 60 } },
       manual: {},
+      uncategorizedByDay: {},
     })
 
     render(<App />)
