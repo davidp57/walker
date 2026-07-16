@@ -1,7 +1,7 @@
 # BIZ-072 — Overlap detection should include the running timer (it has a start time)
 
 ID: BIZ-072
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: feature
 Priority: P2
 
@@ -59,6 +59,10 @@ timer as the conflicting partner (e.g. "⚠ overlaps running timer (since HH:MM)
 - [ ] Detection stays a pure, unit-tested helper; the running timer is passed in by its start and the
       existing completed-vs-completed behavior is unchanged (regression-covered).
 - [ ] Frontend quality gate (lint, format, build, test) clean.
+
+## Delivery
+
+In review — [PR #125](https://github.com/davidp57/walker/pull/125) → `develop`.
 
 ## Blocked by
 
