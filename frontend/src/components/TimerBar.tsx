@@ -56,6 +56,13 @@ export function TimerBar({
     if (m != null && onEditStart) onEditStart(m)
     setEditingStart(false)
   }
+  // BIZ-071: the whole running-clock area (not just the "since" line) opens the start-time editor.
+  const canEditStart = running && startMinute != null && !!onEditStart
+  const beginEditStart = () => {
+    if (startMinute == null) return
+    setStartBuffer(formatClock(startMinute))
+    setEditingStart(true)
+  }
 
   const hasTask = !!code
   const canCancel = running || hasTask || description.trim().length > 0
@@ -121,11 +128,9 @@ export function TimerBar({
       <div className="wk-timer-right">
         <span className={`wk-timer-dot${running ? ' is-running' : ''}`} />
         <div className="wk-timer-clock-wrap">
-          <span className={`wk-timer-clock${running ? ' is-running' : ''}`}>
-            {formatStopwatch(elapsedSeconds)}
-          </span>
-          {running && startMinute != null && onEditStart ? (
-            editingStart ? (
+          {canEditStart && editingStart ? (
+            <>
+              <span className="wk-timer-clock is-running">{formatStopwatch(elapsedSeconds)}</span>
               <input
                 className="wk-input-inline"
                 autoFocus
@@ -139,19 +144,23 @@ export function TimerBar({
                 onBlur={commitStart}
                 style={{ width: 60 }}
               />
-            ) : (
-              <span
-                className="wk-timer-since"
-                title="Edit the start time of the running timer"
-                onClick={() => {
-                  setStartBuffer(formatClock(startMinute))
-                  setEditingStart(true)
-                }}
-              >
-                since {formatClock(startMinute)}
-              </span>
-            )
-          ) : null}
+            </>
+          ) : canEditStart ? (
+            // The whole widget is the click target — clock + "since" line (BIZ-071).
+            <button
+              type="button"
+              className="wk-timer-clock-edit"
+              title="Edit the start time of the running timer"
+              onClick={beginEditStart}
+            >
+              <span className="wk-timer-clock is-running">{formatStopwatch(elapsedSeconds)}</span>
+              <span className="wk-timer-since">since {formatClock(startMinute)}</span>
+            </button>
+          ) : (
+            <span className={`wk-timer-clock${running ? ' is-running' : ''}`}>
+              {formatStopwatch(elapsedSeconds)}
+            </span>
+          )}
         </div>
       </div>
 
