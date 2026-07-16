@@ -285,7 +285,9 @@ export function EntryRow({
       {overlapPartner && (
         <div className="wk-overlap-note">
           <span className="wk-overlap-badge">
-            ⚠ overlaps {formatClock(overlapPartner.start)}–{formatClock(overlapPartner.end)}
+            {overlapPartner.end == null
+              ? `⚠ overlaps running timer (since ${formatClock(overlapPartner.start)})`
+              : `⚠ overlaps ${formatClock(overlapPartner.start)}–${formatClock(overlapPartner.end)}`}
             {overlap && overlap.partners.length > 1 ? ` +${overlap.partners.length - 1}` : ''}
           </span>
           {overlapFixEnd != null && (
