@@ -106,3 +106,35 @@ def test_add_from_reference_unknown_is_404(client: TestClient) -> None:
     response = client.post("/api/codes/from-reference", json={"number": "N9/9999"})
 
     assert response.status_code == 404
+
+
+def test_search_reference_is_fuzzy_across_spaces_and_punctuation(client: TestClient) -> None:
+    """ "prj connect" (spaced) matches "PRJ - Connect" — the old substring ilike could not (TEC-011)."""
+    _import(client)
+
+    refs = client.get("/api/reference", params={"q": "prj connect"}).json()
+
+    assert [r["number"] for r in refs] == ["N1/6016508/010"]
+
+
+def test_search_reference_excludes_already_active_codes(client: TestClient) -> None:
+    """A code already in the active catalog is filtered server-side, so it isn't re-suggested (TEC-011)."""
+    _import(client)
+    client.post("/api/codes/from-reference", json={"number": "N1/6016508/010"})
+
+    # An empty query lists only the still-addable reference codes.
+    refs = client.get("/api/reference", params={"q": ""}).json()
+    assert [r["number"] for r in refs] == ["N9/0007"]
+
+    # Searching for the now-active code returns nothing to add.
+    assert client.get("/api/reference", params={"q": "Connect"}).json() == []
+
+
+def test_search_reference_limit_applies_after_excluding_active(client: TestClient) -> None:
+    """The limit yields add-able results, not ones spent on already-active codes (TEC-011)."""
+    _import(client)
+    client.post("/api/codes/from-reference", json={"number": "N1/6016508/010"})
+
+    refs = client.get("/api/reference", params={"q": "", "limit": 1}).json()
+
+    assert [r["number"] for r in refs] == ["N9/0007"]

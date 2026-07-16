@@ -6,13 +6,34 @@ list); the user picks the handful they actually charge to, which are copied into
 
 from __future__ import annotations
 
-from sqlalchemy import or_, select
+import unicodedata
+
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.exceptions import NotFoundError
 from walker.models import ReferenceCode, TimesheetCode
 from walker.services import catalog
 from walker.services.catalog import ParsedActivity, ParsedCode
+
+
+def normalize_for_search(text: str) -> str:
+    """Fold a string to its fuzzy-search key (TEC-011): NFD-decompose, drop combining marks, lower-case,
+    and keep only alphanumerics. Mirrors the frontend ``normalizeForSearch`` so "HRHUB" matches "HR Hub",
+    "developpement" matches "Développement", and a bare number fragment matches inside a full code."""
+    decomposed = unicodedata.normalize("NFD", text)
+    without_marks = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
+    return "".join(ch for ch in without_marks.lower() if ch.isalnum())
+
+
+def _search_blob(entry: ParsedCode) -> str:
+    """Build a ReferenceCode's normalized search key from its number, names, and activity labels.
+
+    Fields are typed ``str``, but each part is coerced with ``or ""`` so a stray ``None`` (e.g. from a
+    loosely-typed importer) can never blow up the ``join``.
+    """
+    parts = [entry.number, entry.name, entry.label, *(a.label for a in entry.activities)]
+    return normalize_for_search(" ".join(part or "" for part in parts))
 
 
 def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -> tuple[int, int]:
@@ -40,6 +61,7 @@ def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -
                 customer=entry.customer,
                 code_type=entry.code_type,
                 activities=activities,
+                search_blob=_search_blob(entry),
             )
             session.add(ref)
             existing[entry.number] = ref
@@ -54,6 +76,7 @@ def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -
             if entry.code_type is not None:
                 ref.code_type = entry.code_type
             ref.activities = activities
+            ref.search_blob = _search_blob(entry)
             updated += 1
 
     # Backfill the ordering keys onto already-active real codes sharing the number (BIZ-068), again
@@ -76,18 +99,23 @@ def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -
 
 
 def search_reference(session: Session, user_id: int, query: str, limit: int = 20) -> list[ReferenceCode]:
-    """Search the reference catalog by number/label/name (case-insensitive), capped at ``limit``."""
+    """Fuzzy-search the reference catalog, excluding codes already active, capped at ``limit`` (TEC-011).
+
+    Matching is on the normalized ``search_blob`` (spaces/accents/punctuation ignored), so "HRHUB"
+    finds "HR Hub". Codes whose number is already in the user's active catalog are filtered **in SQL**,
+    so the ``limit`` returns that many *add-able* results rather than being spent on already-active ones
+    that the client would then hide.
+    """
     stmt = select(ReferenceCode).where(ReferenceCode.user_id == user_id)
-    term = query.strip()
+
+    active_numbers = {code.resolved_number for code in catalog.list_codes(session, user_id)}
+    if active_numbers:
+        stmt = stmt.where(ReferenceCode.number.notin_(active_numbers))
+
+    term = normalize_for_search(query)
     if term:
-        like = f"%{term}%"
-        stmt = stmt.where(
-            or_(
-                ReferenceCode.number.ilike(like),
-                ReferenceCode.label.ilike(like),
-                ReferenceCode.name.ilike(like),
-            )
-        )
+        stmt = stmt.where(ReferenceCode.search_blob.like(f"%{term}%"))
+
     return list(session.scalars(stmt.order_by(ReferenceCode.number).limit(limit)))
 
 
