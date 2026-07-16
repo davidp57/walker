@@ -1,7 +1,7 @@
 # TEC-011 — Reference-catalog suggestions no longer appear when adding a code not yet in your list
 
 ID: TEC-011
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: fix
 Priority: P2
 
@@ -50,14 +50,56 @@ back empty.
 
 ## Investigation steps (do these first — confirm before fixing)
 
-- [ ] Reproduce on the live DB: log the resolved `user_id` for the session, then
+- [x] Reproduce on the live DB: log the resolved `user_id` for the session, then
       `SELECT user_id, COUNT(*) FROM reference_codes GROUP BY user_id` and compare. Empty for the
       live user_id ⇒ scoping/data mismatch (this ticket's prime suspect).
-- [ ] If reference rows exist for the live user_id, check the frontend path instead: is
+- [x] If reference rows exist for the live user_id, check the frontend path instead: is
       `onSearchReference` wired on both surfaces, is the debounced request firing (`/api/reference`
       in the network tab), and does `sortReferenceByName` filter everything out?
-- [ ] Confirm whether it's a regression: which release last showed suggestions (SHIP/org-scoping is
+- [x] Confirm whether it's a regression: which release last showed suggestions (SHIP/org-scoping is
       the suspected boundary).
+
+## Investigation findings (2026-07-16) — prime suspect DISPROVEN
+
+Reproduced against the live running app (v1.6.0, `auth_mode: none`, single user; backend serves the
+built SPA on :8000) by driving both surfaces in-browser and hitting the API directly.
+
+- **The API works.** `GET /api/reference?q=…` returns populated, correctly-scoped results for every
+  term tried (`N9`, `mnt`, `Connect`, `Workday`, empty query, …). The reference catalog holds ~9k
+  codes owned by the current session user. **No scoping/data mismatch** — the `user_id` vs
+  `organization_id` asymmetry is real in the schema but does **not** cause this here (no SSO, one
+  user, and the session user owns the reference rows).
+- **Both surfaces work** for a genuinely-not-active code. On the Code catalog screen and the timer
+  `CodePicker`, searching e.g. "Connect" renders 17 / 34 add-able suggestions under "From your
+  reference catalog". Wiring (`onSearchReference` / `onActivateReference`) is intact on all picker
+  instances.
+- **The only "no suggestions" cases are codes the user already has.** `sortReferenceByName` dedups by
+  **number** (`activeNumbers.has(r.number)`, introduced in BIZ-049, #105 — not a recent regression).
+  Terms like `APSAL`, `ScanUp`, `N9/6069436`, `Mnt - Workday Product` return nothing *because the
+  real code for that number is already active* (the user has 23 active codes over 15 distinct numbers,
+  many virtual codes sharing a number). Hiding an already-owned code is arguably correct behavior.
+- **Could not reproduce "no suggestion for a code not yet in my list."** Every non-active number
+  tried does surface. The reported symptom is therefore **not currently reproducible**.
+
+### Two real issues surfaced anyway (candidates, lower urgency than first thought)
+
+1. **Latent limit-before-filter correctness gap.** `searchReference` fetches `limit=20`
+   (server caps at 100), ordered by number ascending, and the active-number filter is applied
+   **client-side afterwards**. If the first 20 matches are all already-active, addable matches further
+   down are never fetched → zero suggestions despite valid results existing. Does **not** bite this
+   user today (sparse active set), but it's a genuine gap. Clean fix: exclude already-active numbers
+   **server-side** in `search_reference` so the limit applies after exclusion.
+2. **Coarse dedup by number.** Once *any* code (including a virtual code) uses a number, the whole
+   number disappears from suggestions. Fine when the real code is active (this user's case); worth
+   revisiting if a number is only used by virtual codes.
+
+### Most likely explanation for the report
+
+A **transient state** when the user tried — e.g. mid re-import of the catalog (the user had recently
+rebuilt the import CSV for BIZ-068, see the `te-catalog-export-query` note). Note `import_reference`
+upserts and never deletes, so a normal re-import shouldn't empty the catalog — a failed/empty import
+file is the more plausible transient cause. **Needs the user to confirm the exact search term and
+rough timing** before committing to a fix.
 
 ## Likely fix directions (decide after investigation)
 
