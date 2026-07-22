@@ -73,31 +73,15 @@ describe('EntryRow — overlap note (BIZ-052)', () => {
   })
 })
 
-describe('EntryRow — merge action (BIZ-077)', () => {
-  it('shows a Merge button when a merge target is given and wires it to onMerge', () => {
-    const onMerge = vi.fn()
-    renderRow({
-      overlap: { partners: [{ id: 'b', start: 600, end: 720 }], fixEnd: 600 },
-      mergeTargetId: 'b',
-      onMerge,
-    })
-
-    const merge = screen.getByRole('button', { name: /^merge$/i })
-    fireEvent.click(merge)
-    expect(onMerge).toHaveBeenCalledWith('b')
+describe('EntryRow — merge highlight (BIZ-079)', () => {
+  it('tints the row when its merge pair is hovered', () => {
+    renderRow({ mergeHighlight: true })
+    expect(document.querySelector('.wk-entry-row.is-merge-highlight')).toBeInTheDocument()
   })
 
-  it('shows the Merge button in a note even without an overlap (adjacent running timer)', () => {
-    const onMerge = vi.fn()
-    renderRow({ mergeTargetId: 'run', onMerge })
-
-    expect(screen.queryByText(/overlaps/i)).toBeNull()
-    expect(screen.getByRole('button', { name: /^merge$/i })).toBeInTheDocument()
-  })
-
-  it('shows no Merge button when there is no merge target', () => {
-    renderRow({ overlap: { partners: [{ id: 'b', start: 600, end: 720 }], fixEnd: 600 } })
-    expect(screen.queryByRole('button', { name: /^merge$/i })).toBeNull()
+  it('is not tinted by default', () => {
+    renderRow()
+    expect(document.querySelector('.wk-entry-row.is-merge-highlight')).toBeNull()
   })
 })
 

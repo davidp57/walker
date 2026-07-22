@@ -685,6 +685,43 @@ html[data-theme='light'] body {
   background: var(--wk-amber-soft);
 }
 
+/* BIZ-079: Merge action as a compact pill on the seam between two mergeable rows. The zero-height
+   strip sits on the shared border; the pill straddles it. Hovering the pill tints both rows
+   (`.is-merge-highlight`) so the pair is unmistakable without a permanent bracket. */
+.wk-merge-seam {
+  height: 0;
+  display: flex;
+  justify-content: flex-end;
+  position: relative;
+  z-index: 3;
+  pointer-events: none;
+}
+.wk-merge-pill {
+  pointer-events: auto;
+  transform: translateY(-50%);
+  margin-right: 96px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  color: var(--wk-text-mid);
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-accent-line);
+  border-radius: 999px;
+  padding: 2px 9px;
+  cursor: pointer;
+}
+.wk-merge-pill:hover {
+  color: var(--wk-accent);
+  border-color: var(--wk-accent);
+  background: var(--wk-accent-soft);
+}
+.wk-entry-row.is-merge-highlight {
+  background: var(--wk-accent-soft);
+  box-shadow: inset 3px 0 0 var(--wk-accent);
+}
+
 .wk-time {
   display: flex;
   align-items: center;
