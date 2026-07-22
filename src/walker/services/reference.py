@@ -125,7 +125,7 @@ def add_from_reference(session: Session, user_id: int, number: str, *, as_backin
     Idempotent: if the number is already active in the user's Organization (added by any member,
     ADR-0010), that existing real code is returned.
 
-    ``as_backing`` (BIZ-075, ADR-0012) creates the code as a hidden **backing-only** real code — used
+    ``as_backing`` (BIZ-075, ADR-0014) creates the code as a hidden **backing-only** real code — used
     when auto-materializing the backing for a virtual code, so it never surfaces in the catalog. A
     regular add (``as_backing=False``) of a code that currently exists only as a backing-only code
     **un-hides** it, promoting it to a first-class tracked code.

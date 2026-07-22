@@ -452,7 +452,7 @@ function AppInner() {
   }, [runningId])
 
   const codesById = useMemo(() => Object.fromEntries(codes.map((c) => [c.id, c])), [codes])
-  // BIZ-075 (ADR-0012): backing-only real codes exist only to resolve a virtual code's Timesheet
+  // BIZ-075 (ADR-0014): backing-only real codes exist only to resolve a virtual code's Timesheet
   // export; they are hidden from every user-facing surface (catalog + pickers). `codesById` stays
   // built from the full set so a checklist line still resolves its number/label by id.
   const visibleCodes = useMemo(() => codes.filter((c) => !c.backingOnly), [codes])
@@ -709,7 +709,7 @@ function AppInner() {
       .then(reloadCodes)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the code.')))
   }
-  // Back a virtual code with a reference code that isn't active yet (BIZ-075, ADR-0012): create it as
+  // Back a virtual code with a reference code that isn't active yet (BIZ-075, ADR-0014): create it as
   // a hidden backing-only real code (no editor, auto colour) and select it — no second dialog, no
   // extra visible code. Idempotent by number server-side.
   const addBackingFromReference = (ref: ReferenceCode, onAdded?: (code: TimesheetCode) => void) => {

@@ -14,7 +14,7 @@ interface VirtualCodeEditorProps {
   // Backing-code selection via the shared CodePicker (BIZ-049). Optional so the editor still works
   // without them (e.g. in isolation tests).
   onSearchReference?: (q: string) => Promise<ReferenceCode[]> // search the reference catalog
-  // Back the virtual with a reference code that isn't active yet (BIZ-075, ADR-0012): creates it as a
+  // Back the virtual with a reference code that isn't active yet (BIZ-075, ADR-0014): creates it as a
   // hidden backing-only real code (no editor, auto colour); `onActivated` selects it as the backing.
   onActivateReference?: (ref: ReferenceCode, onActivated: (code: TimesheetCode) => void) => void
 }

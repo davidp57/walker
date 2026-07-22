@@ -272,7 +272,7 @@ export async function updateVirtualCode(
 
 /**
  * Materialize a reference code as a **hidden backing-only** real code for a virtual code (BIZ-075,
- * ADR-0012). No editor step: the colour is auto-assigned and the code is kept out of the catalog +
+ * ADR-0014). No editor step: the colour is auto-assigned and the code is kept out of the catalog +
  * pickers. Idempotent by number — returns the existing real code if one is already active.
  */
 export async function addBackingFromReference(number: string): Promise<TimesheetCode> {

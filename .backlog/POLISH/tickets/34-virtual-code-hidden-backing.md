@@ -28,7 +28,7 @@ doesn't need to be a visible, standalone entry in the catalog.
 
 Chosen over a deeper model change (virtual→reference by number, which would have re-keyed the
 persisted checklist ticks) because it delivers the same user-visible outcome at a fraction of the
-risk. See ADR-0012.
+risk. See ADR-0014.
 
 - **`backing_only` flag** on `TimesheetCode` (real codes only). A backing-only real code exists solely
   to back virtual codes and to resolve the Timesheet-system export; it is **hidden** from the Code
