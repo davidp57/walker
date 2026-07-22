@@ -137,12 +137,14 @@ def create_code(
     activities: list[ParsedActivity],
     customer: str | None = None,
     code_type: str | None = None,
+    backing_only: bool = False,
 ) -> TimesheetCode:
     """Create a new real code (+ activities), scoped to the user's Organization (ADR-0010).
 
     Rejects a duplicate ``number`` within the Organization. A user with no Organization (not yet
     migrated) gets a code visible only to themselves (``organization_id`` stays ``None``).
-    ``customer``/``code_type`` are the optional T&E grid-ordering keys (BIZ-068).
+    ``customer``/``code_type`` are the optional T&E grid-ordering keys (BIZ-068). ``backing_only``
+    marks a code auto-created solely to back a virtual code — hidden from the SPA (BIZ-075, ADR-0014).
     """
     organization_id = _organization_id(session, user_id)
     scope: ColumnElement[bool]
@@ -164,6 +166,7 @@ def create_code(
         color=color or _suggested_color(session, user_id, organization_id),
         customer=customer,
         code_type=code_type,
+        backing_only=backing_only,
         activities=[Activity(code=a.code, label=a.label) for a in activities],
     )
     session.add(code)
@@ -298,9 +301,34 @@ def delete_code(session: Session, user_id: int, code_id: int) -> None:
         )
         if virtual_children:
             raise ValidationError(f"Code {code.number} has virtual codes pointing to it and cannot be deleted.")
+    # A virtual code's backing real code is captured before deletion so a now-orphaned *hidden*
+    # backing (BIZ-075, ADR-0014) can be garbage-collected — it only ever existed to back this code.
+    backing_id = code.real_code_id if code.is_virtual else None
     session.execute(update(Task).where(Task.timesheet_code_id == code_id).values(timesheet_code_id=None))
     session.execute(delete(ChecklistMark).where(ChecklistMark.timesheet_code_id == code_id))
     session.delete(code)
+    session.commit()
+    if backing_id is not None:
+        _cleanup_orphan_backing(session, backing_id)
+
+
+def _cleanup_orphan_backing(session: Session, backing_id: int) -> None:
+    """Delete a backing-only real code once its last virtual child is gone (BIZ-075, ADR-0014).
+
+    A no-op unless the code is ``backing_only`` with no remaining virtual children and no Entries — a
+    visible real code, or one still backing another virtual, is left untouched.
+    """
+    backing = session.get(TimesheetCode, backing_id)
+    if backing is None or not backing.backing_only:
+        return
+    remaining = session.scalar(
+        select(func.count()).select_from(TimesheetCode).where(TimesheetCode.real_code_id == backing_id)
+    )
+    entries = session.scalar(select(func.count()).select_from(Entry).where(Entry.timesheet_code_id == backing_id))
+    if remaining or entries:
+        return
+    session.execute(delete(ChecklistMark).where(ChecklistMark.timesheet_code_id == backing_id))
+    session.delete(backing)
     session.commit()
 
 

@@ -44,6 +44,7 @@ def _code_read(code: TimesheetCode) -> CodeRead:
         is_virtual=code.is_virtual,
         real_code_id=code.real_code_id,
         real_code_number=code.real_code.number if code.real_code is not None else None,
+        backing_only=code.backing_only,
     )
 
 
@@ -173,7 +174,7 @@ def add_from_reference(
 ) -> CodeRead:
     """Copy a reference code (with all its activities) into the user's active codes."""
     try:
-        code = reference.add_from_reference(session, user.id, body.number)
+        code = reference.add_from_reference(session, user.id, body.number, as_backing=body.as_backing)
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     return _code_read(code)

@@ -109,80 +109,80 @@ export function CodeCatalogScreen({
         </div>
       )}
 
-      <div style={{ position: 'relative', marginBottom: 16 }}>
+      <div style={{ marginBottom: 16 }}>
         <input
           className="wk-input"
           value={query}
-          placeholder="Add a code — search your catalog by number, project, or label…"
+          placeholder="Search your codes — or type to add one from your reference catalog…"
           onChange={(e) => setQuery(e.target.value)}
         />
-        {suggestions.length > 0 && (
-          <div
-            className="wk-suggest"
-            style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              zIndex: 30,
-              marginTop: 4,
-            }}
-          >
-            {suggestions.map((r) => (
-              <button
-                key={r.id}
-                type="button"
-                className="wk-suggest-item"
-                onClick={() => activate(r)}
-              >
-                <span className="wk-suggest-body">
-                  <span className="wk-suggest-desc">{r.name}</span>
-                  <span className="wk-suggest-meta">
-                    {r.number} · {r.label}
-                  </span>
-                </span>
-                <span className="wk-suggest-key">+ add</span>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {loading ? (
         <div className="wk-loading">Loading…</div>
       ) : (
-        <div className="wk-catalog-list">
-          {shownCodes.map((c) => (
-            <CatalogCard
-              key={c.id}
-              code={c}
-              inUse={isCodeInUse(c.id)}
-              onEdit={onEdit}
-              onEditVirtual={onEditVirtual}
-              onDelete={onDelete}
-            />
-          ))}
-          {codes.length === 0 && (
-            <div className="wk-empty">
-              <div className="wk-empty-title">No codes yet.</div>
-              <div className="wk-empty-sub">
-                Your catalog has two tiers: import your full reference catalog once (
-                <span className="wk-accent">Import reference</span>), then search above to add the
-                handful of codes you actually charge to. See{' '}
-                <a href={`${DOCS_SITE_URL}catalog-import/`}>Importing your code catalog</a>.
+        <>
+          <div className="wk-catalog-list">
+            {shownCodes.map((c) => (
+              <CatalogCard
+                key={c.id}
+                code={c}
+                inUse={isCodeInUse(c.id)}
+                onEdit={onEdit}
+                onEditVirtual={onEditVirtual}
+                onDelete={onDelete}
+              />
+            ))}
+            {codes.length === 0 && (
+              <div className="wk-empty">
+                <div className="wk-empty-title">No codes yet.</div>
+                <div className="wk-empty-sub">
+                  Your catalog has two tiers: import your full reference catalog once (
+                  <span className="wk-accent">Import reference</span>), then search above to add the
+                  handful of codes you actually charge to. See{' '}
+                  <a href={`${DOCS_SITE_URL}catalog-import/`}>Importing your code catalog</a>.
+                </div>
               </div>
-            </div>
-          )}
-          {codes.length > 0 && shownCodes.length === 0 && (
-            <div className="wk-empty">
-              <div className="wk-empty-title">No codes match “{query.trim()}”.</div>
-              <div className="wk-empty-sub">
-                None of your codes match that search. Clear it to see them all, or add a code from
-                your reference catalog above.
+            )}
+            {codes.length > 0 && shownCodes.length === 0 && (
+              <div className="wk-empty">
+                <div className="wk-empty-title">No codes match “{query.trim()}”.</div>
+                <div className="wk-empty-sub">
+                  None of your codes match that search. Clear it to see them all, or add one from
+                  your reference catalog below.
+                </div>
               </div>
-            </div>
+            )}
+          </div>
+
+          {/* Reference-catalog matches to activate — rendered in the flow, below the code list, so
+              they never overlay it (BIZ-074). Distinct from the box's in-place filter (BIZ-073). */}
+          {suggestions.length > 0 && (
+            <section className="wk-ref-suggest">
+              <div className="wk-ref-suggest-title">
+                Add from your reference catalog ({suggestions.length})
+              </div>
+              <div className="wk-ref-suggest-list">
+                {suggestions.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    className="wk-suggest-item"
+                    onClick={() => activate(r)}
+                  >
+                    <span className="wk-suggest-body">
+                      <span className="wk-suggest-desc">{r.name}</span>
+                      <span className="wk-suggest-meta">
+                        {r.number} · {r.label}
+                      </span>
+                    </span>
+                    <span className="wk-suggest-key">+ add</span>
+                  </button>
+                ))}
+              </div>
+            </section>
           )}
-        </div>
+        </>
       )}
     </div>
   )
