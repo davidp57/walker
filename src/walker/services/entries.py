@@ -229,8 +229,9 @@ def insert_break(
     entry = get_entry(session, user_id, entry_id)
     on_date = entry.date
     running = entry.end_minute is None
-    upper = now_minute if running else entry.end_minute
-    assert upper is not None  # narrows for mypy; `entry.end_minute` is set when not running
+    # A running entry has no end yet, so its upper bound is the current minute; this also narrows the
+    # type to ``int`` (no ``assert``) so a bad invariant can't surface as an uncontrolled 500.
+    upper = now_minute if entry.end_minute is None else entry.end_minute
     if not (entry.start_minute <= break_start < break_end <= upper):
         raise ValidationError("The break must fall inside the entry.")
 

@@ -84,7 +84,9 @@ export function BreakModal({
       return
     }
     if (!(lower <= bs && bs < be && be <= upper)) {
-      setError(`The break must fall between ${formatClock(lower)} and ${formatClock(upper)}.`)
+      // Mirror the subtitle's wording: "now" for a still-running entry, a concrete clock otherwise.
+      const upperLabel = entry.end == null ? 'now' : formatClock(upper)
+      setError(`The break must fall between ${formatClock(lower)} and ${upperLabel}.`)
       return
     }
     onApply({
