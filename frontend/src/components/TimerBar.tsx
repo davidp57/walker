@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { ActivityName, TaskSuggestion, TimesheetCode } from '../types'
 import { formatClock, formatStopwatch, parseMilitaryClock, selectOnFocus } from '../lib/time'
-import { IconChecklist, IconPlay, IconStop } from './icons'
+import { IconBreak, IconChecklist, IconPlay, IconStop } from './icons'
 
 interface TimerBarProps {
   running: boolean
@@ -25,6 +25,7 @@ interface TimerBarProps {
   // Complete. `null`/`undefined` while stopped or when the running entry carries no Task.
   taskId?: string | null
   onComplete?: () => void // stop the Timer and mark the linked Task Done
+  onInsertBreak?: () => void // BIZ-076: carve a past break out of the running session
 }
 
 export function TimerBar({
@@ -45,6 +46,7 @@ export function TimerBar({
   onSubmitDescription,
   taskId,
   onComplete,
+  onInsertBreak,
 }: TimerBarProps) {
   const [focused, setFocused] = useState(false)
   const showSuggestions = focused && suggestions.length > 0
@@ -172,6 +174,17 @@ export function TimerBar({
 
       {running ? (
         <>
+          {onInsertBreak && (
+            <button
+              type="button"
+              className="wk-btn-icon"
+              title="Insert a break — carve past non-worked time (e.g. lunch) out of this session"
+              aria-label="Insert a break"
+              onClick={onInsertBreak}
+            >
+              <IconBreak />
+            </button>
+          )}
           <button type="button" className="wk-btn wk-btn-danger" onClick={onStop}>
             <IconStop style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }} />{' '}
             Stop

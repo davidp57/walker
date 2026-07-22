@@ -7,6 +7,7 @@ import { CodePicker } from './components/CodePicker'
 import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
+import { BreakModal, type BreakDraft } from './components/BreakModal'
 import { CellEntriesModal } from './components/CellEntriesModal'
 import { TrackerScreen, type DayGroup } from './screens/TrackerScreen'
 import { PeriodScreen } from './screens/PeriodScreen'
@@ -69,6 +70,7 @@ import {
   fetchTasks,
   fetchUser,
   importCatalog as apiImportCatalog,
+  insertBreak as apiInsertBreak,
   patchEntry as apiPatchEntry,
   patchViewPreferences as apiPatchViewPreferences,
   removeAbsence as apiRemoveAbsence,
@@ -276,6 +278,8 @@ function AppInner() {
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
+  // BIZ-076: the entry a break is being punched into, or null when the break modal is closed.
+  const [breakTarget, setBreakTarget] = useState<Entry | null>(null)
   // A not-yet-persisted entry being composed in the Timesheet period view; persisted only on Save.
   const [addDraft, setAddDraft] = useState<Entry | null>(null)
   const [cellDrill, setCellDrill] = useState<{
@@ -635,6 +639,18 @@ function AppInner() {
         return reload()
       })
       .then(onSettled)
+  }
+  // BIZ-076: punch a hole in an entry — split the worked time around the break, optionally filling
+  // the hole. One atomic server call, then refresh the tracker (and any open cell drill-down).
+  const applyBreak = (entryId: string, draft: BreakDraft) => {
+    apiInsertBreak(entryId, {
+      breakStartMinute: draft.breakStartMinute,
+      breakEndMinute: draft.breakEndMinute,
+      timesheetCodeId: draft.timesheetCodeId,
+      activity: draft.activity,
+    })
+      .then(reload)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not insert the break.')))
   }
   // Restore the most recently deleted Entry with its fields intact. Recreates it through the
   // existing create endpoint (no dedicated undo/restore endpoint) — the entry gets a new id, but
@@ -1114,6 +1130,7 @@ function AppInner() {
       onSubmitDescription={() => startTimerWithDescription(draft.description)}
       taskId={running?.taskId ?? null}
       onComplete={completeTimer}
+      onInsertBreak={running ? () => setBreakTarget(running) : undefined}
       startMinute={running?.start ?? null}
       onEditStart={(minute) => {
         if (running) {
@@ -1167,6 +1184,10 @@ function AppInner() {
           onDeleteEntry={(id) => {
             const found = entries.find((e) => e.id === id)
             if (found) deleteEntryWithUndo(found)
+          }}
+          onInsertBreak={(id) => {
+            const found = entries.find((e) => e.id === id)
+            if (found) setBreakTarget(found)
           }}
           onLoadEarlier={() => setTrackerFrom((f) => addDays(f, -14))}
           onAddEntry={addEntry}
@@ -1290,7 +1311,20 @@ function AppInner() {
             setEditorEntry(null)
           }}
           onDelete={() => deleteEntryWithUndo(editorEntry, refreshCell)}
+          onInsertBreak={() => setBreakTarget(editorEntry)}
           onClose={() => setEditorEntry(null)}
+        />
+      )}
+
+      {breakTarget && (
+        <BreakModal
+          entry={breakTarget}
+          nowMinute={new Date(now).getHours() * 60 + new Date(now).getMinutes()}
+          codes={codes}
+          onApply={(draft) => applyBreak(breakTarget.id, draft)}
+          onClose={() => setBreakTarget(null)}
+          onSearchReference={searchReference}
+          onActivateReference={(ref) => activateReference(ref)}
         />
       )}
 
