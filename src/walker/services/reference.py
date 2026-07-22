@@ -119,11 +119,16 @@ def search_reference(session: Session, user_id: int, query: str, limit: int = 20
     return list(session.scalars(stmt.order_by(ReferenceCode.number).limit(limit)))
 
 
-def add_from_reference(session: Session, user_id: int, number: str) -> TimesheetCode:
+def add_from_reference(session: Session, user_id: int, number: str, *, as_backing: bool = False) -> TimesheetCode:
     """Copy a reference code (with all its activities) into the active, Organization-shared catalog.
 
     Idempotent: if the number is already active in the user's Organization (added by any member,
-    ADR-0010), that existing real code is returned unchanged.
+    ADR-0010), that existing real code is returned.
+
+    ``as_backing`` (BIZ-075, ADR-0012) creates the code as a hidden **backing-only** real code — used
+    when auto-materializing the backing for a virtual code, so it never surfaces in the catalog. A
+    regular add (``as_backing=False``) of a code that currently exists only as a backing-only code
+    **un-hides** it, promoting it to a first-class tracked code.
     """
     ref = session.scalar(select(ReferenceCode).where(ReferenceCode.user_id == user_id, ReferenceCode.number == number))
     if ref is None:
@@ -132,6 +137,10 @@ def add_from_reference(session: Session, user_id: int, number: str) -> Timesheet
     real_codes = (code for code in catalog.list_codes(session, user_id) if not code.is_virtual)
     active = next((code for code in real_codes if code.number == number), None)
     if active is not None:
+        if not as_backing and active.backing_only:
+            active.backing_only = False
+            session.commit()
+            session.refresh(active)
         return active
 
     return catalog.create_code(
@@ -144,4 +153,5 @@ def add_from_reference(session: Session, user_id: int, number: str) -> Timesheet
         activities=[ParsedActivity(code=a["code"], label=a["label"]) for a in ref.activities],
         customer=ref.customer,
         code_type=ref.code_type,
+        backing_only=as_backing,
     )

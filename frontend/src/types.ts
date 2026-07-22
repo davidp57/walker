@@ -25,6 +25,9 @@ export interface TimesheetCode {
   isVirtual: boolean
   realCodeId: string | null // the backing real code, when this is a virtual code
   realCodeNumber: string | null // the backing real code's number, for display in the catalog
+  // BIZ-075 (ADR-0012): a hidden real code that exists only to back a virtual code — filtered out of
+  // the catalog + pickers, but kept in the list so a checklist line's number/label resolves by id.
+  backingOnly?: boolean
   // T&E grid-ordering keys (BIZ-068), resolved virtual→real; null/absent before the enriched catalog
   // import. Optional so the many test fixtures predating the field stay valid.
   customer?: string | null // the client name

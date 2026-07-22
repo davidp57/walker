@@ -948,4 +948,27 @@ describe('App — code picker stacks above the Timesheet-period cell modal (TEC-
       cellOverlay!.compareDocumentPosition(pickerOverlay!) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
   })
+
+  it('hides backing-only codes from the Code catalog, keeping the virtual they back (BIZ-075)', async () => {
+    const backing: TimesheetCode = {
+      ...realCode,
+      id: '3',
+      name: 'Hidden backing',
+      backingOnly: true,
+    }
+    const virtualOnBacking: TimesheetCode = {
+      ...virtualCode,
+      id: '4',
+      name: 'My sub-project',
+      realCodeId: '3',
+    }
+    mockBaseApi([backing, virtualOnBacking], [])
+    render(<App />)
+
+    await clickNav('Code catalog')
+
+    // The virtual code is a first-class catalog entry; its hidden backing is not shown.
+    expect(await screen.findByText('My sub-project')).toBeInTheDocument()
+    expect(screen.queryByText('Hidden backing')).not.toBeInTheDocument()
+  })
 })
