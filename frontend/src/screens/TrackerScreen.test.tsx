@@ -94,3 +94,39 @@ describe('TrackerScreen — per-day Add button (BIZ-064)', () => {
     expect(screen.queryByText('+ Add entry')).not.toBeInTheDocument()
   })
 })
+
+describe('TrackerScreen — merge eligibility (BIZ-078)', () => {
+  const mk = (id: string, start: number, end: number, activity = 'Dev'): Entry => ({
+    id,
+    date: '2026-07-10',
+    start,
+    end,
+    codeId: '1',
+    activity,
+    description: '',
+  })
+
+  it('offers Merge on the earlier of two adjacent same-code+activity entries', () => {
+    const onMergeEntries = vi.fn()
+    renderScreen({
+      today: '2026-07-10',
+      groups: [group('2026-07-10', 'Today', [mk('a', 540, 600), mk('b', 600, 660)])],
+      onMergeEntries,
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /^merge$/i }))
+    expect(onMergeEntries).toHaveBeenCalledWith('a', 'b') // earlier 'a' merges with the following 'b'
+  })
+
+  it('offers no Merge when adjacent entries differ in activity', () => {
+    renderScreen({
+      today: '2026-07-10',
+      groups: [
+        group('2026-07-10', 'Today', [mk('a', 540, 600, 'Dev'), mk('b', 600, 660, 'Review')]),
+      ],
+      onMergeEntries: vi.fn(),
+    })
+
+    expect(screen.queryByRole('button', { name: /^merge$/i })).toBeNull()
+  })
+})
