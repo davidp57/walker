@@ -1,45 +1,49 @@
-# Walker v1.7.0
+# Walker v1.8.0
 
-**Faster code entry, a more honest Timesheet period.** This release makes picking codes quick even
-with a long catalog, and makes the by-code view reconcile to the time you actually tracked.
+**Bend your tracked time back to what actually happened.** Two symmetric gestures on entries — carve
+a break out of a stretch you left running, or glue two entries back into one — plus a cleaner way to
+create virtual codes and a fix to the Code catalog search.
 
 ## Highlights
 
-### Fuzzy code search, everywhere
-- Type the way you think — `HRHUB` finds **HR Hub**, `developpement` finds **Développement**, and a
-  bare number fragment finds the full code. Case, accents, spaces, and punctuation are all ignored.
-- Applies to **your own codes** (the Code catalog screen and every code picker) *and* to the
-  **reference catalog** search.
-- On the **Code catalog** screen the search box now filters your displayed list of codes in place
-  (not just the "add from reference" suggestions), and every code list is sorted alphabetically.
+### Insert a break — carve non-worked time out of an entry
+Left the timer running through lunch, or stopped it too late? **Punch a hole** in an entry instead of
+hand-editing times:
+- Pick the break window (start + duration + end, linked — edit any two and the third follows), and
+  the entry splits into the worked time around it, exact to the minute.
+- On the **running timer**, the part before the break is closed off and the timer keeps running from
+  the break end — so you can account for a lunch you took while it was still going.
+- The gap is left untracked by default, or given its own entry if you categorize it.
+- Reach it three ways: the **Insert a break…** button in the entry editor, the break icon on any
+  Activity row, and an action on the running timer.
 
-### The Timesheet period no longer under-reports in silence
-The **by-code** matrix only counts entries that are fully categorized (code **+** activity) — that's
-what the Timesheet system needs. Time tracked without a code or activity used to vanish from the
-matrix total with no explanation. Now:
-- the **Review** grid shows an amber **"Uncategorized"** footer row (per day and for the period), so
-  the matrix total plus the uncategorized time reconciles to your captured total;
-- entries that have a code but **no activity** are flagged ("⚑ pick an activity"), and the
-  incomplete-entry count now includes them — so nothing is left half-categorized before the period
-  closes.
+### Merge — glue two entries back into one
+The inverse of a break, right where you'd expect it — next to the **Trim** button on overlapping
+entries:
+- **Merge** combines two entries of the **same code and activity** into one spanning both.
+- It also joins a finished entry with the **running timer** that continued it (adjacent or
+  overlapping): the timer survives and simply starts earlier.
+- Offered only when there's nothing to lose — matching code and activity.
 
-### Overlap detection covers the running timer
-A completed entry that overlaps the **currently running** timer is now flagged, with a one-click trim
-on the completed entry. The running timer itself stays read-only.
+### Simpler virtual codes — no more duplicate dialog, no clutter
+Creating a virtual code backed by a code that isn't in your catalog used to open a second, look-alike
+editor and leave an extra real code sitting in your catalog. Now the backing code is created
+automatically behind the scenes and **hidden** — it exists only to feed the Timesheet export, never
+clutters your catalog or pickers, and is cleaned up when its last virtual code is deleted. Add that
+same code explicitly later and it becomes a normal, visible code.
 
-### Easier timer start-time edit
-Click **anywhere on the running clock** to correct its start time — no longer just the small "since"
-line.
-
-### Add-able reference suggestions only
-Reference-catalog suggestions now exclude codes already in your catalog **on the server side**, so
-every suggestion you see is genuinely one you can add — and the result limit is never spent on codes
-you already have.
+### Code catalog — search no longer hides your codes
+On the **Code catalog** screen, typing in the search box used to float the reference-catalog
+suggestions on top of your own codes, blocking access to them. The two are now separated: the box
+filters your codes in place, and matching reference codes appear as a distinct section **below** the
+list.
 
 ## Upgrade notes
-- **No breaking changes.**
-- **Database migration** (revision `c2d3e4f5a6b7`): adds a normalized search key
-  (`reference_codes.search_blob`) and backfills existing rows. The standalone `walker.exe` applies it
-  automatically on startup; other deployments run `alembic upgrade head`. Reversible (the downgrade
-  drops the column).
-- New additive API field `uncategorized_by_day` on `GET /api/period/{date}`.
+- **No breaking changes**, no data loss.
+- **One additive migration** (`timesheet_codes.backing_only`): existing codes backfill to "not a
+  backing code". The standalone `walker.exe` applies it automatically on startup; other deployments
+  run `alembic upgrade head`. Reversible (the downgrade drops the column).
+- **API additions are additive only** — new `POST /api/entries/{id}/break` and
+  `POST /api/entries/{id}/merge` endpoints, and new optional fields (`backing_only` on
+  `GET /api/codes`, `as_backing` on `POST /api/codes/from-reference`). Nothing existing changed or was
+  removed.

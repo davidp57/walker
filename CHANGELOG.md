@@ -5,6 +5,42 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-07-22
+
+### Added
+
+- **Insert a break in an entry** (BIZ-076): carve non-worked time out of a recorded stretch — e.g. a
+  lunch break inside an entry left running or stopped too late. Pick the break window (start +
+  duration + end, linked) and the entry splits into the worked segments around the hole, exact to the
+  minute (ADR-0005). On a **running** entry the elapsed part before the break is closed and the timer
+  keeps running from the break end. The hole is untracked by default, or filled with its own entry
+  when categorized. Reachable from the entry editor, an Activity row, and the running timer. New
+  additive endpoint `POST /api/entries/{id}/break`.
+- **Merge two overlapping/adjacent entries** (BIZ-077): the inverse of a break — combine two entries
+  of the **same code and activity** into one spanning both. Also joins a finished entry with the
+  **running timer** that continued it (the timer survives, started earlier). A **Merge** button sits
+  in the overlap note next to **Trim**. New additive endpoint `POST /api/entries/{id}/merge`.
+- **Hidden backing codes for virtual codes** (BIZ-075, ADR-0014): backing a virtual code on a
+  reference code that isn't in your catalog no longer opens a second look-alike editor or leaves an
+  extra real code cluttering the catalog. The backing real code is created automatically and hidden
+  (it only resolves the Timesheet export), and is garbage-collected when its last virtual code is
+  deleted; adding it explicitly later un-hides it. New additive API: `backing_only` on
+  `GET /api/codes`, `as_backing` on `POST /api/codes/from-reference`.
+
+### Fixed
+
+- **Code catalog search no longer covers your codes** (BIZ-074): typing in the search box used to
+  float the reference-catalog suggestions over your filtered codes, blocking access. The box now
+  filters your codes in place, and matching reference codes render as a distinct section below the
+  list.
+
+### Migrations
+
+- Adds `timesheet_codes.backing_only` — a flag for hidden backing-only real codes — defaulting
+  existing rows to `false` (BIZ-075, revision `d7a1b2c3e4f5`). Run `alembic upgrade head`; the
+  standalone `walker.exe` applies it automatically on startup. Reversible (the downgrade drops the
+  column).
+
 ## [1.7.0] - 2026-07-16
 
 ### Added
