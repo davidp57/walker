@@ -71,6 +71,10 @@ class CodeRead(BaseModel):
     is_virtual: bool = False
     real_code_id: int | None = None
     real_code_number: str | None = None
+    # BIZ-075 (ADR-0014): a hidden real code that exists only to back a virtual code. The SPA filters
+    # these out of the catalog + pickers; the API still returns them so a checklist line's number/label
+    # can be resolved by id.
+    backing_only: bool = False
 
 
 class ActivityWrite(BaseModel):
@@ -130,9 +134,13 @@ class ReferenceCodeRead(BaseModel):
 
 
 class AddFromReference(BaseModel):
-    """Pick a reference code (by number) to copy into the active codes."""
+    """Pick a reference code (by number) to copy into the active codes.
+
+    ``as_backing`` copies it as a hidden backing-only code for a virtual code (BIZ-075, ADR-0014).
+    """
 
     number: str
+    as_backing: bool = False
 
 
 class EntryRead(BaseModel):

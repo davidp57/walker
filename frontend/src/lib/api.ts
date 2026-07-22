@@ -30,6 +30,7 @@ interface ApiCode {
   is_virtual: boolean
   real_code_id: number | null
   real_code_number: string | null
+  backing_only?: boolean
   customer?: string | null
   type?: string | null
 }
@@ -63,6 +64,7 @@ function mapCode(code: ApiCode): TimesheetCode {
     isVirtual: code.is_virtual,
     realCodeId: code.real_code_id == null ? null : String(code.real_code_id),
     realCodeNumber: code.real_code_number,
+    backingOnly: code.backing_only ?? false,
     customer: code.customer ?? null,
     type: code.type ?? null,
   }
@@ -265,6 +267,17 @@ export async function updateVirtualCode(
       name: input.name,
       color: input.color ?? null,
     }),
+  )
+}
+
+/**
+ * Materialize a reference code as a **hidden backing-only** real code for a virtual code (BIZ-075,
+ * ADR-0014). No editor step: the colour is auto-assigned and the code is kept out of the catalog +
+ * pickers. Idempotent by number — returns the existing real code if one is already active.
+ */
+export async function addBackingFromReference(number: string): Promise<TimesheetCode> {
+  return mapCode(
+    await sendJson<ApiCode>('/api/codes/from-reference', 'POST', { number, as_backing: true }),
   )
 }
 

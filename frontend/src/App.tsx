@@ -48,6 +48,7 @@ import { ToastProvider } from './lib/toast'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
+  addBackingFromReference as apiAddBackingFromReference,
   addTaskState as apiAddTaskState,
   ApiError,
   completeTimer as apiCompleteTimer,
@@ -451,6 +452,10 @@ function AppInner() {
   }, [runningId])
 
   const codesById = useMemo(() => Object.fromEntries(codes.map((c) => [c.id, c])), [codes])
+  // BIZ-075 (ADR-0014): backing-only real codes exist only to resolve a virtual code's Timesheet
+  // export; they are hidden from every user-facing surface (catalog + pickers). `codesById` stays
+  // built from the full set so a checklist line still resolves its number/label by id.
+  const visibleCodes = useMemo(() => codes.filter((c) => !c.backingOnly), [codes])
 
   const timerCode = draft.codeId ? (codesById[draft.codeId] ?? null) : null
   const elapsedSeconds = running ? elapsedSecondsSince(running.date, running.start, now) : 0
@@ -703,6 +708,17 @@ function AppInner() {
     apiDeleteCode(code.id)
       .then(reloadCodes)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the code.')))
+  }
+  // Back a virtual code with a reference code that isn't active yet (BIZ-075, ADR-0014): create it as
+  // a hidden backing-only real code (no editor, auto colour) and select it — no second dialog, no
+  // extra visible code. Idempotent by number server-side.
+  const addBackingFromReference = (ref: ReferenceCode, onAdded?: (code: TimesheetCode) => void) => {
+    apiAddBackingFromReference(ref.number)
+      .then(async (created) => {
+        await reloadCodes()
+        onAdded?.(created)
+      })
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the backing code.')))
   }
   // Create a virtual code (BIZ-013 "used immediately", design decision: reopen the picker rather
   // than auto-picking an activity — the newly created code is right there, one click away, with no
@@ -1215,7 +1231,7 @@ function AppInner() {
       )}
       {route === 'codes' && (
         <CodeCatalogScreen
-          codes={codes}
+          codes={visibleCodes}
           loading={codesLoading}
           onNew={() => setEditor({ code: null })}
           onNewVirtual={() => setVirtualEditor({ code: null })}
@@ -1259,6 +1275,8 @@ function AppInner() {
       {virtualEditor && (
         <VirtualCodeEditor
           code={virtualEditor.code}
+          // Full set (incl. hidden backing-only codes, BIZ-075): the backing selector must resolve an
+          // already-chosen backing for display and let a second virtual reuse an existing backing.
           realCodes={codes.filter((c) => !c.isVirtual)}
           codes={codes}
           onSave={saveVirtualCode}
@@ -1269,7 +1287,7 @@ function AppInner() {
           }
           onClose={() => setVirtualEditor(null)}
           onSearchReference={searchReference}
-          onActivateReference={activateReference}
+          onActivateReference={addBackingFromReference}
         />
       )}
 
@@ -1298,7 +1316,7 @@ function AppInner() {
         <TaskPanel
           task={taskPanel.task}
           initialCodeId={taskPanel.initialCodeId ?? null}
-          codes={codes}
+          codes={visibleCodes}
           taskStates={taskStates}
           tagSuggestions={taskTags}
           onSave={saveTask}
@@ -1350,7 +1368,7 @@ function AppInner() {
                 ? 'Pick code & activity'
                 : 'Categorize entry'
           }
-          codes={codes}
+          codes={visibleCodes}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
           onCreateNewVirtual={() => {
             const reopenPicker = picker.target
