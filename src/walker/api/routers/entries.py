@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from walker.api.dependencies import get_current_user
-from walker.api.schemas import BreakInsert, EntryCreate, EntryPatch, EntryRead, TimerSwitch
+from walker.api.schemas import BreakInsert, EntryCreate, EntryMerge, EntryPatch, EntryRead, TimerSwitch
 from walker.db import get_session
 from walker.exceptions import NotFoundError, ValidationError
 from walker.models import Entry, User
@@ -161,6 +161,25 @@ def insert_break(
             activity=body.activity,
             description=body.description,
         )
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+
+
+@router.post("/entries/{entry_id}/merge", response_model=EntryRead)
+def merge_entries(
+    entry_id: int,
+    body: EntryMerge,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> Entry:
+    """Merge another entry into this one (BIZ-077) — the inverse of a break. Returns the survivor.
+
+    Two completed entries collapse into the earlier row; a completed + the running entry collapse into
+    the still-running timer (started earlier). Rejects a mismatched code/activity (422)."""
+    try:
+        return entry_service.merge_entries(session, user.id, entry_id, body.other_entry_id)
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     except ValidationError as exc:

@@ -19,6 +19,10 @@ interface EntryRowProps {
   onResume: () => void
   onDelete: () => void
   onInsertBreak?: () => void // BIZ-076: punch a hole (e.g. lunch) in this entry; omit to hide the action
+  // BIZ-077: the id of an entry this row can merge with (same code+activity, overlapping or the
+  // directly-following running timer), or null when none. `onMerge` performs it.
+  mergeTargetId?: string | null
+  onMerge?: (targetId: string) => void
   // BIZ-038: this row is the live running Timer — read-only, live duration, no inline controls.
   running?: boolean
   liveMinutes?: number // live elapsed minutes, used when `running`
@@ -39,6 +43,8 @@ export function EntryRow({
   onResume,
   onDelete,
   onInsertBreak,
+  mergeTargetId,
+  onMerge,
   running = false,
   liveMinutes,
   maxMinutes,
@@ -311,15 +317,18 @@ export function EntryRow({
         </>
       )}
 
-      {/* BIZ-052: time-overlap note, spanning the row's full width on its own line. */}
-      {overlapPartner && (
+      {/* BIZ-052: time-overlap note (full-width line). BIZ-077 adds a Merge action here — and the note
+          also shows for a merge-only case (a same-code timer directly following, no overlap badge). */}
+      {(overlapPartner || (mergeTargetId && onMerge)) && (
         <div className="wk-overlap-note">
-          <span className="wk-overlap-badge">
-            {overlapPartner.end == null
-              ? `⚠ overlaps running timer (since ${formatClock(overlapPartner.start)})`
-              : `⚠ overlaps ${formatClock(overlapPartner.start)}–${formatClock(overlapPartner.end)}`}
-            {overlap && overlap.partners.length > 1 ? ` +${overlap.partners.length - 1}` : ''}
-          </span>
+          {overlapPartner && (
+            <span className="wk-overlap-badge">
+              {overlapPartner.end == null
+                ? `⚠ overlaps running timer (since ${formatClock(overlapPartner.start)})`
+                : `⚠ overlaps ${formatClock(overlapPartner.start)}–${formatClock(overlapPartner.end)}`}
+              {overlap && overlap.partners.length > 1 ? ` +${overlap.partners.length - 1}` : ''}
+            </span>
+          )}
           {overlapFixEnd != null && (
             <button
               type="button"
@@ -328,6 +337,16 @@ export function EntryRow({
               onClick={() => onEdit({ end: overlapFixEnd })}
             >
               Trim to {formatClock(overlapFixEnd)}
+            </button>
+          )}
+          {mergeTargetId && onMerge && (
+            <button
+              type="button"
+              className="wk-overlap-fix"
+              title="Merge these two same-code entries into one"
+              onClick={() => onMerge(mergeTargetId)}
+            >
+              Merge
             </button>
           )}
         </div>

@@ -72,6 +72,7 @@ import {
   fetchUser,
   importCatalog as apiImportCatalog,
   insertBreak as apiInsertBreak,
+  mergeEntries as apiMergeEntries,
   patchEntry as apiPatchEntry,
   patchViewPreferences as apiPatchViewPreferences,
   removeAbsence as apiRemoveAbsence,
@@ -657,6 +658,12 @@ function AppInner() {
       .then(reload)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not insert the break.')))
   }
+  // BIZ-077: merge two overlapping/adjacent same-code entries into one (the inverse of a break).
+  const mergeEntries = (entryId: string, otherId: string) => {
+    apiMergeEntries(entryId, otherId)
+      .then(reload)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not merge the entries.')))
+  }
   // Restore the most recently deleted Entry with its fields intact. Recreates it through the
   // existing create endpoint (no dedicated undo/restore endpoint) — the entry gets a new id, but
   // every field the user tracked (date, times, code, activity, description) is preserved.
@@ -1205,6 +1212,7 @@ function AppInner() {
             const found = entries.find((e) => e.id === id)
             if (found) setBreakTarget(found)
           }}
+          onMergeEntries={mergeEntries}
           onLoadEarlier={() => setTrackerFrom((f) => addDays(f, -14))}
           onAddEntry={addEntry}
           today={TODAY}

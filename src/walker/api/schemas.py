@@ -266,6 +266,12 @@ class BreakInsert(BaseModel):
     description: str | None = None
 
 
+class EntryMerge(BaseModel):
+    """Merge another entry into this one (BIZ-077). Both must share code + activity; at most one running."""
+
+    other_entry_id: int
+
+
 class AbsenceRead(BaseModel):
     """A non-worked day."""
 

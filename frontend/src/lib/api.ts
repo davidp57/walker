@@ -226,6 +226,19 @@ export async function insertBreak(id: string, input: BreakWrite): Promise<Entry[
   return entries.map(mapEntry)
 }
 
+/**
+ * Merge another entry into this one (BIZ-077): the inverse of a break. Two completed entries collapse
+ * into one spanning the union; a completed entry + the running timer collapse into the still-running
+ * timer (started earlier). Both must share code + activity. Returns the surviving entry.
+ */
+export async function mergeEntries(id: string, otherId: string): Promise<Entry> {
+  return mapEntry(
+    await sendJson<ApiEntry>(`/api/entries/${id}/merge`, 'POST', {
+      other_entry_id: Number(otherId),
+    }),
+  )
+}
+
 /** Delete an entry. */
 export async function deleteEntry(id: string): Promise<void> {
   const response = await fetch(`/api/entries/${id}`, { method: 'DELETE' })

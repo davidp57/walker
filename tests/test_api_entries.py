@@ -25,6 +25,37 @@ def _seed_user_with_code(session: Session) -> TimesheetCode:
     return code
 
 
+def test_merge_two_overlapping_entries(client: TestClient) -> None:
+    """BIZ-077: two same-activity overlapping entries collapse into one spanning the union."""
+    a = client.post(
+        "/api/entries", json={"date": TODAY, "start_minute": 540, "end_minute": 620, "activity": "Dev"}
+    ).json()
+    b = client.post(
+        "/api/entries", json={"date": TODAY, "start_minute": 600, "end_minute": 700, "activity": "Dev"}
+    ).json()
+
+    resp = client.post(f"/api/entries/{a['id']}/merge", json={"other_entry_id": b["id"]})
+
+    assert resp.status_code == 200
+    merged = resp.json()
+    assert (merged["start_minute"], merged["end_minute"]) == (540, 700)
+    listed = client.get("/api/entries", params={"date": TODAY}).json()
+    assert [(e["start_minute"], e["end_minute"]) for e in listed] == [(540, 700)]
+
+
+def test_merge_rejects_different_activity_with_422(client: TestClient) -> None:
+    a = client.post(
+        "/api/entries", json={"date": TODAY, "start_minute": 540, "end_minute": 620, "activity": "Dev"}
+    ).json()
+    b = client.post(
+        "/api/entries", json={"date": TODAY, "start_minute": 600, "end_minute": 700, "activity": "Review"}
+    ).json()
+
+    resp = client.post(f"/api/entries/{a['id']}/merge", json={"other_entry_id": b["id"]})
+
+    assert resp.status_code == 422
+
+
 def test_insert_break_splits_a_completed_entry(client: TestClient) -> None:
     """BIZ-076: punching a hole returns the two worked segments; the hole is left untracked."""
     created = client.post(

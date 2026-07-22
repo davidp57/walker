@@ -202,6 +202,50 @@ def delete_entry(session: Session, user_id: int, entry_id: int) -> None:
     session.commit()
 
 
+def merge_entries(session: Session, user_id: int, entry_id: int, other_id: int) -> Entry:
+    """Merge two same-code entries into one (BIZ-077) — the inverse of ``insert_break``.
+
+    The survivor spans the union of the two (exact minutes, ADR-0005) and keeps the shared
+    ``timesheet_code_id``/``activity``; it keeps its own description, falling back to the other's when
+    its own is empty. Rejects a mismatched code/activity (nothing to merge without losing
+    categorization).
+
+    - **Two completed entries**: the survivor is the earlier row, its end extended to the later end.
+    - **A completed + the running entry**: the **running entry survives** (its ``end`` stays NULL — it
+      keeps running) with its start pulled back to the earlier start, and the completed one is deleted.
+      So a stretch left split across a finished entry and the timer that continued it becomes one.
+
+    Two running entries can't both exist, so that case is rejected defensively. Returns the survivor;
+    the other row is deleted.
+    """
+    a = get_entry(session, user_id, entry_id)
+    b = get_entry(session, user_id, other_id)
+    if a.id == b.id:
+        raise ValidationError("An entry cannot be merged with itself.")
+    if a.timesheet_code_id != b.timesheet_code_id or a.activity != b.activity:
+        raise ValidationError("Only entries with the same code and activity can be merged.")
+    if a.end_minute is None and b.end_minute is None:
+        raise ValidationError("Two running entries cannot be merged.")
+
+    new_start = min(a.start_minute, b.start_minute)
+    running = a if a.end_minute is None else b if b.end_minute is None else None
+    if running is not None:
+        # The timer survives and keeps running; it just starts earlier now.
+        survivor, other = running, (b if running is a else a)
+        survivor.start_minute = new_start
+    else:
+        # Both completed: keep the earlier row and extend its end to cover both.
+        assert a.end_minute is not None and b.end_minute is not None  # narrowed: neither is running
+        survivor, other = (a, b) if a.start_minute <= b.start_minute else (b, a)
+        survivor.end_minute = max(a.end_minute, b.end_minute)
+    if not survivor.description and other.description:
+        survivor.description = other.description
+    session.delete(other)
+    session.commit()
+    session.refresh(survivor)
+    return survivor
+
+
 def insert_break(
     session: Session,
     user_id: int,
