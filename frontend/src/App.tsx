@@ -7,6 +7,7 @@ import { CodePicker } from './components/CodePicker'
 import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
+import { BreakModal, type BreakDraft } from './components/BreakModal'
 import { CellEntriesModal } from './components/CellEntriesModal'
 import { TrackerScreen, type DayGroup } from './screens/TrackerScreen'
 import { PeriodScreen } from './screens/PeriodScreen'
@@ -48,6 +49,7 @@ import { ToastProvider } from './lib/toast'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
+  addBackingFromReference as apiAddBackingFromReference,
   addTaskState as apiAddTaskState,
   ApiError,
   completeTimer as apiCompleteTimer,
@@ -69,6 +71,8 @@ import {
   fetchTasks,
   fetchUser,
   importCatalog as apiImportCatalog,
+  insertBreak as apiInsertBreak,
+  mergeEntries as apiMergeEntries,
   patchEntry as apiPatchEntry,
   patchViewPreferences as apiPatchViewPreferences,
   removeAbsence as apiRemoveAbsence,
@@ -276,6 +280,8 @@ function AppInner() {
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
+  // BIZ-076: the entry a break is being punched into, or null when the break modal is closed.
+  const [breakTarget, setBreakTarget] = useState<Entry | null>(null)
   // A not-yet-persisted entry being composed in the Timesheet period view; persisted only on Save.
   const [addDraft, setAddDraft] = useState<Entry | null>(null)
   const [cellDrill, setCellDrill] = useState<{
@@ -451,6 +457,10 @@ function AppInner() {
   }, [runningId])
 
   const codesById = useMemo(() => Object.fromEntries(codes.map((c) => [c.id, c])), [codes])
+  // BIZ-075 (ADR-0014): backing-only real codes exist only to resolve a virtual code's Timesheet
+  // export; they are hidden from every user-facing surface (catalog + pickers). `codesById` stays
+  // built from the full set so a checklist line still resolves its number/label by id.
+  const visibleCodes = useMemo(() => codes.filter((c) => !c.backingOnly), [codes])
 
   const timerCode = draft.codeId ? (codesById[draft.codeId] ?? null) : null
   const elapsedSeconds = running ? elapsedSecondsSince(running.date, running.start, now) : 0
@@ -636,6 +646,24 @@ function AppInner() {
       })
       .then(onSettled)
   }
+  // BIZ-076: punch a hole in an entry — split the worked time around the break, optionally filling
+  // the hole. One atomic server call, then refresh the tracker (and any open cell drill-down).
+  const applyBreak = (entryId: string, draft: BreakDraft) => {
+    apiInsertBreak(entryId, {
+      breakStartMinute: draft.breakStartMinute,
+      breakEndMinute: draft.breakEndMinute,
+      timesheetCodeId: draft.timesheetCodeId,
+      activity: draft.activity,
+    })
+      .then(reload)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not insert the break.')))
+  }
+  // BIZ-077: merge two overlapping/adjacent same-code entries into one (the inverse of a break).
+  const mergeEntries = (entryId: string, otherId: string) => {
+    apiMergeEntries(entryId, otherId)
+      .then(reload)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not merge the entries.')))
+  }
   // Restore the most recently deleted Entry with its fields intact. Recreates it through the
   // existing create endpoint (no dedicated undo/restore endpoint) — the entry gets a new id, but
   // every field the user tracked (date, times, code, activity, description) is preserved.
@@ -703,6 +731,17 @@ function AppInner() {
     apiDeleteCode(code.id)
       .then(reloadCodes)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the code.')))
+  }
+  // Back a virtual code with a reference code that isn't active yet (BIZ-075, ADR-0014): create it as
+  // a hidden backing-only real code (no editor, auto colour) and select it — no second dialog, no
+  // extra visible code. Idempotent by number server-side.
+  const addBackingFromReference = (ref: ReferenceCode, onAdded?: (code: TimesheetCode) => void) => {
+    apiAddBackingFromReference(ref.number)
+      .then(async (created) => {
+        await reloadCodes()
+        onAdded?.(created)
+      })
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not add the backing code.')))
   }
   // Create a virtual code (BIZ-013 "used immediately", design decision: reopen the picker rather
   // than auto-picking an activity — the newly created code is right there, one click away, with no
@@ -1114,6 +1153,7 @@ function AppInner() {
       onSubmitDescription={() => startTimerWithDescription(draft.description)}
       taskId={running?.taskId ?? null}
       onComplete={completeTimer}
+      onInsertBreak={running ? () => setBreakTarget(running) : undefined}
       startMinute={running?.start ?? null}
       onEditStart={(minute) => {
         if (running) {
@@ -1168,6 +1208,11 @@ function AppInner() {
             const found = entries.find((e) => e.id === id)
             if (found) deleteEntryWithUndo(found)
           }}
+          onInsertBreak={(id) => {
+            const found = entries.find((e) => e.id === id)
+            if (found) setBreakTarget(found)
+          }}
+          onMergeEntries={mergeEntries}
           onLoadEarlier={() => setTrackerFrom((f) => addDays(f, -14))}
           onAddEntry={addEntry}
           today={TODAY}
@@ -1215,7 +1260,7 @@ function AppInner() {
       )}
       {route === 'codes' && (
         <CodeCatalogScreen
-          codes={codes}
+          codes={visibleCodes}
           loading={codesLoading}
           onNew={() => setEditor({ code: null })}
           onNewVirtual={() => setVirtualEditor({ code: null })}
@@ -1259,6 +1304,8 @@ function AppInner() {
       {virtualEditor && (
         <VirtualCodeEditor
           code={virtualEditor.code}
+          // Full set (incl. hidden backing-only codes, BIZ-075): the backing selector must resolve an
+          // already-chosen backing for display and let a second virtual reuse an existing backing.
           realCodes={codes.filter((c) => !c.isVirtual)}
           codes={codes}
           onSave={saveVirtualCode}
@@ -1269,7 +1316,7 @@ function AppInner() {
           }
           onClose={() => setVirtualEditor(null)}
           onSearchReference={searchReference}
-          onActivateReference={activateReference}
+          onActivateReference={addBackingFromReference}
         />
       )}
 
@@ -1290,7 +1337,20 @@ function AppInner() {
             setEditorEntry(null)
           }}
           onDelete={() => deleteEntryWithUndo(editorEntry, refreshCell)}
+          onInsertBreak={() => setBreakTarget(editorEntry)}
           onClose={() => setEditorEntry(null)}
+        />
+      )}
+
+      {breakTarget && (
+        <BreakModal
+          entry={breakTarget}
+          nowMinute={new Date(now).getHours() * 60 + new Date(now).getMinutes()}
+          codes={codes}
+          onApply={(draft) => applyBreak(breakTarget.id, draft)}
+          onClose={() => setBreakTarget(null)}
+          onSearchReference={searchReference}
+          onActivateReference={(ref) => activateReference(ref)}
         />
       )}
 
@@ -1298,7 +1358,7 @@ function AppInner() {
         <TaskPanel
           task={taskPanel.task}
           initialCodeId={taskPanel.initialCodeId ?? null}
-          codes={codes}
+          codes={visibleCodes}
           taskStates={taskStates}
           tagSuggestions={taskTags}
           onSave={saveTask}
@@ -1350,7 +1410,7 @@ function AppInner() {
                 ? 'Pick code & activity'
                 : 'Categorize entry'
           }
-          codes={codes}
+          codes={visibleCodes}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
           onCreateNewVirtual={() => {
             const reopenPicker = picker.target

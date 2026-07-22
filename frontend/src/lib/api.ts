@@ -30,6 +30,7 @@ interface ApiCode {
   is_virtual: boolean
   real_code_id: number | null
   real_code_number: string | null
+  backing_only?: boolean
   customer?: string | null
   type?: string | null
 }
@@ -63,6 +64,7 @@ function mapCode(code: ApiCode): TimesheetCode {
     isVirtual: code.is_virtual,
     realCodeId: code.real_code_id == null ? null : String(code.real_code_id),
     realCodeNumber: code.real_code_number,
+    backingOnly: code.backing_only ?? false,
     customer: code.customer ?? null,
     type: code.type ?? null,
   }
@@ -199,6 +201,44 @@ export async function createEntry(fields: Partial<Entry> = {}): Promise<Entry> {
   return mapEntry(await sendJson<ApiEntry>('/api/entries', 'POST', body))
 }
 
+/** Fields sent when punching a hole in an entry (BIZ-076). */
+export interface BreakWrite {
+  breakStartMinute: number
+  breakEndMinute: number
+  timesheetCodeId?: string | null
+  activity?: string | null
+  description?: string | null
+}
+
+/**
+ * Punch a hole in an entry (BIZ-076): splits the worked time around the break, optionally filling
+ * the hole with its own entry. Returns the resulting entries (worked segments + optional hole).
+ */
+export async function insertBreak(id: string, input: BreakWrite): Promise<Entry[]> {
+  const body: Record<string, unknown> = {
+    break_start_minute: input.breakStartMinute,
+    break_end_minute: input.breakEndMinute,
+  }
+  if (input.timesheetCodeId != null) body.timesheet_code_id = Number(input.timesheetCodeId)
+  if (input.activity != null) body.activity = input.activity
+  if (input.description != null) body.description = input.description
+  const entries = await sendJson<ApiEntry[]>(`/api/entries/${id}/break`, 'POST', body)
+  return entries.map(mapEntry)
+}
+
+/**
+ * Merge another entry into this one (BIZ-077): the inverse of a break. Two completed entries collapse
+ * into one spanning the union; a completed entry + the running timer collapse into the still-running
+ * timer (started earlier). Both must share code + activity. Returns the surviving entry.
+ */
+export async function mergeEntries(id: string, otherId: string): Promise<Entry> {
+  return mapEntry(
+    await sendJson<ApiEntry>(`/api/entries/${id}/merge`, 'POST', {
+      other_entry_id: Number(otherId),
+    }),
+  )
+}
+
 /** Delete an entry. */
 export async function deleteEntry(id: string): Promise<void> {
   const response = await fetch(`/api/entries/${id}`, { method: 'DELETE' })
@@ -265,6 +305,17 @@ export async function updateVirtualCode(
       name: input.name,
       color: input.color ?? null,
     }),
+  )
+}
+
+/**
+ * Materialize a reference code as a **hidden backing-only** real code for a virtual code (BIZ-075,
+ * ADR-0014). No editor step: the colour is auto-assigned and the code is kept out of the catalog +
+ * pickers. Idempotent by number — returns the existing real code if one is already active.
+ */
+export async function addBackingFromReference(number: string): Promise<TimesheetCode> {
+  return mapCode(
+    await sendJson<ApiCode>('/api/codes/from-reference', 'POST', { number, as_backing: true }),
   )
 }
 

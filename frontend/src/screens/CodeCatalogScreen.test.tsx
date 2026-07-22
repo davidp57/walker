@@ -1,7 +1,7 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { CodeCatalogScreen } from './CodeCatalogScreen'
-import type { TimesheetCode } from '../types'
+import type { ReferenceCode, TimesheetCode } from '../types'
 
 afterEach(() => cleanup())
 
@@ -130,7 +130,7 @@ describe('CodeCatalogScreen', () => {
     expect(screen.getByText('Mnt - HR Hub')).toBeInTheDocument()
 
     // "HRHUB" (no space) fuzzy-matches "HR Hub" and hides the non-matching code.
-    fireEvent.change(screen.getByPlaceholderText(/search your catalog/i), {
+    fireEvent.change(screen.getByPlaceholderText(/search your codes/i), {
       target: { value: 'HRHUB' },
     })
     expect(screen.getByText('Mnt - HR Hub')).toBeInTheDocument()
@@ -139,7 +139,7 @@ describe('CodeCatalogScreen', () => {
 
   it('shows a no-match message when the query matches none of your codes (BIZ-073)', () => {
     renderScreen([realCode])
-    fireEvent.change(screen.getByPlaceholderText(/search your catalog/i), {
+    fireEvent.change(screen.getByPlaceholderText(/search your codes/i), {
       target: { value: 'zzzznomatch' },
     })
     expect(screen.getByText(/No codes match/i)).toBeInTheDocument()
@@ -152,6 +152,65 @@ describe('CodeCatalogScreen', () => {
     renderScreen([zebra, apple])
     const names = screen.getAllByText(/Zebra|Apple/).map((el) => el.textContent)
     expect(names).toEqual(['Apple', 'Zebra'])
+  })
+
+  it('renders reference matches as an in-flow section and activates one on click (BIZ-074)', async () => {
+    const ref: ReferenceCode = {
+      id: 'r1',
+      number: 'N9/9999/010',
+      name: 'Team huddle',
+      label: 'HUD',
+      activities: [],
+    }
+    const onActivateReference = vi.fn()
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={vi.fn()}
+        isCodeInUse={() => false}
+        onSearchReference={async () => [ref]}
+        onActivateReference={onActivateReference}
+      />,
+    )
+
+    fireEvent.change(screen.getByPlaceholderText(/search your codes/i), {
+      target: { value: 'team' },
+    })
+
+    // The suggestion appears (debounced), in the dedicated add-from-reference section.
+    expect(await screen.findByText(/Add from your reference catalog/i)).toBeInTheDocument()
+    const suggestion = await screen.findByText('Team huddle')
+    // It is not inside the active-codes list (no overlay): its section is a separate <section>.
+    expect(suggestion.closest('.wk-catalog-list')).toBeNull()
+
+    fireEvent.click(suggestion)
+    expect(onActivateReference).toHaveBeenCalledWith(ref)
+  })
+
+  it('shows no reference section for an empty query (BIZ-074)', async () => {
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={vi.fn()}
+        isCodeInUse={() => false}
+        onSearchReference={async () => [
+          { id: 'r1', number: 'N9/9999/010', name: 'Team huddle', label: 'HUD', activities: [] },
+        ]}
+        onActivateReference={vi.fn()}
+      />,
+    )
+    // Give any debounced search a chance to (not) fire.
+    await waitFor(() =>
+      expect(screen.queryByText(/Add from your reference catalog/i)).not.toBeInTheDocument(),
+    )
   })
 
   it('guides the two-tier model and links the docs in the empty state (BIZ-046)', () => {

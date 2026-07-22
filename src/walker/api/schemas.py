@@ -71,6 +71,10 @@ class CodeRead(BaseModel):
     is_virtual: bool = False
     real_code_id: int | None = None
     real_code_number: str | None = None
+    # BIZ-075 (ADR-0014): a hidden real code that exists only to back a virtual code. The SPA filters
+    # these out of the catalog + pickers; the API still returns them so a checklist line's number/label
+    # can be resolved by id.
+    backing_only: bool = False
 
 
 class ActivityWrite(BaseModel):
@@ -130,9 +134,13 @@ class ReferenceCodeRead(BaseModel):
 
 
 class AddFromReference(BaseModel):
-    """Pick a reference code (by number) to copy into the active codes."""
+    """Pick a reference code (by number) to copy into the active codes.
+
+    ``as_backing`` copies it as a hidden backing-only code for a virtual code (BIZ-075, ADR-0014).
+    """
 
     number: str
+    as_backing: bool = False
 
 
 class EntryRead(BaseModel):
@@ -241,6 +249,27 @@ class EntryPatch(BaseModel):
     activity: str | None = None
     description: str | None = None
     task_id: int | None = None
+
+
+class BreakInsert(BaseModel):
+    """Punch a hole in an entry (BIZ-076): the break window, plus an optional categorization for it.
+
+    ``break_start_minute``/``break_end_minute`` are minutes since midnight, within the entry's span
+    (for a running entry, up to the current minute). When ``timesheet_code_id``/``activity``/
+    ``description`` are given, the hole is filled with its own entry instead of left untracked.
+    """
+
+    break_start_minute: int
+    break_end_minute: int
+    timesheet_code_id: int | None = None
+    activity: str | None = None
+    description: str | None = None
+
+
+class EntryMerge(BaseModel):
+    """Merge another entry into this one (BIZ-077). Both must share code + activity; at most one running."""
+
+    other_entry_id: int
 
 
 class AbsenceRead(BaseModel):

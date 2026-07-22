@@ -190,6 +190,27 @@ export const IconEdit = ({ size = 14, style, className }: IconProps) => (
   </svg>
 )
 
+/** "Insert a break" glyph (BIZ-076): a time bar split by a gap — carve non-worked time out of an entry. */
+export const IconBreak = ({ size = 14, style, className }: IconProps) => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    style={{ ...base(size), ...style }}
+    className={className}
+    aria-hidden
+  >
+    <rect x="3" y="9.5" width="7" height="5" rx="1.3" fill="currentColor" />
+    <rect x="14" y="9.5" width="7" height="5" rx="1.3" fill="currentColor" />
+    <path
+      d="M12 7v10"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeDasharray="1.5 2.2"
+    />
+  </svg>
+)
+
 /** Trash-can glyph for "delete entry" row actions — clearer than the generic ✕ character. */
 export const IconTrash = ({ size = 14, style, className }: IconProps) => (
   <svg

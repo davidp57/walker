@@ -24,6 +24,8 @@ interface TrackerScreenProps {
   onOpenEntry: (id: string) => void
   onResumeEntry: (id: string) => void
   onDeleteEntry: (id: string) => void
+  onInsertBreak?: (id: string) => void // BIZ-076: punch a hole (lunch break) in this entry
+  onMergeEntries?: (id: string, otherId: string) => void // BIZ-077: merge two overlapping/adjacent entries
   onLoadEarlier: () => void
   // BIZ-064: add a manual entry with its date prefilled to `date` (a day group's date).
   onAddEntry: (date: string) => void
@@ -41,6 +43,8 @@ export function TrackerScreen({
   onOpenEntry,
   onResumeEntry,
   onDeleteEntry,
+  onInsertBreak,
+  onMergeEntries,
   onLoadEarlier,
   onAddEntry,
   today,
@@ -126,6 +130,7 @@ export function TrackerScreen({
                     <div />
                     <div />
                     <div />
+                    <div />
                   </div>
                   <div className="wk-entry-list">
                     {(() => {
@@ -139,6 +144,27 @@ export function TrackerScreen({
                           end: e.end ?? null,
                         })),
                       )
+                      const runningEntry = group.entries.find((e) => e.id === runningId) ?? null
+                      // BIZ-077: the entry this row can merge with — a same-code+activity overlapping
+                      // partner, or the running timer directly following it (adjacent). null when none.
+                      const mergeTargetFor = (x: (typeof group.entries)[number]): string | null => {
+                        if (x.id === runningId) return null
+                        for (const p of overlaps[x.id]?.partners ?? []) {
+                          const pe = group.entries.find((e) => e.id === p.id)
+                          if (pe && pe.codeId === x.codeId && pe.activity === x.activity)
+                            return pe.id
+                        }
+                        if (
+                          runningEntry &&
+                          runningEntry.id !== x.id &&
+                          runningEntry.codeId === x.codeId &&
+                          runningEntry.activity === x.activity &&
+                          runningEntry.start === x.end
+                        ) {
+                          return runningEntry.id
+                        }
+                        return null
+                      }
                       return group.entries.map((entry) => (
                         <EntryRow
                           key={entry.id}
@@ -153,6 +179,13 @@ export function TrackerScreen({
                           onOpenEditor={() => onOpenEntry(entry.id)}
                           onResume={() => onResumeEntry(entry.id)}
                           onDelete={() => onDeleteEntry(entry.id)}
+                          onInsertBreak={onInsertBreak ? () => onInsertBreak(entry.id) : undefined}
+                          mergeTargetId={onMergeEntries ? mergeTargetFor(entry) : null}
+                          onMerge={
+                            onMergeEntries
+                              ? (targetId) => onMergeEntries(entry.id, targetId)
+                              : undefined
+                          }
                         />
                       ))
                     })()}

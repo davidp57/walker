@@ -40,6 +40,11 @@ class TimesheetCode(TimestampMixin, Base):
     customer: Mapped[str | None] = mapped_column(String(255), default=None)
     code_type: Mapped[str | None] = mapped_column(String(1), default=None)
     real_code_id: Mapped[int | None] = mapped_column(ForeignKey("timesheet_codes.id"), default=None, index=True)
+    # BIZ-075 (ADR-0014): a real code auto-created solely to back a virtual code. It is a normal real
+    # code for all domain logic (resolution, ChecklistMark keying, number uniqueness), but the SPA
+    # hides it from the catalog + pickers. Always ``False`` for virtual codes. Cleared when the same
+    # code is later added explicitly (it becomes a first-class tracked code).
+    backing_only: Mapped[bool] = mapped_column(default=False)
 
     activities: Mapped[list[Activity]] = relationship(
         back_populates="timesheet_code",

@@ -60,6 +60,7 @@ describe('fetchCodes', () => {
         isVirtual: false,
         realCodeId: null,
         realCodeNumber: null,
+        backingOnly: false,
         customer: null,
         type: null,
       },

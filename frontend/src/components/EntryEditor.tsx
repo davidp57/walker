@@ -14,6 +14,7 @@ interface EntryEditorProps {
   onSave: (patch: Partial<Entry>) => void
   onOpenPicker: () => void // reuse CodePicker to change code/activity
   onDelete?: () => void // omit to hide the Delete action
+  onInsertBreak?: () => void // BIZ-076: punch a hole (e.g. lunch) in this entry
   onClose: () => void
   title?: string // modal heading (e.g. "New entry"); defaults to "Edit entry"
 }
@@ -25,6 +26,7 @@ export function EntryEditor({
   onSave,
   onOpenPicker,
   onDelete,
+  onInsertBreak,
   onClose,
   title = 'Edit entry',
 }: EntryEditorProps) {
@@ -177,7 +179,7 @@ export function EntryEditor({
               marginTop: 4,
             }}
           >
-            <div>
+            <div style={{ display: 'flex', gap: 10 }}>
               {onDelete && (
                 <button
                   type="button"
@@ -189,6 +191,18 @@ export function EntryEditor({
                   }}
                 >
                   Delete
+                </button>
+              )}
+              {onInsertBreak && (
+                <button
+                  type="button"
+                  className="wk-btn-ghost"
+                  onClick={() => {
+                    onInsertBreak()
+                    onClose()
+                  }}
+                >
+                  Insert a break…
                 </button>
               )}
             </div>
