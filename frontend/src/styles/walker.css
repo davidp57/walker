@@ -454,6 +454,32 @@ html[data-theme='light'] body {
   flex-shrink: 0;
 }
 
+/* In-flow reference suggestions on the Code catalog screen (BIZ-074): a section below the code
+   list, never a floating overlay. */
+.wk-ref-suggest {
+  margin-top: 22px;
+  border-top: 1px solid var(--wk-line);
+  padding-top: 14px;
+}
+.wk-ref-suggest-title {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: var(--wk-text-lo);
+  margin-bottom: 8px;
+}
+.wk-ref-suggest-list {
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid var(--wk-line);
+  border-radius: 12px;
+  background: var(--wk-bg-1);
+}
+.wk-ref-suggest-list .wk-suggest-item:last-child {
+  border-bottom: none;
+}
+
 /* Task chip */
 .wk-taskchip {
   display: flex;
