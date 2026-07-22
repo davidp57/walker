@@ -1,14 +1,14 @@
-# Walker v1.8.1
+# Walker v1.8.2
 
-**Small follow-up to Merge.** The Merge action now covers the most common case it was missing.
+**Merge, made obvious.** A small UI refinement to the Merge action introduced in 1.8.0.
 
 ## Highlights
 
-### Merge works on back-to-back entries
-Two completed entries of the **same code and activity** sitting directly next to each other (touching,
-no overlap) now show the **Merge** button on the earlier one — previously it appeared only for
-*overlapping* entries or an entry followed by the running timer. Merging them produces one continuous
-entry.
+### The Merge control now sits between the two entries
+Instead of a button tucked into the overlap note, mergeable entries now show a compact **⇕ Merge**
+pill **on the seam between the two rows** — its position alone tells you which pair will combine.
+**Hovering it highlights both entries**, so there's no doubt what you're about to merge, and nothing
+cluttering the list the rest of the time.
 
 ## Upgrade notes
 - **No breaking changes, no migration** — frontend-only.
