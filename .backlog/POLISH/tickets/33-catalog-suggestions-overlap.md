@@ -1,7 +1,7 @@
 # BIZ-074 — Code catalog: reference suggestions no longer cover the code list
 
 ID: BIZ-074
-Status: 🔄 in-progress
+Status: ✅ done
 Type: fix
 Priority: P2
 
@@ -31,18 +31,19 @@ The two roles fight for the same screen space.
 
 ## Acceptance criteria
 
-- [ ] Typing in the search box never overlays/hides the active-codes list.
-- [ ] Matching reference codes appear as an in-flow "Add from your reference catalog" section below
+- [x] Typing in the search box never overlays/hides the active-codes list.
+- [x] Matching reference codes appear as an in-flow "Add from your reference catalog" section below
       the list; clicking one still activates it (`onActivateReference`) and clears the query.
-- [ ] The section is capped in height and scrolls internally on many results.
-- [ ] The section only shows for a non-empty query with at least one (non-active) reference match.
-- [ ] Component tests cover: no overlay, in-flow suggestions render + activate, hidden on empty query.
-- [ ] Frontend quality gate clean (lint, format, build, tests).
-- [ ] Verified in the live browser.
+- [x] The section is capped in height and scrolls internally on many results.
+- [x] The section only shows for a non-empty query with at least one (non-active) reference match.
+- [x] Component tests cover: no overlay, in-flow suggestions render + activate, hidden on empty query.
+- [x] Frontend quality gate clean (lint, format, build, 419 tests).
+- [x] Verified in the live browser (typing `team`: filtered active codes first, then a separate
+      in-flow region with the 20 reference matches — no overlay).
 
 ## Delivery
 
-_TBD._
+Shipped in [PR #131](https://github.com/davidp57/walker/pull/131) → `develop`.
 
 ## Blocked by
 
