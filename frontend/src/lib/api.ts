@@ -201,6 +201,31 @@ export async function createEntry(fields: Partial<Entry> = {}): Promise<Entry> {
   return mapEntry(await sendJson<ApiEntry>('/api/entries', 'POST', body))
 }
 
+/** Fields sent when punching a hole in an entry (BIZ-076). */
+export interface BreakWrite {
+  breakStartMinute: number
+  breakEndMinute: number
+  timesheetCodeId?: string | null
+  activity?: string | null
+  description?: string | null
+}
+
+/**
+ * Punch a hole in an entry (BIZ-076): splits the worked time around the break, optionally filling
+ * the hole with its own entry. Returns the resulting entries (worked segments + optional hole).
+ */
+export async function insertBreak(id: string, input: BreakWrite): Promise<Entry[]> {
+  const body: Record<string, unknown> = {
+    break_start_minute: input.breakStartMinute,
+    break_end_minute: input.breakEndMinute,
+  }
+  if (input.timesheetCodeId != null) body.timesheet_code_id = Number(input.timesheetCodeId)
+  if (input.activity != null) body.activity = input.activity
+  if (input.description != null) body.description = input.description
+  const entries = await sendJson<ApiEntry[]>(`/api/entries/${id}/break`, 'POST', body)
+  return entries.map(mapEntry)
+}
+
 /** Delete an entry. */
 export async function deleteEntry(id: string): Promise<void> {
   const response = await fetch(`/api/entries/${id}`, { method: 'DELETE' })

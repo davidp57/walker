@@ -25,6 +25,55 @@ def _seed_user_with_code(session: Session) -> TimesheetCode:
     return code
 
 
+def test_insert_break_splits_a_completed_entry(client: TestClient) -> None:
+    """BIZ-076: punching a hole returns the two worked segments; the hole is left untracked."""
+    created = client.post(
+        "/api/entries",
+        json={"date": TODAY, "start_minute": 540, "end_minute": 780, "activity": "Dev"},
+    ).json()
+
+    resp = client.post(
+        f"/api/entries/{created['id']}/break",
+        json={"break_start_minute": 720, "break_end_minute": 740},
+    )
+
+    assert resp.status_code == 200
+    spans = [(e["start_minute"], e["end_minute"]) for e in resp.json()]
+    assert spans == [(540, 720), (740, 780)]
+    listed = [(e["start_minute"], e["end_minute"]) for e in client.get("/api/entries", params={"date": TODAY}).json()]
+    assert listed == [(540, 720), (740, 780)]
+
+
+def test_insert_break_with_categorized_hole_fills_the_gap(client: TestClient) -> None:
+    created = client.post(
+        "/api/entries",
+        json={"date": TODAY, "start_minute": 540, "end_minute": 780, "activity": "Dev"},
+    ).json()
+
+    resp = client.post(
+        f"/api/entries/{created['id']}/break",
+        json={"break_start_minute": 720, "break_end_minute": 740, "activity": "Lunch"},
+    )
+
+    assert resp.status_code == 200
+    spans = [(e["start_minute"], e["end_minute"], e["activity"]) for e in resp.json()]
+    assert spans == [(540, 720, "Dev"), (720, 740, "Lunch"), (740, 780, "Dev")]
+
+
+def test_insert_break_out_of_range_is_422(client: TestClient) -> None:
+    created = client.post(
+        "/api/entries",
+        json={"date": TODAY, "start_minute": 540, "end_minute": 780},
+    ).json()
+
+    resp = client.post(
+        f"/api/entries/{created['id']}/break",
+        json={"break_start_minute": 500, "break_end_minute": 560},
+    )
+
+    assert resp.status_code == 422
+
+
 def test_start_creates_a_running_uncategorized_entry(client: TestClient) -> None:
     response = client.post("/api/timer/start")
 

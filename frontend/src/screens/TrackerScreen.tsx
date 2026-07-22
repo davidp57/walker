@@ -24,6 +24,7 @@ interface TrackerScreenProps {
   onOpenEntry: (id: string) => void
   onResumeEntry: (id: string) => void
   onDeleteEntry: (id: string) => void
+  onInsertBreak?: (id: string) => void // BIZ-076: punch a hole (lunch break) in this entry
   onLoadEarlier: () => void
   // BIZ-064: add a manual entry with its date prefilled to `date` (a day group's date).
   onAddEntry: (date: string) => void
@@ -41,6 +42,7 @@ export function TrackerScreen({
   onOpenEntry,
   onResumeEntry,
   onDeleteEntry,
+  onInsertBreak,
   onLoadEarlier,
   onAddEntry,
   today,
@@ -126,6 +128,7 @@ export function TrackerScreen({
                     <div />
                     <div />
                     <div />
+                    <div />
                   </div>
                   <div className="wk-entry-list">
                     {(() => {
@@ -153,6 +156,7 @@ export function TrackerScreen({
                           onOpenEditor={() => onOpenEntry(entry.id)}
                           onResume={() => onResumeEntry(entry.id)}
                           onDelete={() => onDeleteEntry(entry.id)}
+                          onInsertBreak={onInsertBreak ? () => onInsertBreak(entry.id) : undefined}
                         />
                       ))
                     })()}

@@ -251,6 +251,21 @@ class EntryPatch(BaseModel):
     task_id: int | None = None
 
 
+class BreakInsert(BaseModel):
+    """Punch a hole in an entry (BIZ-076): the break window, plus an optional categorization for it.
+
+    ``break_start_minute``/``break_end_minute`` are minutes since midnight, within the entry's span
+    (for a running entry, up to the current minute). When ``timesheet_code_id``/``activity``/
+    ``description`` are given, the hole is filled with its own entry instead of left untracked.
+    """
+
+    break_start_minute: int
+    break_end_minute: int
+    timesheet_code_id: int | None = None
+    activity: str | None = None
+    description: str | None = None
+
+
 class AbsenceRead(BaseModel):
     """A non-worked day."""
 

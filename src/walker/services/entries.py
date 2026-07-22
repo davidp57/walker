@@ -200,3 +200,93 @@ def delete_entry(session: Session, user_id: int, entry_id: int) -> None:
     entry = get_entry(session, user_id, entry_id)
     session.delete(entry)
     session.commit()
+
+
+def insert_break(
+    session: Session,
+    user_id: int,
+    entry_id: int,
+    *,
+    break_start: int,
+    break_end: int,
+    now_minute: int,
+    timesheet_code_id: int | None = None,
+    activity: str | None = None,
+    description: str | None = None,
+) -> list[Entry]:
+    """Punch a hole ``[break_start, break_end]`` in an entry, splitting the worked time around it (BIZ-076).
+
+    A completed entry ``[s, e]`` becomes ``[s, break_start]`` + ``[break_end, e]`` (both carrying the
+    original code / activity / description / task); the hole is left untracked. For a **running**
+    entry (``end_minute`` NULL) the elapsed part before the break is closed as ``[s, break_start]`` and
+    the timer keeps running from ``break_end`` — ``now_minute`` (the current minute, from the router)
+    bounds the break. A break at the very start / end just trims that side; one spanning the whole
+    entry removes it. When ``timesheet_code_id``/``activity``/``description`` are given, the hole is
+    filled with its own entry instead of being left untracked (ADR-0005: exact minutes, no rounding).
+
+    Returns the resulting entries (worked segments + optional hole), ordered by start minute.
+    """
+    entry = get_entry(session, user_id, entry_id)
+    on_date = entry.date
+    running = entry.end_minute is None
+    # A running entry has no end yet, so its upper bound is the current minute; this also narrows the
+    # type to ``int`` (no ``assert``) so a bad invariant can't surface as an uncontrolled 500.
+    upper = now_minute if entry.end_minute is None else entry.end_minute
+    if not (entry.start_minute <= break_start < break_end <= upper):
+        raise ValidationError("The break must fall inside the entry.")
+
+    inherited = {
+        "timesheet_code_id": entry.timesheet_code_id,
+        "activity": entry.activity,
+        "description": entry.description,
+        "task_id": entry.task_id,
+        "source": entry.source,
+    }
+    results: list[Entry] = []
+
+    if running:
+        # The elapsed time before the break becomes a completed segment; the live timer continues from
+        # the break end (its start moves forward, end stays NULL — it is still the one running entry).
+        if break_start > entry.start_minute:
+            before = Entry(
+                user_id=user_id, date=on_date, start_minute=entry.start_minute, end_minute=break_start, **inherited
+            )
+            session.add(before)
+            results.append(before)
+        entry.start_minute = break_end
+        results.append(entry)
+    else:
+        end_minute = upper  # == entry.end_minute here (asserted not None above)
+        has_before = break_start > entry.start_minute
+        has_after = break_end < end_minute
+        if has_before:
+            entry.end_minute = break_start  # reuse the row as the "before" segment
+            results.append(entry)
+            if has_after:
+                after = Entry(user_id=user_id, date=on_date, start_minute=break_end, end_minute=end_minute, **inherited)
+                session.add(after)
+                results.append(after)
+        elif has_after:
+            entry.start_minute = break_end  # reuse the row as the "after" segment
+            results.append(entry)
+        else:
+            session.delete(entry)  # the break spans the whole entry
+
+    if timesheet_code_id is not None or activity or description:
+        hole = Entry(
+            user_id=user_id,
+            date=on_date,
+            start_minute=break_start,
+            end_minute=break_end,
+            timesheet_code_id=timesheet_code_id,
+            activity=activity,
+            description=description,
+            source="manual",  # BIZ-065: a hand-composed break entry, not timer-tracked.
+        )
+        session.add(hole)
+        results.append(hole)
+
+    session.commit()
+    for entry_result in results:
+        session.refresh(entry_result)
+    return sorted(results, key=lambda e: e.start_minute)

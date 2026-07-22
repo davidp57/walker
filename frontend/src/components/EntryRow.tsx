@@ -8,7 +8,7 @@ import {
   parseMilitaryClock,
   selectOnFocus,
 } from '../lib/time'
-import { IconEdit, IconPlay, IconTrash } from './icons'
+import { IconBreak, IconEdit, IconPlay, IconTrash } from './icons'
 
 interface EntryRowProps {
   entry: Entry
@@ -18,6 +18,7 @@ interface EntryRowProps {
   onOpenEditor: () => void // open the full editor (date, times, duration)
   onResume: () => void
   onDelete: () => void
+  onInsertBreak?: () => void // BIZ-076: punch a hole (e.g. lunch) in this entry; omit to hide the action
   // BIZ-038: this row is the live running Timer — read-only, live duration, no inline controls.
   running?: boolean
   liveMinutes?: number // live elapsed minutes, used when `running`
@@ -37,6 +38,7 @@ export function EntryRow({
   onOpenEditor,
   onResume,
   onDelete,
+  onInsertBreak,
   running = false,
   liveMinutes,
   maxMinutes,
@@ -262,6 +264,7 @@ export function EntryRow({
           <span />
           <span />
           <span />
+          <span />
         </>
       ) : (
         <>
@@ -274,6 +277,19 @@ export function EntryRow({
           >
             <IconEdit />
           </button>
+          {onInsertBreak ? (
+            <button
+              type="button"
+              className="wk-row-action"
+              title="Insert a break (carve out lunch etc.)"
+              aria-label="Insert a break"
+              onClick={onInsertBreak}
+            >
+              <IconBreak />
+            </button>
+          ) : (
+            <span />
+          )}
           <button
             type="button"
             className="wk-row-action"

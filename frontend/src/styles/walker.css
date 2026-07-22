@@ -624,7 +624,7 @@ html[data-theme='light'] body {
 
 /* ---------- Tracker: Entry list ---------- */
 .wk-entry-cols {
-  --wk-entry-grid: 14px 118px 48px minmax(150px, 1.25fr) minmax(120px, 1.4fr) 30px 30px 30px;
+  --wk-entry-grid: 14px 118px 48px minmax(150px, 1.25fr) minmax(120px, 1.4fr) 30px 30px 30px 30px;
 }
 .wk-entry-head,
 .wk-entry-row {
