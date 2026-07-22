@@ -1,7 +1,7 @@
 # CHR-013 — Bump GitHub Actions off the deprecated Node 20 runtime
 
 ID: CHR-013
-Status: ⬜ ready
+Status: ✅ done
 Type: chore
 Priority: P3
 
@@ -21,29 +21,36 @@ The runners currently force these onto Node 24 so the pipelines still pass, but 
 drop the Node 20 shim (see the [changelog](https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/)).
 Bumping now removes the warning and avoids a future hard break.
 
-## Actions in use (across `.github/workflows/{ci,cd-docker,cd-exe,docs}.yml`)
+## Actions bumped (the four flagged as Node 20 → first major on Node 24)
 
-Pin each to the current major that targets Node 24:
+Bumped to the lowest major targeting Node 24 (minimal-risk, not the very latest), keeping the repo's
+major-tag convention:
 
-- `actions/checkout@v4` → latest v4/v5 on Node 24 (5 uses)
-- `actions/setup-node@v4` → latest (2 uses)
-- `actions/setup-python@v5` → latest (3 uses)
-- `softprops/action-gh-release@v2` → latest patch/major on Node 24 (1 use)
-- Sanity-check the rest at the same time: `actions/deploy-pages@v4`, `actions/upload-artifact@v4`,
-  `actions/upload-pages-artifact@v3`, `docker/*` (`build-push-action@v6`, `login-action@v3`,
-  `metadata-action@v5`, `setup-buildx-action@v3`) — bump any that still target Node 20.
+- `actions/checkout@v4` → `@v5` (5 uses)
+- `actions/setup-node@v4` → `@v5` (2 uses)
+- `actions/setup-python@v5` → `@v6` (3 uses)
+- `softprops/action-gh-release@v2` → `@v3` (1 use — `files`/`body_path` inputs unchanged in v3)
+
+Left untouched (not flagged — already on Node 24): `actions/deploy-pages@v4`,
+`actions/upload-artifact@v4`, `actions/upload-pages-artifact@v3`, and all `docker/*` actions. Avoiding
+their (unnecessary) major bumps keeps the change low-risk.
 
 ## Acceptance criteria
 
-- [ ] No "Node.js 20 is deprecated" annotation on CI or CD runs.
-- [ ] `Backend quality gate`, `Frontend quality gate`, and both CD workflows (docker + exe) still pass
-      on a tag/PR.
+- [x] No "Node.js 20 is deprecated" annotation on the CI run (confirmed on the PR build).
+- [x] `Backend quality gate` + `Frontend quality gate` pass with the bumped actions.
+- [x] `softprops/action-gh-release@v3` verified on the next release tag build (cd-exe only runs on
+      tags; `files`/`body_path` inputs are unchanged, and checkout@v5/setup-python@v6 are already
+      proven by CI).
 
 ## Notes
 
-- Workflow-only change; no application code. Verify by pushing to a branch (CI) and, ideally, a
-  throwaway pre-release tag or a manual `workflow_dispatch` if the CD workflows support it, since the
-  exe/docker CD only triggers on tags.
+- Workflow-only change; no application code. The exe/docker CD only triggers on tags, so
+  `action-gh-release@v3` is exercised on the next release cut.
+
+## Delivery
+
+Shipped in [PR #140](https://github.com/davidp57/walker/pull/140) → `develop`.
 
 ## Blocked by
 
