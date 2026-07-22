@@ -5,6 +5,16 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-07-22
+
+### Fixed
+
+- **Merge now works on back-to-back entries** (BIZ-078): two completed entries of the same code and
+  activity sitting directly adjacent (touching, no overlap) now offer the **Merge** button on the
+  earlier one. Previously it appeared only for overlapping entries or an entry directly followed by
+  the running timer, so the most common case — two consecutive segments of the same work — was
+  missed. Frontend-only; the merge endpoint already supported it.
+
 ## [1.8.0] - 2026-07-22
 
 ### Added

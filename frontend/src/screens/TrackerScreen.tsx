@@ -144,26 +144,21 @@ export function TrackerScreen({
                           end: e.end ?? null,
                         })),
                       )
-                      const runningEntry = group.entries.find((e) => e.id === runningId) ?? null
-                      // BIZ-077: the entry this row can merge with — a same-code+activity overlapping
-                      // partner, or the running timer directly following it (adjacent). null when none.
-                      const mergeTargetFor = (x: (typeof group.entries)[number]): string | null => {
+                      // BIZ-077/BIZ-078: the entry this row can merge with — a same-code+activity
+                      // partner that either overlaps it or directly follows it (adjacent, touching
+                      // at this entry's end). The follower may be completed or the running timer.
+                      const sameCode = (a: Entry, b: Entry): boolean =>
+                        a.codeId === b.codeId && a.activity === b.activity
+                      const mergeTargetFor = (x: Entry): string | null => {
                         if (x.id === runningId) return null
                         for (const p of overlaps[x.id]?.partners ?? []) {
                           const pe = group.entries.find((e) => e.id === p.id)
-                          if (pe && pe.codeId === x.codeId && pe.activity === x.activity)
-                            return pe.id
+                          if (pe && sameCode(pe, x)) return pe.id
                         }
-                        if (
-                          runningEntry &&
-                          runningEntry.id !== x.id &&
-                          runningEntry.codeId === x.codeId &&
-                          runningEntry.activity === x.activity &&
-                          runningEntry.start === x.end
-                        ) {
-                          return runningEntry.id
-                        }
-                        return null
+                        const following = group.entries.find(
+                          (e) => e.id !== x.id && e.start === x.end && sameCode(e, x),
+                        )
+                        return following?.id ?? null
                       }
                       return group.entries.map((entry) => (
                         <EntryRow
