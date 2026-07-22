@@ -95,7 +95,8 @@ describe('TrackerScreen — per-day Add button (BIZ-064)', () => {
   })
 })
 
-describe('TrackerScreen — merge eligibility (BIZ-078)', () => {
+describe('TrackerScreen — merge seam pill (BIZ-078/BIZ-079)', () => {
+  // Entries are listed newest-first (BIZ-019), so `upper` (earlier in the list) is the later entry.
   const mk = (id: string, start: number, end: number, activity = 'Dev'): Entry => ({
     id,
     date: '2026-07-10',
@@ -106,27 +107,45 @@ describe('TrackerScreen — merge eligibility (BIZ-078)', () => {
     description: '',
   })
 
-  it('offers Merge on the earlier of two adjacent same-code+activity entries', () => {
+  it('shows a seam Merge pill between two adjacent same-code+activity entries and wires the pair', () => {
     const onMergeEntries = vi.fn()
     renderScreen({
       today: '2026-07-10',
-      groups: [group('2026-07-10', 'Today', [mk('a', 540, 600), mk('b', 600, 660)])],
+      // newest-first: later (12:00–13:00) above earlier (11:00–12:00), touching at 12:00.
+      groups: [group('2026-07-10', 'Today', [mk('later', 720, 780), mk('earlier', 660, 720)])],
       onMergeEntries,
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /^merge$/i }))
-    expect(onMergeEntries).toHaveBeenCalledWith('a', 'b') // earlier 'a' merges with the following 'b'
+    fireEvent.click(screen.getByRole('button', { name: /merge these two entries/i }))
+    expect(onMergeEntries).toHaveBeenCalledWith('later', 'earlier')
   })
 
-  it('offers no Merge when adjacent entries differ in activity', () => {
+  it('shows no seam pill when adjacent entries differ in activity', () => {
     renderScreen({
       today: '2026-07-10',
       groups: [
-        group('2026-07-10', 'Today', [mk('a', 540, 600, 'Dev'), mk('b', 600, 660, 'Review')]),
+        group('2026-07-10', 'Today', [
+          mk('later', 720, 780, 'Review'),
+          mk('earlier', 660, 720, 'Dev'),
+        ]),
       ],
       onMergeEntries: vi.fn(),
     })
 
-    expect(screen.queryByRole('button', { name: /^merge$/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /merge these two entries/i })).toBeNull()
+  })
+
+  it('tints both rows of the pair while the seam pill is hovered', () => {
+    renderScreen({
+      today: '2026-07-10',
+      groups: [group('2026-07-10', 'Today', [mk('later', 720, 780), mk('earlier', 660, 720)])],
+      onMergeEntries: vi.fn(),
+    })
+
+    expect(document.querySelectorAll('.wk-entry-row.is-merge-highlight')).toHaveLength(0)
+    fireEvent.mouseEnter(screen.getByRole('button', { name: /merge these two entries/i }))
+    expect(document.querySelectorAll('.wk-entry-row.is-merge-highlight')).toHaveLength(2)
+    fireEvent.mouseLeave(screen.getByRole('button', { name: /merge these two entries/i }))
+    expect(document.querySelectorAll('.wk-entry-row.is-merge-highlight')).toHaveLength(0)
   })
 })

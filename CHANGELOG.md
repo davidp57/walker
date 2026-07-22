@@ -5,6 +5,15 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.8.2] - 2026-07-22
+
+### Changed
+
+- **Merge control moved onto the seam between the two entries** (BIZ-079): the Merge action left the
+  overlap-note line and is now a compact "⇕ Merge" pill rendered between the two mergeable rows, so
+  its position identifies the pair. Hovering it highlights both affected entries; nothing is shown
+  the rest of the time. Merge eligibility and behavior are unchanged.
+
 ## [1.8.1] - 2026-07-22
 
 ### Fixed

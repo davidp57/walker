@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from 'react'
 import type { Entry, TimesheetCode } from '../types'
 import { EntryRow } from '../components/EntryRow'
 import { detectOverlaps } from '../lib/overlaps'
@@ -49,6 +50,8 @@ export function TrackerScreen({
   onAddEntry,
   today,
 }: TrackerScreenProps) {
+  // BIZ-079: the [upper, lower] ids of the merge pair whose seam pill is hovered — both rows tint.
+  const [hoverPair, setHoverPair] = useState<[string, string] | null>(null)
   const durationOf = (e: Entry): number =>
     e.id === runningId ? runningMinutes : Math.max(0, (e.end ?? e.start) - e.start)
 
@@ -144,45 +147,50 @@ export function TrackerScreen({
                           end: e.end ?? null,
                         })),
                       )
-                      // BIZ-077/BIZ-078: the entry this row can merge with — a same-code+activity
-                      // partner that either overlaps it or directly follows it (adjacent, touching
-                      // at this entry's end). The follower may be completed or the running timer.
-                      const sameCode = (a: Entry, b: Entry): boolean =>
-                        a.codeId === b.codeId && a.activity === b.activity
-                      const mergeTargetFor = (x: Entry): string | null => {
-                        if (x.id === runningId) return null
-                        for (const p of overlaps[x.id]?.partners ?? []) {
-                          const pe = group.entries.find((e) => e.id === p.id)
-                          if (pe && sameCode(pe, x)) return pe.id
-                        }
-                        const following = group.entries.find(
-                          (e) => e.id !== x.id && e.start === x.end && sameCode(e, x),
+                      // BIZ-079: two DOM-consecutive rows are a mergeable pair when they share code +
+                      // activity and touch/overlap in time. The list is newest-first (BIZ-019), so the
+                      // upper row is the later entry and the lower is the earlier; the earlier's end
+                      // meeting or crossing the later's start means no gap. The upper row may be the
+                      // running timer (it survives the merge — BIZ-077).
+                      const mergeable = (upper: Entry, lower: Entry): boolean =>
+                        upper.codeId === lower.codeId &&
+                        upper.activity === lower.activity &&
+                        lower.end != null &&
+                        lower.end >= upper.start
+                      const items: ReactNode[] = []
+                      group.entries.forEach((entry, i) => {
+                        items.push(
+                          <EntryRow
+                            key={entry.id}
+                            entry={entry}
+                            code={entry.codeId ? (codesById[entry.codeId] ?? null) : null}
+                            running={entry.id === runningId}
+                            liveMinutes={runningMinutes}
+                            maxMinutes={groupMax}
+                            overlap={entry.id === runningId ? undefined : overlaps[entry.id]}
+                            mergeHighlight={hoverPair?.includes(entry.id) ?? false}
+                            onEdit={(patch) => onEditEntry(entry.id, patch)}
+                            onCategorize={() => onCategorizeEntry(entry.id)}
+                            onOpenEditor={() => onOpenEntry(entry.id)}
+                            onResume={() => onResumeEntry(entry.id)}
+                            onDelete={() => onDeleteEntry(entry.id)}
+                            onInsertBreak={
+                              onInsertBreak ? () => onInsertBreak(entry.id) : undefined
+                            }
+                          />,
                         )
-                        return following?.id ?? null
-                      }
-                      return group.entries.map((entry) => (
-                        <EntryRow
-                          key={entry.id}
-                          entry={entry}
-                          code={entry.codeId ? (codesById[entry.codeId] ?? null) : null}
-                          running={entry.id === runningId}
-                          liveMinutes={runningMinutes}
-                          maxMinutes={groupMax}
-                          overlap={entry.id === runningId ? undefined : overlaps[entry.id]}
-                          onEdit={(patch) => onEditEntry(entry.id, patch)}
-                          onCategorize={() => onCategorizeEntry(entry.id)}
-                          onOpenEditor={() => onOpenEntry(entry.id)}
-                          onResume={() => onResumeEntry(entry.id)}
-                          onDelete={() => onDeleteEntry(entry.id)}
-                          onInsertBreak={onInsertBreak ? () => onInsertBreak(entry.id) : undefined}
-                          mergeTargetId={onMergeEntries ? mergeTargetFor(entry) : null}
-                          onMerge={
-                            onMergeEntries
-                              ? (targetId) => onMergeEntries(entry.id, targetId)
-                              : undefined
-                          }
-                        />
-                      ))
+                        const lower = group.entries[i + 1]
+                        if (onMergeEntries && lower && mergeable(entry, lower)) {
+                          items.push(
+                            <MergeSeam
+                              key={`seam-${entry.id}-${lower.id}`}
+                              onMerge={() => onMergeEntries(entry.id, lower.id)}
+                              onHover={(h) => setHoverPair(h ? [entry.id, lower.id] : null)}
+                            />,
+                          )
+                        }
+                      })
+                      return items
                     })()}
                   </div>
                 </>
@@ -196,6 +204,36 @@ export function TrackerScreen({
           </div>
         </>
       )}
+    </div>
+  )
+}
+
+/**
+ * BIZ-079: the Merge affordance — a compact pill on the seam between two mergeable rows. Its position
+ * on the shared border identifies the pair; hovering it tints both rows via `onHover`.
+ */
+function MergeSeam({
+  onMerge,
+  onHover,
+}: {
+  onMerge: () => void
+  onHover: (hovering: boolean) => void
+}) {
+  return (
+    <div className="wk-merge-seam">
+      <button
+        type="button"
+        className="wk-merge-pill"
+        title="Merge these two entries into one"
+        aria-label="Merge these two entries"
+        onClick={onMerge}
+        onMouseEnter={() => onHover(true)}
+        onMouseLeave={() => onHover(false)}
+        onFocus={() => onHover(true)}
+        onBlur={() => onHover(false)}
+      >
+        ⇕ Merge
+      </button>
     </div>
   )
 }
