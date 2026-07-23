@@ -2537,6 +2537,7 @@ html[data-theme='light'] body {
   gap: 8px;
 }
 .wk-board-column {
+  position: relative;
   flex: 1 1 0;
   min-width: 200px;
   background: var(--wk-bg-1);
@@ -2586,17 +2587,44 @@ html[data-theme='light'] body {
   text-transform: none;
   letter-spacing: normal;
 }
+/* Column edit controls reveal on hover/focus-within, floating over the header's right edge so they
+   stay out of the way until wanted and never reflow the cards below. Touch devices (no hover) keep
+   them pinned in-flow. */
 .wk-board-column-tools {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  z-index: 2;
   display: flex;
   gap: 2px;
-  justify-content: flex-end;
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--wk-line);
-  background: var(--wk-bg-2);
+  padding: 2px;
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  background: var(--wk-bg-3);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+}
+.wk-board-column:hover > .wk-board-column-tools,
+.wk-board-column:focus-within > .wk-board-column-tools {
+  opacity: 1;
+  visibility: visible;
 }
 .wk-board-column-tools .wk-btn-icon {
   font-size: var(--wk-fs-11);
   padding: 2px 6px;
+}
+@media (hover: none) {
+  .wk-board-column-tools {
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    justify-content: flex-end;
+    border: none;
+    border-bottom: 1px solid var(--wk-line);
+    border-radius: 0;
+    background: var(--wk-bg-2);
+  }
 }
 .wk-board-add-column {
   flex: 0 0 auto;
@@ -2616,6 +2644,13 @@ html[data-theme='light'] body {
 .wk-board-add-column:hover {
   color: var(--wk-text);
   border-color: var(--wk-text-lo);
+}
+/* The inline editing state: a real text field, so drop the uppercase/tracking of the button label. */
+.wk-board-add-column--editing {
+  text-transform: none;
+  letter-spacing: normal;
+  border-style: solid;
+  color: var(--wk-text-hi);
 }
 .wk-board-column-body {
   display: flex;
