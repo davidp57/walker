@@ -348,11 +348,12 @@ html[data-theme='light'] body {
 @keyframes wk-readout-breathe {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(91, 156, 246, 0);
+    box-shadow: 0 0 0 0 transparent;
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 22px 1px rgba(91, 156, 246, 0.32);
+    /* Accent from the token so the halo follows the active theme (TEC-013). */
+    box-shadow: 0 0 22px 1px color-mix(in srgb, var(--wk-accent) 32%, transparent);
     transform: scale(1.015);
   }
 }

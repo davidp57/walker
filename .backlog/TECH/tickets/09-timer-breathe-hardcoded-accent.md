@@ -1,7 +1,7 @@
 # TEC-013 — Timer running-readout halo uses a hard-coded accent (light-theme drift)
 
 ID: TEC-013
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Priority: P2
 
@@ -34,10 +34,17 @@ is fine.)
 
 ## Acceptance criteria
 
-- [ ] The breathing halo uses the accent **token**, not a literal.
-- [ ] In light theme the halo matches `#2f6fe0`, not `#5b9cf6`.
-- [ ] `prefers-reduced-motion` guard still disables the animation.
-- [ ] Frontend quality gate clean.
+- [x] The breathing halo uses the accent **token**, not a literal.
+- [x] In light theme the halo matches `#2f6fe0`, not `#5b9cf6`.
+- [x] `prefers-reduced-motion` guard still disables the animation.
+- [x] Frontend quality gate clean.
+
+## Delivery
+
+Fixed in the `wk-readout-breathe` keyframe: `box-shadow` at the 50% stop now uses
+`color-mix(in srgb, var(--wk-accent) 32%, transparent)`, and the 0%/100% stop is a plain
+`transparent` (blur/spread 0, invisible). Ships with the redesign PR (`feature/redesign-with-impeccable`
+→ `develop`).
 
 ## Blocked by
 
