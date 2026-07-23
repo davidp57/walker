@@ -317,16 +317,23 @@ tint changes on interaction rather than hard color jumps.
 - **Bottom tab bar (≤640px):** Same five sections; active item turns accent (color, not fill).
 
 ### Signature: The Timer Bar & Live Row
-The always-visible 76px timer bar is the product's heartbeat: a live/idle dot (accent + pulsing halo
-when running), a large mono stopwatch (27px, accent when running), a borderless comment input, and the
-one-click start. When running, the timer also renders as a read-only accent-tinted row in the entry
-list and as a pulsing "live" cell in the grid — the same running state, three synchronized surfaces.
+The always-visible 76px timer bar is the product's heartbeat: a live/idle dot, a large mono stopwatch
+(30px), a borderless comment input, and the one-click start. When running, the **readout** (dot +
+clock) becomes a lit instrument panel — an accent-tinted, accent-bordered inset that gently **breathes**
+(a slow accent halo) with a live **ping** radiating from the dot, and the bar gains a hairline accent
+top edge. The timer also renders as a read-only accent-tinted row in the entry list and as a pulsing
+"live" cell in the grid — the same running state, synchronized surfaces.
 
 ### Signature: The Timesheet Grid
 A 1:1 visual mirror of the external Timesheet system's "BY CODE" grid: sticky code rows × day columns,
-weekends hatched-grey, absences hatched, per-cell durations in mono, row/column/grand totals in raised
-surfaces, and an in-cell green **tick checkbox** (visible at rest) for the aviation-style "entered into
-the Timesheet system" checklist.
+per-cell durations in mono, and an in-cell green **tick checkbox** (visible at rest) for the
+aviation-style "entered into the Timesheet system" checklist. Each row is led by its **code-colour bar**;
+rows are separated by subtle zebra striping and a row-hover highlight so a line stays followable across
+the width. **Non-working day columns** (weekends + settings off-days) collapse to a thin greyed bar,
+merged into one continuous strip, so the working days dominate; absences stay hatched. The daily total
+is echoed at both the **top and bottom**, with dates as muted labels and totals as bright values. Codes
+are copied, not read: the code number is hidden and a copy button reveals on row hover. With ¼h rounding
+on, the rounded value shows and the real value reveals on hover (the daily total keeps both).
 
 ## Do's and Don'ts
 
@@ -340,6 +347,11 @@ the Timesheet system" checklist.
 - **Do** keep amber/green/red strictly semantic (needs-attention / done / destructive).
 - **Do** define any new color token in *both* dark and light themes, same hue family.
 - **Do** floor functional text at 11px and keep `text-lo` only on surfaces where it clears WCAG AA.
+- **Do** reveal secondary per-row controls on hover (row actions, copy-code, per-day add) so dense
+  lists/grids stay scannable at rest; keep them keyboard-focusable so focus reveals them too. State
+  signals (uncategorized flag, merge marker, running tint) stay visible — only routine controls hide.
+- **Do** lead a dense row with its **code-colour bar** for identity, and lean on zebra + row-hover to
+  keep lines followable; reserve equal row heights whether or not a row has an activity.
 
 ### Don't:
 - **Don't** use pure black (`#000`) or pure white (`#fff`); the palette is muted and cool by design.
