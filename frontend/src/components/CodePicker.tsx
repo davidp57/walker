@@ -68,7 +68,7 @@ export function CodePicker({
 
   return (
     <div className="wk-overlay" onClick={onClose}>
-      <div className="wk-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="wk-modal wk-modal--picker" onClick={(e) => e.stopPropagation()}>
         <div className="wk-modal-head">
           <span className="wk-modal-title">{title}</span>
           <button type="button" className="wk-modal-close" onClick={onClose}>
@@ -91,7 +91,7 @@ export function CodePicker({
               <div className="wk-picker-code-head">
                 <span className="wk-dot" style={{ background: code.color }} />
                 <span>
-                  <span className="wk-picker-name" style={{ display: 'block' }}>
+                  <span className="wk-picker-name">
                     {code.name}
                     {code.isVirtual && (
                       <span
@@ -102,7 +102,7 @@ export function CodePicker({
                       </span>
                     )}
                   </span>
-                  <span className="wk-picker-meta" style={{ display: 'block' }}>
+                  <span className="wk-picker-meta">
                     {code.number} · {code.label}
                   </span>
                 </span>

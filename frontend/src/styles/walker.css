@@ -300,6 +300,22 @@ html[data-theme='light'] body {
   align-items: center;
   gap: 11px;
   flex-shrink: 0;
+  /* The running readout is a structured instrument panel that lights up + breathes while tracking. */
+  background: var(--wk-bg-0);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-md);
+  padding: 5px 14px;
+  transition:
+    border-color 0.35s ease,
+    background 0.35s ease;
+}
+.wk-timerbar.is-running {
+  box-shadow: inset 0 1px 0 0 var(--wk-accent-line);
+}
+.wk-timerbar.is-running .wk-timer-right {
+  border-color: var(--wk-accent-line);
+  background: var(--wk-accent-soft);
+  animation: wk-readout-breathe 1.9s ease-in-out infinite;
 }
 .wk-timer-clock-wrap {
   display: flex;
@@ -313,15 +329,52 @@ html[data-theme='light'] body {
   border-radius: 50%;
   background: var(--wk-text-lo);
   flex-shrink: 0;
+  position: relative;
 }
 .wk-timer-dot.is-running {
   background: var(--wk-accent);
   box-shadow: 0 0 0 4px var(--wk-accent-soft);
   animation: wk-pulse 1.5s ease-in-out infinite;
 }
+/* A live "ping" ripple radiating from the running dot. */
+.wk-timer-dot.is-running::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1px solid var(--wk-accent);
+  animation: wk-dot-ping 1.9s ease-out infinite;
+}
+@keyframes wk-readout-breathe {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(91, 156, 246, 0);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 22px 1px rgba(91, 156, 246, 0.32);
+    transform: scale(1.015);
+  }
+}
+@keyframes wk-dot-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wk-timerbar.is-running .wk-timer-right,
+  .wk-timer-dot.is-running::after {
+    animation: none;
+  }
+}
 .wk-timer-clock {
   font-family: var(--wk-font-mono);
-  font-size: var(--wk-fs-27);
+  font-size: 30px;
   font-weight: var(--wk-fw-medium);
   letter-spacing: 0.5px;
   color: var(--wk-text-mid);
@@ -489,7 +542,7 @@ html[data-theme='light'] body {
   border-radius: var(--wk-radius-md);
   border: 1px solid var(--wk-line);
   cursor: pointer;
-  background: var(--wk-bg-2);
+  background: var(--wk-bg-0);
   flex-shrink: 0;
 }
 .wk-taskchip:hover {
@@ -696,30 +749,79 @@ html[data-theme='light'] body {
   z-index: 3;
   pointer-events: none;
 }
+/* BIZ-079: the merge affordance is a circular "join node" that sits on the seam between two
+   mergeable rows. At rest it's a quiet 26px icon (⇕); on hover/focus it widens to a pill and slides
+   the "Merge" label out (progressive disclosure). The resting node clears the 24px min target size. */
 .wk-merge-pill {
   pointer-events: auto;
   transform: translateY(-50%);
-  margin-right: 96px;
+  /* Sits just inside the list's right edge (aligned with the row-action column), not overhanging
+     the card border. At rest it's a quiet relationship marker; on hover it becomes the accent pill. */
+  margin-right: 14px;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  justify-content: center;
+  gap: 0;
+  width: 26px;
+  height: 26px;
+  padding: 0;
   font-family: var(--wk-font-mono);
   font-size: var(--wk-fs-9);
   color: var(--wk-text-mid);
-  background: var(--wk-bg-1);
-  border: 1px solid var(--wk-accent-line);
-  border-radius: 999px;
-  padding: 2px 9px;
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line-soft);
+  border-radius: 50%;
+  overflow: hidden;
   cursor: pointer;
+  transition:
+    width 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    border-radius 0.18s ease,
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
-.wk-merge-pill:hover {
+.wk-merge-pill__glyph {
+  flex: 0 0 auto;
+  font-size: 13px;
+  line-height: 1;
+}
+.wk-merge-pill__label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    max-width 0.18s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.12s ease,
+    margin-left 0.18s ease;
+}
+.wk-merge-pill:hover,
+.wk-merge-pill:focus-visible {
+  width: 86px;
+  border-radius: var(--wk-radius-pill);
   color: var(--wk-accent);
-  border-color: var(--wk-accent);
   background: var(--wk-accent-soft);
+  border-color: var(--wk-accent);
+}
+.wk-merge-pill:hover .wk-merge-pill__label,
+.wk-merge-pill:focus-visible .wk-merge-pill__label {
+  max-width: 60px;
+  opacity: 1;
+  margin-left: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wk-merge-pill,
+  .wk-merge-pill__label {
+    transition: none;
+  }
 }
 .wk-entry-row.is-merge-highlight {
+  /* BIZ-079: bracket the mergeable pair on BOTH edges (left + right) so it reads as "these two
+     rows, together" — the right bar meets the merge node that sits in the right gutter. */
   background: var(--wk-accent-soft);
-  box-shadow: inset 3px 0 0 var(--wk-accent);
+  box-shadow:
+    inset 3px 0 0 var(--wk-accent),
+    inset -3px 0 0 var(--wk-accent);
 }
 
 .wk-time {
@@ -898,6 +1000,27 @@ html[data-theme='light'] body {
   background: rgba(229, 100, 78, 0.12);
 }
 
+/* Activity list — "Reveal + Color". Generic per-row actions stay hidden until the row is hovered
+   (they are noise on every line); the code colour leads each row as a tall vertical bar. The merge
+   marker is intentionally exempt from this hide — it is a relationship signal, not a generic action. */
+.wk-entry-list .wk-row-action {
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.wk-entry-list .wk-entry-row:hover .wk-row-action,
+.wk-entry-list .wk-row-action:focus-visible {
+  opacity: 1;
+}
+.wk-entry-list .wk-entry-row:hover:not(.is-flagged):not(.is-running):not(.is-merge-highlight) {
+  background: var(--wk-bg-2);
+}
+.wk-entry-list .wk-entry-row > .wk-dot {
+  width: 4px;
+  height: 24px;
+  border-radius: 2px;
+  justify-self: start;
+}
+
 .wk-tip {
   margin-top: 14px;
   font-family: var(--wk-font-mono);
@@ -977,13 +1100,56 @@ html[data-theme='light'] body {
   background: var(--wk-weekend);
   color: var(--wk-text-lo);
 }
+/* Non-working day columns (weekends + settings off-days — all flagged is-weekend) collapse into a
+   thin greyed bar: instantly readable as "disabled", and freeing horizontal room for working days. */
+.wk-grid .wk-day.is-weekend {
+  width: 60px;
+  padding: 7px 0;
+}
+.wk-grid .wk-day.is-weekend .wk-day-name,
+.wk-grid .wk-day.is-weekend .wk-day-sub {
+  display: none;
+}
+.wk-grid .wk-day.is-weekend .wk-day-num {
+  font-size: var(--wk-fs-9);
+  font-weight: var(--wk-fw-regular);
+  color: var(--wk-text-lo);
+}
+.wk-grid td.wk-cell.is-weekend {
+  padding: 0;
+  border-bottom-color: transparent;
+  /* Semi-transparent so the per-row code tint threads through — the rows stay continuous across the
+     off block, while the greyed base still reads as "off". */
+  background: color-mix(in srgb, var(--wk-weekend) 80%, transparent);
+}
+/* Merge a run of adjacent non-working columns into a single continuous bar. */
+.wk-grid .is-weekend:has(+ .is-weekend) {
+  border-right-color: transparent;
+}
+/* Distinguish rows in the dense grid with subtle zebra striping + a row-hover highlight (the code
+   colour stays as identity in the row-head bar). Both thread through the semi-transparent off cells,
+   so a line stays followable across the off block while it still reads as "off". */
+.wk-grid tbody tr:nth-child(even):not(.wk-row-ghost) {
+  background: color-mix(in srgb, var(--wk-text-hi) 3%, transparent);
+}
+.wk-grid tbody tr:not(.wk-row-ghost):hover {
+  background: color-mix(in srgb, var(--wk-text-hi) 6%, transparent);
+}
+.wk-grid tbody tr:not(.wk-row-ghost):hover .wk-rowhead {
+  background: color-mix(in srgb, var(--wk-bg-1) 94%, var(--wk-text-hi) 6%);
+}
+/* The daily-total row echoed at the top of the grid — separated from the body below. */
+.wk-totals-top td {
+  border-bottom: 1px solid var(--wk-line);
+  padding-bottom: 6px;
+}
 .wk-day-name {
   font-size: var(--wk-fs-11);
   letter-spacing: 0.5px;
 }
 .wk-day-num {
   font-size: var(--wk-fs-12);
-  color: var(--wk-text-hi);
+  color: var(--wk-text-mid);
   margin-top: 1px;
 }
 .wk-day-sub {
@@ -999,7 +1165,7 @@ html[data-theme='light'] body {
   color: var(--wk-amber);
 }
 .wk-total-h {
-  width: 64px;
+  width: 80px;
   background: var(--wk-bg-2);
   text-align: center;
   padding: 8px 6px;
@@ -1025,18 +1191,51 @@ html[data-theme='light'] body {
   display: flex;
   align-items: center;
   gap: 9px;
+  /* Reserve the height of a two-line row-head (name + activity) so rows without an activity
+     (e.g. "Internal administration") are the same height as those with one — content stays centred. */
+  min-height: 38px;
+}
+/* The code colour leads the row as a tall vertical bar (mirrors the Activity list). */
+.wk-rowhead-inner > .wk-dot {
+  width: 4px;
+  height: 22px;
+  border-radius: 2px;
+}
+/* Empty-period placeholder rows — a muted skeleton that keeps the grid's shape instead of
+   collapsing to a bare header + footer. */
+.wk-row-ghost {
+  pointer-events: none;
+}
+.wk-row-ghost .wk-rowhead-inner > .wk-dot {
+  background: var(--wk-line);
+}
+.wk-ghost-bar {
+  display: inline-block;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--wk-line-soft);
 }
 .wk-rowhead-body {
   min-width: 0;
   flex: 1;
 }
+.wk-rowhead-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .wk-rowhead-label {
+  flex: 1;
+  min-width: 0;
   font-size: var(--wk-fs-13);
   font-weight: var(--wk-fw-medium);
   color: var(--wk-text-hi);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.wk-rowhead-label-row .wk-copy-code {
+  flex-shrink: 0;
 }
 .wk-rowhead-act {
   font-size: var(--wk-fs-12);
@@ -1062,6 +1261,13 @@ html[data-theme='light'] body {
   font-size: var(--wk-fs-10);
   border-color: transparent;
   line-height: 1.4;
+  /* Quiet at rest — the copy affordance reveals when its row is hovered (or focused via keyboard). */
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.wk-grid tbody tr:hover .wk-copy-code,
+.wk-copy-code:focus-visible {
+  opacity: 1;
 }
 .wk-copy-code:hover {
   color: var(--wk-green);
@@ -1225,7 +1431,8 @@ html[data-theme='light'] body {
   font-family: var(--wk-font-mono);
   font-size: var(--wk-fs-12);
   padding: 9px 2px;
-  color: var(--wk-text-mid);
+  color: var(--wk-text-hi);
+  font-weight: var(--wk-fw-medium);
   border-top: 1px solid var(--wk-line);
   background: var(--wk-bg-2);
   font-variant-numeric: tabular-nums;
@@ -1234,7 +1441,7 @@ html[data-theme='light'] body {
   color: var(--wk-text-lo);
 }
 .wk-grandtotal {
-  width: 64px;
+  width: 80px;
   text-align: center;
   font-family: var(--wk-font-mono);
   font-size: var(--wk-fs-13);
@@ -1403,6 +1610,11 @@ html[data-theme='light'] body {
 }
 
 /* Period segmented control */
+.wk-period-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
 .wk-period {
   display: flex;
   background: var(--wk-bg-2);
@@ -1430,6 +1642,54 @@ html[data-theme='light'] body {
   color: var(--wk-text-mid);
   min-width: 120px;
   text-align: right;
+}
+
+/* "Timesheet period" header: title on its own line; Review/Enter as prominent underline tabs on
+   their own row; the remaining controls on a raised toolbar strip below. */
+.wk-period-screen .wk-screen-head {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+.wk-period-screen .wk-period-toolbar {
+  flex-wrap: wrap;
+}
+.wk-period-screen .wk-period--mode {
+  flex-basis: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--wk-line);
+  overflow: visible;
+}
+.wk-period-screen .wk-period--mode .wk-seg {
+  padding: 9px 4px;
+  margin-right: 20px;
+  margin-bottom: -1px;
+  font-size: var(--wk-fs-14);
+  border-bottom: 2px solid transparent;
+}
+.wk-period-screen .wk-period--mode .wk-seg.is-active {
+  background: transparent;
+  color: var(--wk-accent);
+  border-bottom-color: var(--wk-accent);
+}
+.wk-period-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  background: var(--wk-bg-1);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-md);
+  padding: 8px 12px;
+}
+/* Rounding is a display mode — highlight the toggle in accent while it is on. */
+.wk-period-screen .wk-btn-ghost.is-active {
+  background: var(--wk-accent-soft);
+  border-color: var(--wk-accent);
+  color: var(--wk-accent);
 }
 
 /* Checklist progress */
@@ -1462,6 +1722,23 @@ html[data-theme='light'] body {
   text-transform: uppercase;
   color: var(--wk-text-lo);
   margin-top: 2px;
+}
+/* Unified progress: the bar and the "n / total lines entered" count sit on one row (C-2). */
+.wk-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.wk-progress-row .wk-progress {
+  flex: 1;
+  margin-bottom: 0;
+}
+.wk-progress-status {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 /* ---------- Toasts (TEC-002: visible API errors) ---------- */
@@ -1502,6 +1779,16 @@ html[data-theme='light'] body {
   font-size: var(--wk-fs-10);
   color: var(--wk-text-lo);
   font-family: var(--wk-font-mono);
+}
+/* In the grid, the real (unrounded) value is quiet at rest and reveals when its cell/total is
+   hovered — no permanent double, no native tooltip. */
+.wk-grid .wk-dur-real {
+  /* display:none (not opacity) so the hidden real value takes no width — keeps the rounded value
+     properly centred at rest. It appears when the cell/total is hovered. */
+  display: none;
+}
+.wk-grid td:hover .wk-dur-real {
+  display: inline;
 }
 /* BIZ-065: subtle marker on manually-added entries (Activity row) and cells with manual time. */
 .wk-manual-mark {
@@ -1695,11 +1982,13 @@ html[data-theme='light'] body {
   padding: 0 8px 8px;
 }
 .wk-picker-name {
+  display: block;
   font-size: var(--wk-fs-13);
   color: var(--wk-text-hi);
   font-weight: var(--wk-fw-semibold);
 }
 .wk-picker-meta {
+  display: block;
   font-family: var(--wk-font-mono);
   font-size: var(--wk-fs-11);
   color: var(--wk-text-mid);
@@ -1732,6 +2021,58 @@ html[data-theme='light'] body {
   color: var(--wk-text-lo);
   font-family: var(--wk-font-mono);
   font-size: var(--wk-fs-12);
+}
+
+/* The code picker presents its codes as a slim "command palette": one-line rows (name + meta
+   inline), activities revealed on hover, and the hovered row lifts into an accent-bordered box.
+   Scoped to .wk-modal--picker so other modals keep the plain modal styling. */
+.wk-modal--picker .wk-picker-code {
+  padding: 0;
+  cursor: pointer;
+  border-bottom: 1px solid var(--wk-line-soft);
+  border-radius: var(--wk-radius-sm);
+  transition:
+    background 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.wk-modal--picker .wk-picker-code:hover {
+  background: var(--wk-accent-soft);
+  border-bottom-color: transparent;
+  box-shadow:
+    inset 0 0 0 1px var(--wk-accent-line),
+    var(--wk-shadow-1);
+}
+.wk-modal--picker .wk-picker-code-head {
+  padding: 7px 10px;
+}
+.wk-modal--picker .wk-picker-name {
+  display: inline;
+}
+.wk-modal--picker .wk-picker-meta {
+  display: inline;
+  margin-top: 0;
+  margin-left: 8px;
+}
+.wk-modal--picker .wk-picker-acts {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding-left: 26px;
+  transition:
+    max-height 0.18s ease,
+    opacity 0.14s ease,
+    padding-bottom 0.18s ease;
+}
+.wk-modal--picker .wk-picker-code:hover .wk-picker-acts {
+  max-height: 120px;
+  opacity: 1;
+  padding-bottom: 8px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wk-modal--picker .wk-picker-code,
+  .wk-modal--picker .wk-picker-acts {
+    transition: none;
+  }
 }
 
 /* ---------- Code catalog ---------- */
