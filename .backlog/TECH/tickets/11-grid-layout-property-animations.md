@@ -1,7 +1,7 @@
 # TEC-015 — Replace layout-property animations with transform/clip
 
 ID: TEC-015
-Status: ⬜ ready
+Status: 🚫 wontfix
 Type: perf
 Priority: P3
 
@@ -29,6 +29,23 @@ avoidable jank and the detector calls out the width transition.
 - Keep the existing `prefers-reduced-motion` guards.
 - Where a layout animation is genuinely the simplest correct choice (e.g. the checklist progress
   bar's `width`), leave it and note why.
+
+## Resolution — wontfix (reviewed, kept)
+
+Reviewed and deliberately kept as-is; the layout-property animations here are not worth reworking:
+
+- **Merge pill `width`** — the pill is right-aligned and *alone* in a `height: 0` seam, so its
+  width change reflows no siblings; the "layout thrash" the detector heuristic warns about doesn't
+  materialise. A transform (scaleX) would distort the label text; a `clip-path` reveal would shift
+  the resting node's carefully-placed position.
+- **Picker activities `max-height`** — a single hovered accordion row. A `grid-template-rows` rewrite
+  means restructuring `.wk-picker-code` to a grid, risking regression of the signed-off "Palette + B"
+  design for negligible gain.
+- The running-readout **`box-shadow` breathe** is a paint animation (not layout) on one small
+  element, active only while a timer runs.
+- All are already neutralised by `prefers-reduced-motion` guards.
+
+Reopen if a profiler ever shows these on a hot path.
 
 ## Acceptance criteria
 

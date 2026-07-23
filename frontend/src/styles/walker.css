@@ -1012,6 +1012,14 @@ html[data-theme='light'] body {
 .wk-entry-list .wk-row-action:focus-visible {
   opacity: 1;
 }
+/* TEC-012: no hover on touch — keep the reveal-on-hover controls (row actions + the grid copy
+   button) visible so they stay reachable by tap. Mirrors the .wk-period-add touch fallback. */
+@media (hover: none) {
+  .wk-entry-list .wk-row-action,
+  .wk-copy-code {
+    opacity: 1;
+  }
+}
 .wk-entry-list .wk-entry-row:hover:not(.is-flagged):not(.is-running):not(.is-merge-highlight) {
   background: var(--wk-bg-2);
 }
@@ -1321,6 +1329,11 @@ html[data-theme='light'] body {
 }
 .wk-cell.is-clickable {
   cursor: pointer;
+}
+/* TEC-014: keyboard focus ring on a tickable checklist cell (role=checkbox, toggled with Space). */
+.wk-cell:focus-visible {
+  outline: 2px solid var(--wk-accent);
+  outline-offset: -2px;
 }
 /* Empty working cell in the Timesheet period grid — hint that clicking adds a prefilled entry. */
 .wk-cell.is-addable:hover {
@@ -1788,7 +1801,8 @@ html[data-theme='light'] body {
      properly centred at rest. It appears when the cell/total is hovered. */
   display: none;
 }
-.wk-grid td:hover .wk-dur-real {
+.wk-grid td:hover .wk-dur-real,
+.wk-grid td:focus-visible .wk-dur-real {
   display: inline;
 }
 /* BIZ-065: subtle marker on manually-added entries (Activity row) and cells with manual time. */

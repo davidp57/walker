@@ -1,7 +1,7 @@
 # TEC-014 — Keyboard operation of the Timesheet-period grid (checklist toggle + revealed real value)
 
 ID: TEC-014
-Status: ⬜ ready
+Status: ✅ done
 Type: a11y
 Priority: P2
 
@@ -31,10 +31,24 @@ Two keyboard gaps in the `PeriodGrid` (Enter-in-Timesheet-system mode):
 
 ## Acceptance criteria
 
-- [ ] Checklist lines can be marked/unmarked entirely by keyboard.
-- [ ] Range (Shift) and single-toggle (⌘/Ctrl) still work with mouse.
-- [ ] The real value is reachable by keyboard / announced to AT under rounding.
-- [ ] Frontend quality gate clean; a regression test covers keyboard toggle.
+- [x] Checklist lines can be marked/unmarked entirely by keyboard.
+- [x] Range (Shift) and single-toggle (⌘/Ctrl) still work with mouse.
+- [x] The real value is reachable by keyboard / announced to AT under rounding.
+- [x] Frontend quality gate clean; a regression test covers keyboard toggle.
+
+## Delivery
+
+Each tickable checklist cell is now a real keyboard checkbox: `role="checkbox"` + `aria-checked` +
+`tabIndex={0}` + `aria-label`, toggled on Space/Enter (Shift still extends a range via the keydown
+modifiers); the inner `<input>` is `aria-hidden` decorative. A focus ring (`.wk-cell:focus-visible`)
+marks the focused cell, and the real (unrounded) value now reveals on `:focus-visible` as well as
+hover, so keyboard users see it. A `PeriodGrid.test.tsx` regression test drives the Space toggle.
+
+Known minor residue: the real value on the daily-total row cells (`.wk-coltotal` / `.wk-grandtotal`)
+is still hover-only (those cells aren't focusable) — left as-is; the per-cell values are the ones
+that matter for keyboard entry.
+
+Shipped via [PR #141](https://github.com/davidp57/walker/pull/141) → `develop`.
 
 ## Blocked by
 

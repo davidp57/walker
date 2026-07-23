@@ -1,7 +1,7 @@
 # TEC-012 — Hover-revealed controls have no touch fallback
 
 ID: TEC-012
-Status: ⬜ ready
+Status: ✅ done
 Type: fix
 Priority: P2
 
@@ -38,10 +38,18 @@ layout (lot ADAPTIVE), so this is a real regression for touch.
 
 ## Acceptance criteria
 
-- [ ] On a `hover: none` viewport, Activity row actions and the grid copy button are reachable.
-- [ ] Desktop reveal-on-hover behaviour is unchanged (`:hover` / `:focus-visible`).
-- [ ] Touch targets reviewed against 44px; adjusted or explicitly accepted as desktop-only.
-- [ ] Frontend quality gate (lint, format, build, test) clean.
+- [x] On a `hover: none` viewport, Activity row actions and the grid copy button are reachable.
+- [x] Desktop reveal-on-hover behaviour is unchanged (`:hover` / `:focus-visible`).
+- [x] Touch targets reviewed against 44px — kept as-is (desktop-first; the merge node is 26px,
+      clearing the 24px WCAG 2.5.8 minimum; row actions 28px). Explicitly accepted as desktop-first.
+- [x] Frontend quality gate (lint, format, build, test) clean.
+
+## Delivery
+
+Added a `@media (hover: none)` block in `walker.css` keeping `.wk-entry-list .wk-row-action` and
+`.wk-copy-code` at `opacity: 1` on touch (mirrors the existing `.wk-period-add` fallback). Desktop
+reveal-on-hover unchanged. Shipped via [PR #141](https://github.com/davidp57/walker/pull/141)
+→ `develop`.
 
 ## Blocked by
 

@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import { useState } from 'react'
 import type { DayColumn, PeriodRow } from '../types'
 import { checklistKey } from '../types'
@@ -455,11 +455,34 @@ export function PeriodGrid(props: PeriodGridProps) {
                     }
                   }
 
+                  // TEC-014: a tickable checklist cell is a keyboard-operable checkbox — focusable,
+                  // toggled with Space/Enter (Shift extends a range, like Shift-click).
+                  const isTickable = mode === 'checklist' && clickable
+                  const onKeyDown = isTickable
+                    ? (e: KeyboardEvent) => {
+                        if (e.key !== ' ' && e.key !== 'Enter') return
+                        e.preventDefault()
+                        ;(props as ChecklistModeProps).onToggleCell(row.key, d.day, {
+                          shift: e.shiftKey,
+                          meta: e.metaKey || e.ctrlKey,
+                        })
+                      }
+                    : undefined
+
                   return (
                     <td
                       key={d.day}
                       className={cls}
                       onClick={onClick}
+                      onKeyDown={onKeyDown}
+                      tabIndex={isTickable ? 0 : undefined}
+                      role={isTickable ? 'checkbox' : undefined}
+                      aria-checked={isTickable ? !!done : undefined}
+                      aria-label={
+                        isTickable
+                          ? `${row.code.name} ${formatDuration(shown)} — mark as entered`
+                          : undefined
+                      }
                       title={running ? 'Timer running — stop it to edit' : undefined}
                     >
                       {showCheckbox && (
@@ -468,7 +491,8 @@ export function PeriodGrid(props: PeriodGridProps) {
                           className="wk-cell-checkbox"
                           checked={!!done}
                           readOnly
-                          aria-label={`Mark ${formatDuration(shown)} as entered`}
+                          tabIndex={-1}
+                          aria-hidden="true"
                         />
                       )}
                       <span>{filled || running ? formatDuration(shown) : ''}</span>
