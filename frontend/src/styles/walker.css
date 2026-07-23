@@ -2730,6 +2730,17 @@ html[data-theme='light'] body {
   justify-content: space-between;
   align-items: center;
 }
+/* Inline delete confirmation (arms in the footer's left slot): a quiet caution strip so the
+   destructive second step reads as deliberate without a modal-over-panel. */
+.wk-delete-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.wk-delete-confirm-label {
+  font-size: var(--wk-fs-13);
+  color: var(--wk-text-mid);
+}
 .wk-tag-input-wrap {
   position: relative;
 }
