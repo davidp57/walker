@@ -38,7 +38,7 @@ describe('TasksScreen', () => {
   it('shows an empty state when there are no tasks', () => {
     render(<TasksScreen tasks={[]} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
 
-    expect(screen.getByText(/no tasks yet/i)).toBeInTheDocument()
+    expect(screen.getByText(/clean ledger/i)).toBeInTheDocument()
   })
 
   it('calls onNew when "New task" is clicked', () => {

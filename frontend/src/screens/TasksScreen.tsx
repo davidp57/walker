@@ -426,8 +426,8 @@ export function TasksScreen({
       ) : visibleTasks.length === 0 ? (
         <div className="wk-modal-empty">
           {focus
-            ? 'Nothing needs attention right now — nothing overdue, due today, or high priority.'
-            : 'No tasks yet. Use “New task” to capture one.'}
+            ? 'All quiet — nothing overdue, due today, or high priority.'
+            : 'Clean ledger. Rope in your first to-do with “New task.”'}
         </div>
       ) : (
         // BIZ-051: one table with per-group section rows, so columns stay aligned across groups.
