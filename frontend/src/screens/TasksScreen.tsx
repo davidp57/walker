@@ -148,6 +148,27 @@ export function TasksScreen({
   const setGroup = (g: TaskGroupField) => patchPrefs({ task_group: g })
   const today = new Date().toISOString().slice(0, 10)
 
+  // The terminal (last) state — a task there is "done", so it's never flagged overdue (ADR-0011).
+  const terminalId = taskStates[taskStates.length - 1]?.id
+
+  // "Focus" filter (applies to both List and Board): show only actionable tasks that need attention
+  // now — overdue, due today, or high priority. Transient (not persisted), so the saved view/group
+  // the user likes (e.g. kanban by project) is preserved; the filter just narrows what's shown.
+  const [focus, setFocus] = useState(false)
+  const isFocusTask = useCallback(
+    (t: Task) => {
+      if (t.status === terminalId) return false
+      const due = t.dueDate ? describeDue(t.dueDate, today) : null
+      return (due !== null && (due.overdue || due.dueToday)) || t.priority === 'high'
+    },
+    [terminalId, today],
+  )
+  const focusCount = useMemo(() => tasks.filter(isFocusTask).length, [tasks, isFocusTask])
+  const visibleTasks = useMemo(
+    () => (focus ? tasks.filter(isFocusTask) : tasks),
+    [tasks, focus, isFocusTask],
+  )
+
   const toggleSort = (field: TaskSortField) => {
     if (field === sort) {
       patchPrefs({ task_sort_dir: sortDir === 'asc' ? 'desc' : 'asc' })
@@ -158,10 +179,10 @@ export function TasksScreen({
 
   const sorted = useMemo(
     () =>
-      [...tasks].sort(
+      [...visibleTasks].sort(
         (a, b) => (sortDir === 'asc' ? 1 : -1) * compareTasks(a, b, sort, statusIndex),
       ),
-    [tasks, sort, sortDir, statusIndex],
+    [visibleTasks, sort, sortDir, statusIndex],
   )
 
   const groups = useMemo(() => {
@@ -187,6 +208,11 @@ export function TasksScreen({
       const rank = (label: string) => taskStates.findIndex((s) => s.label === label)
       entries.sort((a, b) => rank(a.label ?? '') - rank(b.label ?? ''))
     }
+    // Grouping by due date reads as a prioritised agenda: most urgent first, undated last.
+    if (group === 'due') {
+      const order = ['Overdue', 'Today', 'Upcoming', 'No due date']
+      entries.sort((a, b) => order.indexOf(a.label ?? '') - order.indexOf(b.label ?? ''))
+    }
     return entries
   }, [sorted, group, today, codesById, statusLabel, taskStates])
 
@@ -206,8 +232,6 @@ export function TasksScreen({
   const showCode = group !== 'code'
   const columnCount = 2 + (showCode ? 1 : 0) + (onStartTask ? 1 : 0)
 
-  // The terminal (last) state — a task there is "done", so it's never flagged overdue (ADR-0011).
-  const terminalId = taskStates[taskStates.length - 1]?.id
   const renderRow = (task: Task) => {
     const code = task.codeId ? (codesById[task.codeId] ?? null) : null
     const due = task.dueDate ? describeDue(task.dueDate, today) : null
@@ -332,6 +356,21 @@ export function TasksScreen({
             Board
           </button>
         </div>
+        <button
+          type="button"
+          className={`wk-task-focus${focus ? ' is-active' : ''}`}
+          aria-pressed={focus}
+          disabled={!focus && focusCount === 0}
+          onClick={() => setFocus((f) => !f)}
+          data-testid="wk-task-focus"
+          title="Show only tasks needing attention — overdue, due today, or high priority"
+        >
+          <span className="wk-task-focus-flag" aria-hidden="true">
+            ⚑
+          </span>
+          Focus
+          <span className="wk-task-focus-count">{focusCount}</span>
+        </button>
         {view === 'list' && (
           <label>
             Sort by
@@ -368,7 +407,7 @@ export function TasksScreen({
       ) : view === 'board' ? (
         // Shown even with no tasks so columns can still be edited from the kanban (BIZ-057).
         <TaskBoard
-          tasks={tasks}
+          tasks={visibleTasks}
           codesById={codesById}
           states={taskStates}
           stateEdits={group === 'code' ? undefined : stateEdits}
@@ -384,8 +423,12 @@ export function TasksScreen({
               : undefined
           }
         />
-      ) : tasks.length === 0 ? (
-        <div className="wk-modal-empty">No tasks yet. Use “New task” to capture one.</div>
+      ) : visibleTasks.length === 0 ? (
+        <div className="wk-modal-empty">
+          {focus
+            ? 'Nothing needs attention right now — nothing overdue, due today, or high priority.'
+            : 'No tasks yet. Use “New task” to capture one.'}
+        </div>
       ) : (
         // BIZ-051: one table with per-group section rows, so columns stay aligned across groups.
         <table className="wk-task-table" data-testid="wk-task-table">

@@ -2458,6 +2458,60 @@ html[data-theme='light'] body {
   background: var(--wk-accent-soft);
   color: var(--wk-accent);
 }
+/* Focus filter (redesign): surface only tasks needing attention — overdue, due today, high
+   priority — across both List and Board, without touching the saved view. Amber is the rationed
+   "attention" hue (DESIGN.md), so this control wears it rather than the blue accent reserved for
+   live/interactive state: quiet at rest, amber-lit when engaged. */
+.wk-task-focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  color: var(--wk-text-lo);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+.wk-task-focus:hover:not(:disabled) {
+  color: var(--wk-text);
+  border-color: color-mix(in srgb, var(--wk-amber) 45%, var(--wk-line));
+}
+.wk-task-focus:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.wk-task-focus.is-active {
+  background: color-mix(in srgb, var(--wk-amber) 14%, transparent);
+  border-color: color-mix(in srgb, var(--wk-amber) 55%, var(--wk-line));
+  color: var(--wk-amber);
+}
+.wk-task-focus-flag {
+  font-size: var(--wk-fs-12);
+  line-height: 1;
+}
+.wk-task-focus-count {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4em;
+  text-align: center;
+  padding: 1px 5px;
+  border-radius: var(--wk-radius-pill);
+  background: color-mix(in srgb, var(--wk-amber) 18%, transparent);
+  color: var(--wk-amber);
+  font-size: var(--wk-fs-10);
+}
+.wk-task-focus.is-active .wk-task-focus-count {
+  background: var(--wk-amber);
+  color: var(--wk-bg-0);
+}
 .wk-board {
   display: flex;
   gap: var(--wk-space-4);

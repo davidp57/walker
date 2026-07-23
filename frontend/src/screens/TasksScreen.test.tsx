@@ -361,6 +361,72 @@ describe('TasksScreen', () => {
     }
   })
 
+  it('Focus filter narrows the list to overdue, due-today, and high-priority tasks', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-10T09:00:00Z'))
+    try {
+      const tasks = [
+        makeTask({ id: '1', title: 'Overdue', dueDate: '2026-07-08', status: 'todo' }),
+        makeTask({ id: '2', title: 'Due today', dueDate: '2026-07-10', status: 'todo' }),
+        makeTask({ id: '3', title: 'Important', priority: 'high' }),
+        makeTask({ id: '4', title: 'Someday', dueDate: '2026-08-01', priority: 'low' }),
+        makeTask({ id: '5', title: 'Shipped', dueDate: '2026-07-01', status: 'done' }),
+      ]
+      render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+      // The button advertises how many tasks need attention (overdue + today + high priority).
+      const focus = screen.getByTestId('wk-task-focus')
+      expect(focus.querySelector('.wk-task-focus-count')).toHaveTextContent('3')
+
+      // Off: every task is listed, including the far-off and the shipped one.
+      expect(screen.getByText('Someday')).toBeInTheDocument()
+      expect(screen.getByText('Shipped')).toBeInTheDocument()
+
+      fireEvent.click(focus)
+
+      // On: only the three that need attention survive — the far-off and terminal ones drop out.
+      expect(screen.getByText('Overdue')).toBeInTheDocument()
+      expect(screen.getByText('Due today')).toBeInTheDocument()
+      expect(screen.getByText('Important')).toBeInTheDocument()
+      expect(screen.queryByText('Someday')).not.toBeInTheDocument()
+      expect(screen.queryByText('Shipped')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('the Focus filter also narrows the board, and is disabled when nothing needs attention', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-07-10T09:00:00Z'))
+    try {
+      const calm = [
+        makeTask({ id: '1', title: 'Later', dueDate: '2026-09-01', priority: 'low' }),
+        makeTask({ id: '2', title: 'Shipped', dueDate: '2026-07-01', status: 'done' }),
+      ]
+      const { unmount } = render(
+        <TasksScreen tasks={calm} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />,
+      )
+      // Nothing overdue/today/high → the button reports 0 and cannot be engaged.
+      const idle = screen.getByTestId('wk-task-focus')
+      expect(idle.querySelector('.wk-task-focus-count')).toHaveTextContent('0')
+      expect(idle).toBeDisabled()
+      unmount()
+
+      const tasks = [
+        makeTask({ id: '3', title: 'Overdue', dueDate: '2026-07-08', status: 'todo' }),
+        makeTask({ id: '4', title: 'Someday', dueDate: '2026-09-01', priority: 'low' }),
+      ]
+      render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+      fireEvent.click(screen.getByTestId('wk-task-view-board'))
+      fireEvent.click(screen.getByTestId('wk-task-focus'))
+
+      expect(screen.getByText('Overdue')).toBeInTheDocument()
+      expect(screen.queryByText('Someday')).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('changes a task status inline without opening the panel (BIZ-043)', () => {
     const onMoveTask = vi.fn()
     const onOpenTask = vi.fn()
