@@ -304,7 +304,7 @@ export function TasksScreen({
           <td>
             <button
               type="button"
-              className="wk-btn-icon"
+              className="wk-btn-icon wk-task-row-start"
               title="Start a Timer from this task"
               data-testid={`wk-task-start-${task.id}`}
               onClick={(e) => {
