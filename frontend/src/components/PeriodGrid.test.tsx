@@ -296,6 +296,31 @@ describe('PeriodGrid — checklist checkbox affordance (BIZ-008)', () => {
     const cell = findCell('1:00')
     expect(cell.querySelector('input[type="checkbox"]')).not.toBeInTheDocument()
   })
+
+  it('a tickable cell is a keyboard checkbox — Space toggles it (TEC-014)', () => {
+    const onToggleCell = vi.fn()
+    render(
+      <PeriodGrid
+        mode="checklist"
+        days={[day({ day: 1 })]}
+        rows={[row]}
+        checked={{}}
+        runningCell={null}
+        onToggleCell={onToggleCell}
+        onToggleRow={() => {}}
+      />,
+    )
+
+    const cell = findCell('1:00')
+    expect(cell).toHaveAttribute('role', 'checkbox')
+    expect(cell).toHaveAttribute('aria-checked', 'false')
+    expect(cell).toHaveAttribute('tabindex', '0')
+    // The visual checkbox is decorative now — the cell itself carries the checkbox semantics.
+    expect(cell.querySelector('input[type="checkbox"]')).toHaveAttribute('aria-hidden', 'true')
+
+    fireEvent.keyDown(cell, { key: ' ' })
+    expect(onToggleCell).toHaveBeenCalledWith('c1|Bug fixing', 1, { shift: false, meta: false })
+  })
 })
 
 describe('PeriodGrid — Activity dedup', () => {

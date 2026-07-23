@@ -1,4 +1,4 @@
-import type { MouseEvent } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import { useState } from 'react'
 import type { DayColumn, PeriodRow } from '../types'
 import { checklistKey } from '../types'
@@ -52,7 +52,7 @@ function DayAddButton({ d, onAddDay }: { d: DayColumn; onAddDay: (day: number) =
   return (
     <button
       type="button"
-      className={`wk-period-add${d.isToday ? ' is-today' : ' is-quiet'}`}
+      className={`wk-period-add is-quiet${d.isToday ? ' is-today' : ''}`}
       data-testid={`wk-period-add-${d.day}`}
       title="Add an entry on this day"
       onClick={(e) => {
@@ -296,6 +296,39 @@ export function PeriodGrid(props: PeriodGridProps) {
   const uncatTitle =
     'Tracked but missing a code or activity, so it isn’t on the matrix. Add a code and activity to include it.'
 
+  // Real (unrounded) totals — the daily-total row keeps the real value beside the rounded one, unlike
+  // cells (which move the real value into a tooltip). BIZ-063.
+  const colTotalReal = (day: number) => rows.reduce((sum, r) => sum + (r.minutesByDay[day] || 0), 0)
+  const grandTotalReal = days.reduce(
+    (sum, d) => (d.isWeekend || d.isAbsence ? sum : sum + colTotalReal(d.day)),
+    0,
+  )
+  // The daily-total row, rendered at both the top and the bottom of the grid.
+  const dailyTotalRow = (place: 'top' | 'bottom') => (
+    <tr className={place === 'top' ? 'wk-totals-top' : undefined}>
+      <td className="wk-foot-label">Daily total</td>
+      {days.map((d) => {
+        const t = colTotal(d.day)
+        const real = colTotalReal(d.day)
+        const show = !d.isWeekend && !d.isAbsence && t > 0
+        return (
+          <td key={d.day} className={`wk-coltotal${d.isWeekend ? ' is-weekend' : ''}`}>
+            {show ? formatDuration(t) : ''}
+            {show && roundedByKey && t !== real && (
+              <span className="wk-dur-real">{formatDuration(real)}</span>
+            )}
+          </td>
+        )
+      })}
+      <td className="wk-grandtotal">
+        {formatDuration(grandTotal)}
+        {roundedByKey && grandTotal !== grandTotalReal && (
+          <span className="wk-dur-real">{formatDuration(grandTotalReal)}</span>
+        )}
+      </td>
+    </tr>
+  )
+
   return (
     <>
       <DayCards {...renderProps} />
@@ -317,6 +350,7 @@ export function PeriodGrid(props: PeriodGridProps) {
             ))}
             <th className="wk-total-h">Total</th>
           </tr>
+          {dailyTotalRow('top')}
         </thead>
 
         <tbody>
@@ -350,16 +384,17 @@ export function PeriodGrid(props: PeriodGridProps) {
                   <div className="wk-rowhead-inner">
                     <span className="wk-dot" style={{ background: row.code.color }} />
                     <div className="wk-rowhead-body">
-                      <div className="wk-rowhead-label" title={row.code.name}>
-                        {row.code.name}
+                      <div className="wk-rowhead-label-row">
+                        <span className="wk-rowhead-label" title={row.code.name}>
+                          {row.code.name}
+                        </span>
+                        {/* The code number (N9/…) is only ever copied, never read — so it isn't shown;
+                            the copy button (revealed on row hover) carries it. */}
+                        <CopyCodeButton codeNumber={row.code.number} />
                       </div>
                       {row.activity !== row.code.name && (
                         <div className="wk-rowhead-act">{row.activity}</div>
                       )}
-                      <div className="wk-rowhead-code-row">
-                        <span className="wk-rowhead-code">{row.code.number}</span>
-                        <CopyCodeButton codeNumber={row.code.number} />
-                      </div>
                     </div>
                     {mode === 'checklist' && (
                       <button
@@ -420,11 +455,34 @@ export function PeriodGrid(props: PeriodGridProps) {
                     }
                   }
 
+                  // TEC-014: a tickable checklist cell is a keyboard-operable checkbox — focusable,
+                  // toggled with Space/Enter (Shift extends a range, like Shift-click).
+                  const isTickable = mode === 'checklist' && clickable
+                  const onKeyDown = isTickable
+                    ? (e: KeyboardEvent) => {
+                        if (e.key !== ' ' && e.key !== 'Enter') return
+                        e.preventDefault()
+                        ;(props as ChecklistModeProps).onToggleCell(row.key, d.day, {
+                          shift: e.shiftKey,
+                          meta: e.metaKey || e.ctrlKey,
+                        })
+                      }
+                    : undefined
+
                   return (
                     <td
                       key={d.day}
                       className={cls}
                       onClick={onClick}
+                      onKeyDown={onKeyDown}
+                      tabIndex={isTickable ? 0 : undefined}
+                      role={isTickable ? 'checkbox' : undefined}
+                      aria-checked={isTickable ? !!done : undefined}
+                      aria-label={
+                        isTickable
+                          ? `${row.code.name} ${formatDuration(shown)} — mark as entered`
+                          : undefined
+                      }
                       title={running ? 'Timer running — stop it to edit' : undefined}
                     >
                       {showCheckbox && (
@@ -433,7 +491,8 @@ export function PeriodGrid(props: PeriodGridProps) {
                           className="wk-cell-checkbox"
                           checked={!!done}
                           readOnly
-                          aria-label={`Mark ${formatDuration(shown)} as entered`}
+                          tabIndex={-1}
+                          aria-hidden="true"
                         />
                       )}
                       <span>{filled || running ? formatDuration(shown) : ''}</span>
@@ -455,21 +514,30 @@ export function PeriodGrid(props: PeriodGridProps) {
               </tr>
             )
           })}
+          {/* Empty period: keep the matrix shape with a few muted placeholder rows rather than
+              collapsing to a bare header + footer. */}
+          {rows.length === 0 &&
+            [96, 72, 112, 84, 104].map((w, i) => (
+              <tr key={`ghost-${i}`} className="wk-row-ghost" aria-hidden="true">
+                <td className="wk-rowhead">
+                  <div className="wk-rowhead-inner">
+                    <span className="wk-dot" />
+                    <span className="wk-ghost-bar" style={{ width: w }} />
+                  </div>
+                </td>
+                {days.map((d) => (
+                  <td
+                    key={d.day}
+                    className={`wk-cell${d.isWeekend ? ' is-weekend' : ''}${d.isAbsence ? ' is-absence' : ''}`}
+                  />
+                ))}
+                <td className="wk-rowtotal" />
+              </tr>
+            ))}
         </tbody>
 
         <tfoot>
-          <tr>
-            <td className="wk-foot-label">Daily total</td>
-            {days.map((d) => {
-              const t = colTotal(d.day)
-              return (
-                <td key={d.day} className={`wk-coltotal${d.isWeekend ? ' is-weekend' : ''}`}>
-                  {!d.isWeekend && !d.isAbsence && t > 0 ? formatDuration(t) : ''}
-                </td>
-              )
-            })}
-            <td className="wk-grandtotal">{formatDuration(grandTotal)}</td>
-          </tr>
+          {dailyTotalRow('bottom')}
           {isPeriod && uncatTotal > 0 && (
             <tr className="wk-foot-uncat" title={uncatTitle}>
               <td className="wk-foot-label wk-uncat">⚑ Uncategorized</td>
