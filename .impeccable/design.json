@@ -1,0 +1,178 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-23T00:00:00Z",
+  "title": "Design System: Walker",
+  "extensions": {
+    "colorMeta": {
+      "frontier-sky": {
+        "role": "primary",
+        "displayName": "Frontier Sky",
+        "canonical": "#5b9cf6",
+        "lightThemeValue": "#2f6fe0",
+        "tonalRamp": ["#0d1b33", "#16305c", "#1f4a8f", "#2f6fe0", "#4a86ec", "#5b9cf6", "#8fbdf9", "#c3ddfc"]
+      },
+      "sunset-amber": {
+        "role": "secondary",
+        "displayName": "Sunset Amber",
+        "canonical": "#e8a84b",
+        "lightThemeValue": "#8f5710",
+        "tonalRamp": ["#2e1e08", "#4d3410", "#7a5518", "#a8761f", "#cf9130", "#e8a84b", "#f0c37f", "#f7e0b5"]
+      },
+      "cactus-green": {
+        "role": "secondary",
+        "displayName": "Cactus Green",
+        "canonical": "#3fb68b",
+        "lightThemeValue": "#0f7050",
+        "tonalRamp": ["#0a2018", "#123829", "#1c5943", "#277a5c", "#319a74", "#3fb68b", "#74cdae", "#aee1d0"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger Red",
+        "canonical": "#e5644e",
+        "lightThemeValue": "#b8341f",
+        "tonalRamp": ["#2e1010", "#4d1a15", "#7a281f", "#a8362a", "#cf4536", "#e5644e", "#ee9184", "#f6c0b8"]
+      },
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Cool Near-Black",
+        "canonical": "#0e0f13",
+        "note": "Anchors the four-step surface ramp; higher surfaces are lighter, never brighter-hued.",
+        "tonalRamp": ["#0e0f13", "#15171d", "#1b1e26", "#232733", "#3a3f4a", "#565c68", "#868d9b", "#e9ebef"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Zilla Slab; screen titles and the brand wordmark. The western/Texas wink." },
+      "title": { "displayName": "Title", "purpose": "Zilla Slab; modal and panel titles." },
+      "body": { "displayName": "Body", "purpose": "Hanken Grotesk; the UI base — labels, descriptions, task titles." },
+      "label": { "displayName": "Label", "purpose": "JetBrains Mono, uppercase; column headers, meta lines, section eyebrows. Floored at 11px." },
+      "data": { "displayName": "Data", "purpose": "JetBrains Mono, tabular; the signature stopwatch/day-total readout, and every inline duration/clock/total." }
+    },
+    "shadows": [
+      { "name": "ambient", "value": "0 2px 8px rgba(0,0,0,0.28)", "purpose": "Gentle rest-state lift for cards, chips, small raised elements. Light theme: 0 2px 8px rgba(20,22,27,0.08)." },
+      { "name": "floating", "value": "0 18px 44px rgba(0,0,0,0.5)", "purpose": "Dropdowns, suggestion popovers, toasts, the right-hand task drawer. Light theme: 0.16 alpha." },
+      { "name": "modal", "value": "0 24px 60px rgba(0,0,0,0.55)", "purpose": "Centered dialogs over the 62%-black scrim. Deepest layer. Light theme: 0.22 alpha." },
+      { "name": "live-halo", "value": "0 0 0 4px rgba(91,156,246,0.14)", "purpose": "The pulsing accent halo on the live timer dot. Reserved for live state, never decorative." }
+    ],
+    "motion": [
+      { "name": "pulse", "value": "wk-pulse 1.5s ease-in-out infinite (opacity 1 -> 0.35 -> 1)", "purpose": "The running-timer heartbeat — live dot and live grid cell." },
+      { "name": "quick-fade", "value": "opacity 0.1s-0.12s ease", "purpose": "Hover-reveal affordances (per-day add buttons, quiet controls)." },
+      { "name": "progress-grow", "value": "width 0.25s", "purpose": "Checklist progress bar fill." },
+      { "name": "surface-shift", "value": "border-color 0.12s ease, background 0.12s ease", "purpose": "Kanban column hover/drop-target state." }
+    ],
+    "breakpoints": [
+      { "name": "phone", "value": "640px", "purpose": "Sidebar -> bottom tab bar; grid table -> stacked day-cards. The single breakpoint (desktop-first)." }
+    ],
+    "density": [
+      { "name": "comfortable", "rowHeight": "44px", "cellHeight": "34px" },
+      { "name": "compact", "rowHeight": "36px", "cellHeight": "28px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Solid accent call-to-action (Start, Save). Brightens on hover, no color swap.",
+      "html": "<button class=\"ds-btn-primary\">Start</button>",
+      "css": ".ds-btn-primary{background:#5b9cf6;color:#08131f;border:1px solid transparent;border-radius:9px;padding:11px 26px;font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif;font-size:14px;font-weight:700;letter-spacing:.2px;cursor:pointer}.ds-btn-primary:hover{filter:brightness(1.08)}.ds-btn-primary:focus-visible{outline:2px solid #5b9cf6;outline-offset:3px}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Quiet secondary action on a raised surface.",
+      "html": "<button class=\"ds-btn-ghost\">Cancel</button>",
+      "css": ".ds-btn-ghost{background:#1b1e26;border:1px solid #282c36;color:#868d9b;border-radius:9px;padding:8px 14px;font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif;font-size:12px;font-weight:500;cursor:pointer}.ds-btn-ghost:hover{border-color:#868d9b;color:#e9ebef}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Modal/settings field on the deepest canvas surface; accent border on focus.",
+      "html": "<input class=\"ds-input\" placeholder=\"Search codes…\">",
+      "css": ".ds-input{width:220px;background:#0e0f13;border:1px solid #282c36;border-radius:9px;padding:10px 13px;color:#e9ebef;font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif;font-size:14px;outline:none}.ds-input::placeholder{color:#818897}.ds-input:focus{border-color:#5b9cf6}"
+    },
+    {
+      "name": "Activity Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Selectable activity/catalog chip; mono, pill-shaped, accent tint on hover.",
+      "html": "<button class=\"ds-chip\">0001 Bug fixing</button>",
+      "css": ".ds-chip{font-family:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;color:#b7bdc8;background:#1b1e26;border:1px solid #20242c;border-radius:16px;padding:5px 12px;cursor:pointer}.ds-chip:hover{border-color:#5b9cf6;color:#e9ebef;background:rgba(91,156,246,.14)}"
+    },
+    {
+      "name": "Uncategorized Pill",
+      "kind": "chip",
+      "refersTo": "pill-uncategorized",
+      "description": "The amber 'needs completing' call-to-action on an uncategorized entry.",
+      "html": "<button class=\"ds-pill-uncat\">+ Add code</button>",
+      "css": ".ds-pill-uncat{display:inline-flex;align-items:center;gap:6px;font-family:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;font-weight:600;color:#e8a84b;background:rgba(232,168,75,.13);border:1px solid rgba(232,168,75,.38);border-radius:999px;padding:4px 11px;cursor:pointer}.ds-pill-uncat:hover{filter:brightness(1.15)}"
+    },
+    {
+      "name": "Catalog Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "A code catalog card: panel surface, hairline border, ambient rest shadow.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-title\">MNT - PAP V4</div><div class=\"ds-card-meta\">N9/6015238/020</div></div>",
+      "css": ".ds-card{width:260px;background:#15171d;border:1px solid #282c36;border-radius:13px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.28);font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif}.ds-card-title{color:#e9ebef;font-weight:600;font-size:15px}.ds-card-meta{font-family:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;font-size:11px;color:#868d9b;margin-top:3px}"
+    },
+    {
+      "name": "Sidebar Nav Item (active)",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "Active navigation row: top-of-ramp surface, semibold, high-contrast text.",
+      "html": "<button class=\"ds-nav-item\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/></svg>Tracker</button>",
+      "css": ".ds-nav-item{display:flex;align-items:center;gap:12px;width:200px;padding:10px 12px;border:none;border-radius:9px;background:#232733;color:#e9ebef;font-family:'Hanken Grotesk',system-ui,-apple-system,sans-serif;font-size:13px;font-weight:600;text-align:left;cursor:pointer}.ds-nav-item svg{opacity:.85}"
+    },
+    {
+      "name": "Timer Readout (signature)",
+      "kind": "custom",
+      "refersTo": "timer-bar",
+      "description": "The running stopwatch — the product heartbeat: pulsing accent dot + large tabular mono clock.",
+      "html": "<div class=\"ds-timer\"><span class=\"ds-timer-dot\"></span><span class=\"ds-timer-clock\">01:47:22</span></div>",
+      "css": ".ds-timer{display:inline-flex;align-items:center;gap:11px;background:#15171d;border:1px solid #282c36;border-radius:13px;padding:12px 18px}.ds-timer-dot{width:10px;height:10px;border-radius:50%;background:#5b9cf6;box-shadow:0 0 0 4px rgba(91,156,246,.14);animation:ds-pulse 1.5s ease-in-out infinite}.ds-timer-clock{font-family:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;font-size:27px;font-weight:500;letter-spacing:.5px;color:#5b9cf6;font-variant-numeric:tabular-nums}@keyframes ds-pulse{0%,100%{opacity:1}50%{opacity:.35}}"
+    },
+    {
+      "name": "Grid Tick Cell (signature)",
+      "kind": "custom",
+      "refersTo": "grid-cell",
+      "description": "A 'done' grid cell: green wash, tabular mono duration, and the at-rest tick checkbox marking a line entered into the Timesheet system.",
+      "html": "<div class=\"ds-cell\"><input type=\"checkbox\" class=\"ds-cell-check\" checked><span>2.75</span></div>",
+      "css": ".ds-cell{display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 10px;background:rgba(63,182,139,.14);color:#3fb68b;font-family:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;font-size:12px;font-variant-numeric:tabular-nums;border:1px solid #20242c}.ds-cell-check{appearance:none;-webkit-appearance:none;width:13px;height:13px;margin:0 5px 0 0;border:1.5px solid #818897;border-radius:3px;background:transparent;cursor:pointer;position:relative}.ds-cell-check:checked{background:#3fb68b;border-color:#3fb68b}.ds-cell-check:checked::after{content:'';position:absolute;left:3px;top:0;width:3px;height:7px;border:solid #0e0f13;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Texas Ledger",
+    "overview": "Walker is a dark, dense precision instrument for recording real work time against real charge codes. The whole surface reads like a well-kept ledger seen under low console light: rows of tabular monospace numerals, thin ruled lines, entries ticked off one at a time. The name earns a quiet western wink — a five-point star badge, a Zilla Slab slab-serif for titles, microcopy like 'Adios, backlog.' — a deliberate homage to Texas, an earlier in-house timesheet tool this one supersedes. The wink is affectionate, never a costume. The mood is precise and quiet: information first, zero decorative noise, character in the exactness of details rather than ornament. Where it softens it softens gently — muted desaturated color (no pure black, no pure white), translucent state tints, generously rounded containers: a felt-lined ledger, not a steel cockpit. Depth is carried mostly by tonal surface layering, with soft ambient shadows lifting resting cards a touch. Every number the user reads or edits is set in monospace with tabular figures — the single most defining trait: the data speaks in monospace; the interface speaks in sans.",
+    "keyCharacteristics": [
+      "Dark-first (with a fully maintained light theme), muted and desaturated — never pure black or white.",
+      "Monospace tabular numerals for all time/duration/quantitative data; sans-serif for UI; slab-serif for titles.",
+      "Dense data-grid readability over expressive flourish; the layout mirrors the target Timesheet system's grid.",
+      "A quiet Texas/western wink confined to the badge, display type, and copy.",
+      "Semantic color is functional and rationed: amber = needs attention, green = done, blue = live/active."
+    ],
+    "rules": [
+      { "name": "The Two-Theme-One-Hue Rule", "body": "Dark and light themes share the same fonts and accent hue family; only surface/text/border tokens invert. The accent is darkened for AA on light (#2f6fe0), never re-hued. Never introduce a token that exists in one theme but not the other.", "section": "colors" },
+      { "name": "The Rationed Semantic Rule", "body": "Amber, green, and red are meanings, not decoration. Amber only says 'needs categorizing/attention,' green only 'entered/done,' red only 'destructive/error.' If a color would be decorative, use a neutral surface.", "section": "colors" },
+      { "name": "The Catalog-Palette Exception", "body": "Saturated color belongs to exactly one place: the 64-swatch code palette users assign to Timesheet codes for at-a-glance grid identity. Chrome stays muted; only user-owned code dots carry vivid hue.", "section": "colors" },
+      { "name": "The Monospace-Data Rule", "body": "Every quantitative or time value — durations, clock times, HHMM military-time inputs, totals, counts, code numbers — is set in JetBrains Mono with tabular-nums. Prose never borrows the mono; data never borrows the sans.", "section": "typography" },
+      { "name": "The Slab-For-Identity Rule", "body": "Zilla Slab appears only on identity and titling (wordmark, screen titles, modal titles, empty-state headlines). It never sets body copy or data.", "section": "typography" },
+      { "name": "The Live-Ring Rule", "body": "The one non-shadow glow is the accent focus ring and pulsing halo on the running timer. Reserve halos for live state; never use them decoratively.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do set every duration, clock time, total, count, and code number in JetBrains Mono with font-variant-numeric: tabular-nums. Data is monospace; UI is sans.",
+      "Do build depth from the surface ramp (canvas -> panel -> raised -> hover) first; add an ambient shadow only for a gentle rest-state lift, and a floating/modal shadow only for things that detach.",
+      "Do signal interaction with translucent accent tints (accent-soft fill, accent-line border), not hard color swaps or thickened borders.",
+      "Do keep amber/green/red strictly semantic (needs-attention / done / destructive).",
+      "Do define any new color token in both dark and light themes, same hue family.",
+      "Do floor functional text at 11px and keep text-lo only on surfaces where it clears WCAG AA."
+    ],
+    "donts": [
+      "Don't use pure black (#000) or pure white (#fff); the palette is muted and cool by design.",
+      "Don't let the Texas/western wink grow past the badge, display type, and microcopy — no full western skin, textures, or ornament that would cost data density.",
+      "Don't spend saturated color on chrome; vivid hue is reserved for user-assigned code swatches.",
+      "Don't draw progress bars or gauges that enforce an 8h/day or period target — Walker shows real, to-the-minute durations and never editorializes totals (the checklist progress bar, which counts entered lines, is the one allowed progress meter).",
+      "Don't introduce a third numeric typeface or set data in the sans; don't set body copy in the slab."
+    ]
+  }
+}
