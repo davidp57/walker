@@ -43,8 +43,8 @@ is fine.)
 
 Fixed in the `wk-readout-breathe` keyframe: `box-shadow` at the 50% stop now uses
 `color-mix(in srgb, var(--wk-accent) 32%, transparent)`, and the 0%/100% stop is a plain
-`transparent` (blur/spread 0, invisible). Ships with the redesign PR (`feature/redesign-with-impeccable`
-→ `develop`).
+`transparent` (blur/spread 0, invisible). Shipped via
+[PR #141](https://github.com/davidp57/walker/pull/141) → `develop`.
 
 ## Blocked by
 
