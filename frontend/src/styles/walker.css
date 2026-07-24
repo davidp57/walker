@@ -2091,6 +2091,26 @@ html[data-theme='light'] body {
 }
 
 /* ---------- Code catalog ---------- */
+/* A borderless utility button — quieter than a ghost button, for occasional/setup actions that
+   shouldn't compete with the primary create actions (e.g. the catalog's one-time Import). */
+.wk-btn-quiet {
+  background: transparent;
+  border: none;
+  color: var(--wk-text-lo);
+  font-size: var(--wk-fs-13);
+  padding: 6px 4px;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+.wk-btn-quiet:hover {
+  color: var(--wk-text);
+}
+.wk-header-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: var(--wk-line);
+}
 .wk-catalog-list {
   display: flex;
   flex-direction: column;

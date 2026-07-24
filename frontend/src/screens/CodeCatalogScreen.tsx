@@ -78,10 +78,18 @@ export function CodeCatalogScreen({
             The codes you charge to. Search your reference catalog to add more.
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="wk-btn-ghost" onClick={onImport}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Import is a one-time setup action (the empty state guides it) — kept as a quiet utility,
+              set apart from the two create actions so it no longer competes at equal weight. */}
+          <button
+            type="button"
+            className="wk-btn-quiet"
+            title="Import your full reference catalog from a file (one-time setup)"
+            onClick={onImport}
+          >
             ⇪ Import reference
           </button>
+          <span className="wk-header-divider" aria-hidden="true" />
           <button type="button" className="wk-btn-ghost" onClick={onNewVirtual}>
             + New virtual code
           </button>
