@@ -51,11 +51,24 @@ function renderScreen(
 }
 
 describe('CodeCatalogScreen', () => {
-  it('shows a virtual badge and the backing real code for a virtual code', () => {
+  it('marks a virtual code with a distinct "virtual" badge', () => {
     renderScreen([realCode, virtualCode])
 
     expect(screen.getByText('virtual')).toBeInTheDocument()
-    expect(screen.getByText(/backed by N9\/1042/)).toBeInTheDocument()
+  })
+
+  it('shows "backed by" only when the backing code differs from the shown number', () => {
+    // The shared fixture borrows its backing code's number, so "backed by" would just repeat it.
+    const distinct: TimesheetCode = {
+      ...virtualCode,
+      id: '3',
+      name: 'Distinct backing',
+      realCodeNumber: 'N9/7777',
+    }
+    renderScreen([virtualCode, distinct])
+
+    expect(screen.queryByText(/backed by N9\/1042/)).not.toBeInTheDocument()
+    expect(screen.getByText(/backed by N9\/7777/)).toBeInTheDocument()
   })
 
   it('does not show a virtual badge for a real code', () => {

@@ -2097,10 +2097,46 @@ html[data-theme='light'] body {
   gap: 10px;
 }
 .wk-catalog-card {
+  position: relative;
+  overflow: hidden;
   background: var(--wk-bg-1);
   border: 1px solid var(--wk-line);
   border-radius: 12px;
   padding: 16px 18px;
+}
+/* Virtual codes (ADR-0008) are a distinct tier — give them a muted wash so they read as a group in
+   the mixed list, on top of the explicit badge. */
+.wk-catalog-card.is-virtual {
+  background: var(--wk-bg-2);
+}
+/* The leading code-colour rail — identity per DESIGN.md; full card height, clipped by the radius. */
+.wk-catalog-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+/* A virtual code borrows its backing code's colour, so soften its rail to read as "derived". */
+.wk-catalog-card.is-virtual .wk-catalog-bar {
+  opacity: 0.5;
+}
+/* The "virtual" tier badge: outlined + micro-caps so it never reads as one of the filled, rounded
+   activity chips it used to borrow. */
+.wk-code-virtual-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--wk-text-mid);
+  background: transparent;
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  padding: 1px 6px;
 }
 .wk-catalog-head {
   display: flex;

@@ -211,24 +211,24 @@ function CatalogCard({
   const collapsible = c.activities.length > 1
 
   return (
-    <div className="wk-catalog-card">
+    <div className={`wk-catalog-card${c.isVirtual ? ' is-virtual' : ''}`}>
+      {/* Leading code-colour bar: the code's own colour is its identity (DESIGN.md), and it doubles
+          as the row's ledger rule. Colour is per-code, so it lives inline. */}
+      <span className="wk-catalog-bar" style={{ background: c.color }} aria-hidden="true" />
       <div className="wk-catalog-head">
-        <span className="wk-dot" style={{ width: 10, height: 10, background: c.color }} />
         <div>
           <div className="wk-catalog-name">
             {c.name}
-            {c.isVirtual && (
-              <span
-                className="wk-act-chip"
-                style={{ marginLeft: 8, fontSize: 11, verticalAlign: 'middle' }}
-              >
-                virtual
-              </span>
-            )}
+            {c.isVirtual && <span className="wk-code-virtual-badge">virtual</span>}
           </div>
           <div className="wk-catalog-meta">
             {c.number} · {c.label}
-            {c.isVirtual && c.realCodeNumber && ` · backed by ${c.realCodeNumber}`}
+            {/* "backed by" only earns its place when it names a *different* code than the one shown
+                (a virtual borrows its backing code's number, so otherwise it just repeats it). */}
+            {c.isVirtual &&
+              c.realCodeNumber &&
+              c.realCodeNumber !== c.number &&
+              ` · backed by ${c.realCodeNumber}`}
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
