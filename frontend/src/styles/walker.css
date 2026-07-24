@@ -2849,6 +2849,13 @@ html[data-theme='light'] body {
   font-size: var(--wk-fs-13);
   color: var(--wk-text-mid);
 }
+/* Why a disabled Save is disabled — a quiet inline hint beside it, not a dead dimmed button. */
+.wk-form-hint {
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
+  max-width: 260px;
+  text-align: right;
+}
 .wk-tag-input-wrap {
   position: relative;
 }

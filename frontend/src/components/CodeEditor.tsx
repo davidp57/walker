@@ -2,6 +2,8 @@ import { useState } from 'react'
 import type { Activity, TimesheetCode } from '../types'
 import { ColorPicker } from './ColorPicker'
 import { InlineDeleteConfirm } from './InlineDeleteConfirm'
+import { useEscapeToClose } from '../lib/useEscapeToClose'
+import { formatList } from '../lib/text'
 import { suggestColor } from '../lib/palette'
 
 /** Fields borrowed from a reference-catalog entry when activating it through the editor (BIZ-049). */
@@ -56,6 +58,15 @@ export function CodeEditor({
 
   const cleanActivities = activities.filter((a) => a.label.trim())
   const canSave = number.trim().length > 0 && label.trim().length > 0 && cleanActivities.length > 0
+  // What's still missing, so a disabled Save can say why instead of just dimming (BIZ clarify).
+  const missing = [
+    number.trim() ? null : 'a number',
+    label.trim() ? null : 'a technical label',
+    cleanActivities.length ? null : 'an activity',
+  ].filter((m): m is string => m !== null)
+
+  // Escape closes the editor (cancelling an armed delete-confirm first).
+  useEscapeToClose(() => (confirmingDelete ? setConfirmingDelete(false) : onClose()))
 
   const save = () => {
     if (!canSave) return
@@ -207,7 +218,12 @@ export function CodeEditor({
                   </button>
                 ))}
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {missing.length > 0 && (
+                <span className="wk-form-hint" data-testid="wk-code-editor-save-hint">
+                  Add {formatList(missing)} to save
+                </span>
+              )}
               <button type="button" className="wk-btn-ghost" onClick={onClose}>
                 Cancel
               </button>

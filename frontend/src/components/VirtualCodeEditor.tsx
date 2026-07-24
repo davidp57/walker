@@ -3,6 +3,8 @@ import type { ReferenceCode, TimesheetCode } from '../types'
 import { ColorPicker } from './ColorPicker'
 import { CodePicker } from './CodePicker'
 import { InlineDeleteConfirm } from './InlineDeleteConfirm'
+import { useEscapeToClose } from '../lib/useEscapeToClose'
+import { formatList } from '../lib/text'
 import { suggestColor } from '../lib/palette'
 
 interface VirtualCodeEditorProps {
@@ -47,6 +49,18 @@ export function VirtualCodeEditor({
 
   const selectedReal = realCodes.find((c) => c.id === realCodeId) ?? null
   const canSave = realCodeId !== '' && name.trim().length > 0 && !saving
+  // What's still missing, so a disabled Save can say why (not counting the transient saving state).
+  const missing = [
+    realCodeId !== '' ? null : 'a backing code',
+    name.trim() ? null : 'a name',
+  ].filter((m): m is string => m !== null)
+
+  // Escape closes the editor (cancelling an armed delete-confirm first); suspended while the backing
+  // picker is open so its own Escape is not shadowed.
+  useEscapeToClose(
+    () => (confirmingDelete ? setConfirmingDelete(false) : onClose()),
+    !backingPickerOpen,
+  )
 
   const save = () => {
     if (!canSave) return
@@ -162,7 +176,12 @@ export function VirtualCodeEditor({
                   </button>
                 ))}
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {missing.length > 0 && (
+                <span className="wk-form-hint" data-testid="wk-virtual-editor-save-hint">
+                  Add {formatList(missing)} to save
+                </span>
+              )}
               <button type="button" className="wk-btn-ghost" onClick={onClose}>
                 Cancel
               </button>

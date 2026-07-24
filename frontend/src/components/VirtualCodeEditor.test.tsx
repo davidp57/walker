@@ -73,6 +73,40 @@ describe('VirtualCodeEditor', () => {
     expect(screen.getByDisplayValue('#abcdef')).toBeInTheDocument()
   })
 
+  it('closes on Escape', () => {
+    const onClose = vi.fn()
+    render(
+      <VirtualCodeEditor
+        code={virtualCode}
+        realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onClose={onClose}
+      />,
+    )
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('explains a disabled Save by naming the missing field', () => {
+    render(
+      <VirtualCodeEditor
+        code={null}
+        realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onClose={vi.fn()}
+      />,
+    )
+
+    // Creating: the backing code defaults to the first real code, but the name is still empty.
+    expect(screen.getByTestId('wk-virtual-editor-save-hint')).toHaveTextContent(
+      'Add a name to save',
+    )
+  })
+
   it('deletes only after an inline confirm, then closes', () => {
     const onDelete = vi.fn()
     const onClose = vi.fn()
