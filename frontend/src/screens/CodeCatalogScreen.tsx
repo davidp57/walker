@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReferenceCode, TimesheetCode } from '../types'
 import { searchUserCodes, sortReferenceByName } from '../lib/codeSearch'
 import { DOCS_SITE_URL } from '../lib/links'
+import { InlineDeleteConfirm } from '../components/InlineDeleteConfirm'
 
 interface CodeCatalogScreenProps {
   codes: TimesheetCode[]
@@ -206,6 +207,7 @@ function CatalogCard({
   onDelete: (code: TimesheetCode) => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const collapsible = c.activities.length > 1
 
   return (
@@ -229,24 +231,40 @@ function CatalogCard({
             {c.isVirtual && c.realCodeNumber && ` · backed by ${c.realCodeNumber}`}
           </div>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-          <button
-            type="button"
-            className="wk-btn-ghost"
-            onClick={() => (c.isVirtual ? onEditVirtual(c) : onEdit(c))}
-          >
-            Edit
-          </button>
-          <button
-            type="button"
-            className="wk-btn-icon"
-            title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
-            disabled={inUse}
-            style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
-            onClick={() => onDelete(c)}
-          >
-            ✕
-          </button>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
+          {confirmingDelete ? (
+            <InlineDeleteConfirm
+              prompt="Remove?"
+              confirmLabel="Remove"
+              testid={`wk-catalog-delete-${c.id}`}
+              onCancel={() => setConfirmingDelete(false)}
+              onConfirm={() => {
+                onDelete(c)
+                setConfirmingDelete(false)
+              }}
+            />
+          ) : (
+            <>
+              <button
+                type="button"
+                className="wk-btn-ghost"
+                onClick={() => (c.isVirtual ? onEditVirtual(c) : onEdit(c))}
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                className="wk-btn-icon"
+                title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
+                disabled={inUse}
+                style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
+                data-testid={`wk-catalog-delete-${c.id}`}
+                onClick={() => setConfirmingDelete(true)}
+              >
+                ✕
+              </button>
+            </>
+          )}
         </div>
       </div>
       {c.activities.length > 0 &&

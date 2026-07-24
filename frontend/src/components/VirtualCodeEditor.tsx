@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { ReferenceCode, TimesheetCode } from '../types'
 import { ColorPicker } from './ColorPicker'
 import { CodePicker } from './CodePicker'
+import { InlineDeleteConfirm } from './InlineDeleteConfirm'
 import { suggestColor } from '../lib/palette'
 
 interface VirtualCodeEditorProps {
@@ -42,6 +43,7 @@ export function VirtualCodeEditor({
   const [backingPickerOpen, setBackingPickerOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const selectedReal = realCodes.find((c) => c.id === realCodeId) ?? null
   const canSave = realCodeId !== '' && name.trim().length > 0 && !saving
@@ -136,19 +138,29 @@ export function VirtualCodeEditor({
             }}
           >
             <div>
-              {onDelete && (
-                <button
-                  type="button"
-                  className="wk-btn wk-btn-danger"
-                  style={{ padding: '10px 18px' }}
-                  onClick={() => {
-                    onDelete()
-                    onClose()
-                  }}
-                >
-                  Delete
-                </button>
-              )}
+              {onDelete &&
+                (confirmingDelete ? (
+                  <InlineDeleteConfirm
+                    prompt="Delete this code?"
+                    testid="wk-virtual-editor-delete"
+                    confirmStyle={{ padding: '10px 18px' }}
+                    onCancel={() => setConfirmingDelete(false)}
+                    onConfirm={() => {
+                      onDelete()
+                      onClose()
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="wk-btn wk-btn-danger"
+                    style={{ padding: '10px 18px' }}
+                    data-testid="wk-virtual-editor-delete"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    Delete
+                  </button>
+                ))}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" className="wk-btn-ghost" onClick={onClose}>

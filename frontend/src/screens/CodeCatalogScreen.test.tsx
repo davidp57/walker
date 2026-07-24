@@ -73,6 +73,76 @@ describe('CodeCatalogScreen', () => {
     expect(onNewVirtual).toHaveBeenCalledOnce()
   })
 
+  it('removes a code only after an inline confirm (✕ → Remove)', () => {
+    const onDelete = vi.fn()
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={onDelete}
+        isCodeInUse={() => false}
+        onSearchReference={async () => []}
+        onActivateReference={vi.fn()}
+      />,
+    )
+
+    // First ✕ arms the confirm — nothing removed yet.
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1'))
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(screen.getByText('Remove?')).toBeInTheDocument()
+
+    // Confirming removes the code.
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1-confirm'))
+    expect(onDelete).toHaveBeenCalledWith(realCode)
+  })
+
+  it('cancels a code removal via Keep', () => {
+    const onDelete = vi.fn()
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={onDelete}
+        isCodeInUse={() => false}
+        onSearchReference={async () => []}
+        onActivateReference={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1'))
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1-cancel'))
+
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(screen.getByTestId('wk-catalog-delete-1')).toBeInTheDocument()
+  })
+
+  it('keeps an in-use code’s remove control disabled with no confirm', () => {
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={vi.fn()}
+        isCodeInUse={() => true}
+        onSearchReference={async () => []}
+        onActivateReference={vi.fn()}
+      />,
+    )
+
+    const remove = screen.getByTestId('wk-catalog-delete-1')
+    expect(remove).toBeDisabled()
+    fireEvent.click(remove)
+    expect(screen.queryByText('Remove?')).not.toBeInTheDocument()
+  })
+
   it('routes the Edit button to onEdit for a real code', () => {
     const onEdit = vi.fn()
     const onEditVirtual = vi.fn()

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Activity, TimesheetCode } from '../types'
 import { ColorPicker } from './ColorPicker'
+import { InlineDeleteConfirm } from './InlineDeleteConfirm'
 import { suggestColor } from '../lib/palette'
 
 /** Fields borrowed from a reference-catalog entry when activating it through the editor (BIZ-049). */
@@ -42,6 +43,7 @@ export function CodeEditor({
   const [color, setColor] = useState(
     () => code?.color ?? suggestColor(otherCodes.map((c) => c.color)),
   )
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [activities, setActivities] = useState<Activity[]>(() => {
     const source = code?.activities.length ? code.activities : prefill?.activities
     return source?.length ? source.map((a) => ({ ...a })) : [{ code: '0001', label: '' }]
@@ -181,19 +183,29 @@ export function CodeEditor({
             }}
           >
             <div>
-              {onDelete && (
-                <button
-                  type="button"
-                  className="wk-btn wk-btn-danger"
-                  style={{ padding: '10px 18px' }}
-                  onClick={() => {
-                    onDelete()
-                    onClose()
-                  }}
-                >
-                  Delete
-                </button>
-              )}
+              {onDelete &&
+                (confirmingDelete ? (
+                  <InlineDeleteConfirm
+                    prompt="Delete this code?"
+                    testid="wk-code-editor-delete"
+                    confirmStyle={{ padding: '10px 18px' }}
+                    onCancel={() => setConfirmingDelete(false)}
+                    onConfirm={() => {
+                      onDelete()
+                      onClose()
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="wk-btn wk-btn-danger"
+                    style={{ padding: '10px 18px' }}
+                    data-testid="wk-code-editor-delete"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    Delete
+                  </button>
+                ))}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" className="wk-btn-ghost" onClick={onClose}>

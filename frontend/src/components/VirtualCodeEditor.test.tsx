@@ -73,7 +73,7 @@ describe('VirtualCodeEditor', () => {
     expect(screen.getByDisplayValue('#abcdef')).toBeInTheDocument()
   })
 
-  it('shows a Delete button when onDelete is provided, and calls it on click', () => {
+  it('deletes only after an inline confirm, then closes', () => {
     const onDelete = vi.fn()
     const onClose = vi.fn()
     render(
@@ -87,10 +87,36 @@ describe('VirtualCodeEditor', () => {
       />,
     )
 
-    fireEvent.click(screen.getByText('Delete'))
+    // First Delete arms the confirm — nothing happens yet.
+    fireEvent.click(screen.getByTestId('wk-virtual-editor-delete'))
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByText('Delete this code?')).toBeInTheDocument()
 
+    // Confirming commits and closes.
+    fireEvent.click(screen.getByTestId('wk-virtual-editor-delete-confirm'))
     expect(onDelete).toHaveBeenCalledOnce()
     expect(onClose).toHaveBeenCalledOnce()
+  })
+
+  it('cancels the delete via Keep, leaving the code intact', () => {
+    const onDelete = vi.fn()
+    render(
+      <VirtualCodeEditor
+        code={virtualCode}
+        realCodes={[realCode, otherRealCode]}
+        codes={[realCode, otherRealCode]}
+        onSave={vi.fn().mockResolvedValue(undefined)}
+        onDelete={onDelete}
+        onClose={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-virtual-editor-delete'))
+    fireEvent.click(screen.getByTestId('wk-virtual-editor-delete-cancel'))
+
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(screen.getByTestId('wk-virtual-editor-delete')).toBeInTheDocument()
   })
 
   it('does not show a Delete button when onDelete is omitted', () => {
