@@ -5,6 +5,24 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Changed
+
+- **Tasks, Code catalog, and Settings refinement pass** (BIZ-080/081/082), driven by `impeccable`
+  design critiques:
+  - **Tasks** — a transient "⚑ Focus" filter surfaces overdue / due-today / high-priority tasks in
+    both List and Board without changing the saved view; task delete now asks for an inline confirm;
+    kanban column tools reveal on hover and "+ column" is an inline field (no more `window.prompt`);
+    the start-timer action wears the interactive accent; bigger table headers and a warmer empty
+    state.
+  - **Code catalog** — deleting a code requires an inline confirm (card and editors); virtual codes
+    are visually distinct and every row leads with its code-colour bar; rows hover-highlight; the
+    editors close on Escape and a disabled Save names the missing fields; the one-time Import is
+    demoted to a quiet utility.
+  - **Settings** — the segmented controls and day toggles are now accessible (labelled radiogroups
+    with `aria-checked`/`aria-pressed`, Arrow-key nav, focus rings, non-colour selected cue) and the
+    screen has a real heading outline; changes flash a "✓ Saved" acknowledgement; the screen no
+    longer overflows on mobile; multi-day absences show and remove as a single range.
+
 ## [1.8.2] - 2026-07-22
 
 ### Changed
