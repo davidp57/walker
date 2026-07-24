@@ -375,9 +375,8 @@ describe('TaskBoard', () => {
     expect(titles[2]).toContain('done')
   })
 
-  it('adds a column via the "+ column" control', () => {
+  it('adds a column via the inline "+ column" field, committing on blur', () => {
     const edits = EDITS()
-    vi.spyOn(window, 'prompt').mockReturnValue('Review')
     render(
       <TaskBoard
         tasks={[]}
@@ -389,7 +388,32 @@ describe('TaskBoard', () => {
       />,
     )
     fireEvent.click(screen.getByTestId('wk-board-add-column'))
+    const input = screen.getByTestId('wk-board-add-column-input')
+    fireEvent.change(input, { target: { value: 'Review' } })
+    fireEvent.blur(input)
     expect(edits.onAdd).toHaveBeenCalledWith('Review')
+  })
+
+  it('cancels the inline add-column on Escape without adding anything', () => {
+    const edits = EDITS()
+    render(
+      <TaskBoard
+        tasks={[]}
+        codesById={{}}
+        states={CUSTOM}
+        stateEdits={edits}
+        onOpenTask={vi.fn()}
+        onMoveTask={vi.fn()}
+      />,
+    )
+    fireEvent.click(screen.getByTestId('wk-board-add-column'))
+    const input = screen.getByTestId('wk-board-add-column-input')
+    fireEvent.change(input, { target: { value: 'Nope' } })
+    // Escape arms the cancel flag and blurs; the resulting blur must not add.
+    fireEvent.keyDown(input, { key: 'Escape' })
+    fireEvent.blur(input)
+    expect(edits.onAdd).not.toHaveBeenCalled()
+    expect(screen.getByTestId('wk-board-add-column')).toBeInTheDocument()
   })
 
   it('renames a column inline', () => {

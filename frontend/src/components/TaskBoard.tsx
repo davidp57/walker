@@ -377,6 +377,18 @@ function StatusBoard({
   const [pendingDelete, setPendingDelete] = useState<{ id: string; reassignTo: string } | null>(
     null,
   )
+  // Inline "add column" (BIZ-057): the "+ column" affordance turns into a field in place rather
+  // than firing a blocking window.prompt. Commit happens on blur; Enter blurs, Escape cancels.
+  const [addingColumn, setAddingColumn] = useState(false)
+  const [newColumnDraft, setNewColumnDraft] = useState('')
+  const cancelAddRef = useRef(false)
+  const commitAddColumn = () => {
+    const label = newColumnDraft.trim()
+    setAddingColumn(false)
+    setNewColumnDraft('')
+    if (!cancelAddRef.current && label) stateEdits?.onAdd(label)
+    cancelAddRef.current = false
+  }
   const doneCollapsed = doneCollapsedProp ?? localDoneCollapsed
   const setDoneCollapsed = (collapsed: boolean) =>
     onDoneCollapsedChange ? onDoneCollapsedChange(collapsed) : setLocalDoneCollapsed(collapsed)
@@ -487,20 +499,39 @@ function StatusBoard({
           )
         })}
 
-        {stateEdits && (
-          <button
-            type="button"
-            className="wk-board-add-column"
-            data-testid="wk-board-add-column"
-            title="Add a column (inserted before the last)"
-            onClick={() => {
-              const label = window.prompt('New column name')?.trim()
-              if (label) stateEdits.onAdd(label)
-            }}
-          >
-            + column
-          </button>
-        )}
+        {stateEdits &&
+          (addingColumn ? (
+            <input
+              className="wk-input wk-board-add-column wk-board-add-column--editing"
+              autoFocus
+              value={newColumnDraft}
+              placeholder="Column name…"
+              data-testid="wk-board-add-column-input"
+              onChange={(e) => setNewColumnDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur()
+                if (e.key === 'Escape') {
+                  cancelAddRef.current = true
+                  e.currentTarget.blur()
+                }
+              }}
+              onBlur={commitAddColumn}
+            />
+          ) : (
+            <button
+              type="button"
+              className="wk-board-add-column"
+              data-testid="wk-board-add-column"
+              title="Add a column (inserted before the last)"
+              onClick={() => {
+                cancelAddRef.current = false
+                setNewColumnDraft('')
+                setAddingColumn(true)
+              }}
+            >
+              + column
+            </button>
+          ))}
       </div>
 
       {pendingDelete && (

@@ -221,6 +221,8 @@ function MergeSeam({
 }) {
   return (
     <div className="wk-merge-seam">
+      {/* BIZ-079: at rest a compact circular node on the seam; on hover/focus it widens and reveals
+          the "Merge" label (progressive disclosure), so the affordance stays quiet until wanted. */}
       <button
         type="button"
         className="wk-merge-pill"
@@ -232,7 +234,10 @@ function MergeSeam({
         onFocus={() => onHover(true)}
         onBlur={() => onHover(false)}
       >
-        ⇕ Merge
+        <span className="wk-merge-pill__glyph" aria-hidden="true">
+          ⇕
+        </span>
+        <span className="wk-merge-pill__label">Merge</span>
       </button>
     </div>
   )

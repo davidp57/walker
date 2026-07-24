@@ -119,7 +119,7 @@ export function PeriodScreen({
   }
 
   return (
-    <div className="wk-screen">
+    <div className="wk-screen wk-period-screen">
       <div className="wk-screen-head">
         <div>
           <div className="wk-screen-title">
@@ -134,8 +134,8 @@ export function PeriodScreen({
               : 'Organized as the Timesheet system expects — virtual codes resolved to their real code. Tick each cell as you key it in; Shift-click for a range, ⌘/Ctrl-click to toggle one.'}
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div className="wk-period">
+        <div className="wk-period-toolbar">
+          <div className="wk-period wk-period--mode">
             <button
               type="button"
               className={`wk-seg${mode === 'review' ? ' is-active' : ''}`}
@@ -153,56 +153,66 @@ export function PeriodScreen({
               Enter in Timesheet system
             </button>
           </div>
-          <div className="wk-period">
-            <button
-              type="button"
-              className="wk-seg"
-              onClick={onPrev}
-              title="Previous Timesheet period"
-            >
-              ◀
-            </button>
-            <button
-              type="button"
-              className="wk-seg"
-              onClick={onThis}
-              title="Current Timesheet period"
-            >
-              Today
-            </button>
-            <button type="button" className="wk-seg" onClick={onNext} title="Next Timesheet period">
-              ▶
-            </button>
-          </div>
-          <div className="wk-period-label">{periodLabel}</div>
-          {mode === 'review' ? null : (
-            <>
-              <div style={{ textAlign: 'right' }}>
-                <div className="wk-progress-count">
-                  {doneCount} <span>/ {total}</span>
-                </div>
-                <div className="wk-progress-label">lines entered</div>
-              </div>
+          <div className="wk-period-controls">
+            <div className="wk-period wk-period--nav">
               <button
                 type="button"
-                className={`wk-btn-ghost${rounding ? ' is-active' : ''}`}
-                aria-pressed={rounding}
-                title="Round durations to the quarter-hour (display only — your real minutes are kept)"
-                onClick={() => setRounding(!rounding)}
+                className="wk-seg"
+                onClick={onPrev}
+                title="Previous Timesheet period"
               >
-                {rounding ? '¼h rounding on' : 'Round to ¼h'}
+                ◀
               </button>
-              <button type="button" className="wk-btn-ghost" onClick={onChecklistReset}>
-                Reset
+              <button
+                type="button"
+                className="wk-seg"
+                onClick={onThis}
+                title="Current Timesheet period"
+              >
+                Today
               </button>
-            </>
-          )}
+              <button
+                type="button"
+                className="wk-seg"
+                onClick={onNext}
+                title="Next Timesheet period"
+              >
+                ▶
+              </button>
+            </div>
+            <div className="wk-period-label">{periodLabel}</div>
+            {mode === 'review' ? null : (
+              <>
+                <button
+                  type="button"
+                  className={`wk-btn-ghost${rounding ? ' is-active' : ''}`}
+                  style={{ marginLeft: 'auto' }}
+                  aria-pressed={rounding}
+                  title="Round durations to the quarter-hour (display only — your real minutes are kept)"
+                  onClick={() => setRounding(!rounding)}
+                >
+                  {rounding ? '¼h rounding on' : 'Round to ¼h'}
+                </button>
+                <button type="button" className="wk-btn-ghost" onClick={onChecklistReset}>
+                  Reset
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
       {mode === 'enter' && (
-        <div className="wk-progress">
-          <div className="wk-progress-bar" style={{ width: `${pct}%` }} />
+        <div className="wk-progress-row">
+          <div className="wk-progress">
+            <div className="wk-progress-bar" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="wk-progress-status">
+            <span className="wk-progress-count">
+              {doneCount} <span>/ {total}</span>
+            </span>
+            <span className="wk-progress-label">lines entered</span>
+          </div>
         </div>
       )}
 

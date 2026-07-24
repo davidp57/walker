@@ -72,7 +72,7 @@ export function TimerBar({
   const suggestTitle = hasTask ? `Recent on ${code!.name}` : 'Resume a recent task'
 
   return (
-    <div className="wk-timerbar">
+    <div className={`wk-timerbar${running ? ' is-running' : ''}`}>
       <div className="wk-timer-input-wrap">
         <input
           className="wk-timer-input"
