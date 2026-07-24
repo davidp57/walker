@@ -2236,8 +2236,10 @@ html[data-theme='light'] body {
   align-items: center;
 }
 .wk-set-title {
+  margin: 0;
   color: var(--wk-text-hi);
   font-size: var(--wk-fs-14);
+  font-weight: normal;
 }
 .wk-set-desc {
   color: var(--wk-text-mid);
@@ -2294,6 +2296,15 @@ html[data-theme='light'] body {
   background: var(--wk-accent-soft);
   border-color: var(--wk-accent-line);
   color: var(--wk-text-hi);
+  /* A weight cue in addition to colour, so "on" doesn't rely on hue alone (WCAG 1.4.1). */
+  font-weight: var(--wk-fw-semibold);
+}
+/* Keyboard focus rings on the settings controls, matching the app's accent ring convention — the
+   segmented radios and day toggles had none. */
+.wk-seg:focus-visible,
+.wk-daytoggle:focus-visible {
+  outline: 2px solid var(--wk-accent);
+  outline-offset: 2px;
 }
 
 /* ---------- Undo toast (BIZ-011) ---------- */

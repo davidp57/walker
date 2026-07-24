@@ -28,23 +28,23 @@ describe('SettingsScreen — Timesheet period scheme control (BIZ-027)', () => {
   it('shows semi-monthly as active by default', () => {
     renderScreen()
 
-    expect(screen.getByRole('button', { name: 'Semi-monthly' })).toHaveClass('is-active')
-    expect(screen.getByRole('button', { name: 'Weekly' })).not.toHaveClass('is-active')
-    expect(screen.getByRole('button', { name: 'Monthly' })).not.toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'Semi-monthly' })).toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'Weekly' })).not.toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'Monthly' })).not.toHaveClass('is-active')
   })
 
   it('reflects whichever scheme is passed in as active', () => {
     renderScreen({ periodScheme: 'weekly' })
 
-    expect(screen.getByRole('button', { name: 'Weekly' })).toHaveClass('is-active')
-    expect(screen.getByRole('button', { name: 'Semi-monthly' })).not.toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'Weekly' })).toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'Semi-monthly' })).not.toHaveClass('is-active')
   })
 
   it('calls onPeriodSchemeChange with the picked scheme', () => {
     const onPeriodSchemeChange = vi.fn()
     renderScreen({ onPeriodSchemeChange })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Monthly' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Monthly' }))
 
     expect(onPeriodSchemeChange).toHaveBeenCalledWith('monthly')
   })
@@ -52,9 +52,9 @@ describe('SettingsScreen — Timesheet period scheme control (BIZ-027)', () => {
   it('offers all three fixed schemes and no others', () => {
     renderScreen()
 
-    expect(screen.getByRole('button', { name: 'Weekly' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Semi-monthly' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Monthly' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Weekly' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Semi-monthly' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Monthly' })).toBeInTheDocument()
   })
 })
 
@@ -62,22 +62,22 @@ describe('SettingsScreen — theme control (BIZ-032)', () => {
   it('shows the current theme as active', () => {
     renderScreen({ theme: 'light' })
 
-    expect(screen.getByRole('button', { name: 'Light' })).toHaveClass('is-active')
-    expect(screen.getByRole('button', { name: 'Dark' })).not.toHaveClass('is-active')
-    expect(screen.getByRole('button', { name: 'System' })).not.toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'Light' })).toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'Dark' })).not.toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'System' })).not.toHaveClass('is-active')
   })
 
   it('defaults to System reading as active when that is the stored preference', () => {
     renderScreen({ theme: 'system' })
 
-    expect(screen.getByRole('button', { name: 'System' })).toHaveClass('is-active')
+    expect(screen.getByRole('radio', { name: 'System' })).toHaveClass('is-active')
   })
 
   it('calls onThemeChange with the picked theme', () => {
     const onThemeChange = vi.fn()
     renderScreen({ onThemeChange })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Dark' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Dark' }))
 
     expect(onThemeChange).toHaveBeenCalledWith('dark')
   })
@@ -85,9 +85,9 @@ describe('SettingsScreen — theme control (BIZ-032)', () => {
   it('offers Dark, Light, and System and no others', () => {
     renderScreen()
 
-    expect(screen.getByRole('button', { name: 'Dark' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Light' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'System' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Dark' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Light' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'System' })).toBeInTheDocument()
   })
 })
 
@@ -118,5 +118,43 @@ describe('SettingsScreen — absence range (BIZ-039)', () => {
     fireEvent.click(screen.getByText('Add'))
 
     expect(onAddAbsence).toHaveBeenCalledWith('2026-07-14', 'Absence', null)
+  })
+})
+
+describe('SettingsScreen — accessibility', () => {
+  it('exposes each segmented control as a labelled radiogroup with a checked radio', () => {
+    renderScreen({ periodScheme: 'weekly', theme: 'light' })
+
+    const scheme = screen.getByRole('radiogroup', { name: 'Timesheet period scheme' })
+    expect(scheme).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Weekly' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Monthly' })).not.toBeChecked()
+    expect(screen.getByRole('radiogroup', { name: 'Theme' })).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Light' })).toBeChecked()
+  })
+
+  it('moves the selection with Arrow keys (roving radiogroup)', () => {
+    const onPeriodSchemeChange = vi.fn()
+    renderScreen({ periodScheme: 'weekly', onPeriodSchemeChange })
+
+    fireEvent.keyDown(screen.getByRole('radio', { name: 'Weekly' }), { key: 'ArrowRight' })
+
+    expect(onPeriodSchemeChange).toHaveBeenCalledWith('semi_monthly')
+  })
+
+  it('marks workday toggles with aria-pressed reflecting the rhythm', () => {
+    renderScreen({ workdays: [false, true, true, true, true, true, false] })
+
+    // Monday is on, Sunday is off.
+    expect(screen.getByRole('button', { name: 'Mon', pressed: true })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sun', pressed: false })).toBeInTheDocument()
+  })
+
+  it('gives the screen a heading outline (h1 + section h2s)', () => {
+    renderScreen()
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Work rhythm' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { level: 2, name: 'Theme' })).toBeInTheDocument()
   })
 })
