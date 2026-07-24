@@ -857,7 +857,7 @@ describe('App — editing the running Timer (BIZ-058)', () => {
   })
 })
 
-describe('App — task due dates: nav badge + startup toast (BIZ-062)', () => {
+describe('App — task due dates nav badge (BIZ-062)', () => {
   it('badges the Tasks nav with the overdue/due-today count, excluding done', async () => {
     mockBaseApi([], [])
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([
@@ -871,23 +871,7 @@ describe('App — task due dates: nav badge + startup toast (BIZ-062)', () => {
     await waitFor(() => expect(screen.getByTestId('wk-tasks-due-badge')).toHaveTextContent('2'))
   })
 
-  it('shows a one-time startup toast summarising the due tasks', async () => {
-    mockBaseApi([], [])
-    vi.spyOn(api, 'fetchTasks').mockResolvedValue([
-      makeTask({ id: '1', dueDate: YESTERDAY_ISO, status: 'todo' }),
-      makeTask({ id: '2', dueDate: TODAY_ISO, status: 'todo' }),
-    ])
-
-    render(<App />)
-
-    const toast = await screen.findByRole('status')
-    expect(toast).toHaveTextContent(/2 tasks due/i)
-    expect(toast).toHaveTextContent(/1 overdue/i)
-    expect(toast).toHaveTextContent(/1 due today/i)
-    expect(screen.getAllByRole('status')).toHaveLength(1)
-  })
-
-  it('shows no startup toast when nothing is overdue or due today', async () => {
+  it('shows no badge (and no startup toast) when nothing is overdue or due today', async () => {
     mockBaseApi([], [])
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([
       makeTask({ id: '1', dueDate: null }),

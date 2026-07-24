@@ -5,6 +5,12 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Removed
+
+- **The one-time "N tasks due" startup toast** (BIZ-062): it duplicated the always-visible Tasks nav
+  badge and popped up bottom-right on every load. The nav badge remains as the single, well-placed
+  due-tasks indicator.
+
 ### Changed
 
 - **Tasks, Code catalog, and Settings refinement pass** (BIZ-080/081/082), driven by `impeccable`
