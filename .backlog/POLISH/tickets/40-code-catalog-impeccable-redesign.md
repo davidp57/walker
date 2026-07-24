@@ -41,7 +41,7 @@ reason, and the one-time Import sat at equal weight with the create actions.
 
 ## Delivery
 
-Shipped via the `feature/redesign-tasks-catalog-settings` redesign PR → `develop`.
+Shipped in [PR #142](https://github.com/davidp57/walker/pull/142) → `develop`.
 
 ## Blocked by
 

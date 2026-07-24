@@ -40,7 +40,7 @@ faintest thing on a card, cramped table headers, and a flavourless empty state.
 
 ## Delivery
 
-Shipped via the `feature/redesign-tasks-catalog-settings` redesign PR → `develop`.
+Shipped in [PR #142](https://github.com/davidp57/walker/pull/142) → `develop`.
 
 ## Blocked by
 

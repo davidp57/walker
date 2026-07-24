@@ -44,7 +44,7 @@ multi-day absence showed only its start day, and an internal "(ADR-0009)" refere
 
 ## Delivery
 
-Shipped via the `feature/redesign-tasks-catalog-settings` redesign PR → `develop`.
+Shipped in [PR #142](https://github.com/davidp57/walker/pull/142) → `develop`.
 
 ## Blocked by
 
