@@ -1,6 +1,6 @@
 [project]
 name = "walker"
-version = "1.8.2"
+version = "1.9.0"
 description = "Personal time tracker that makes filling the Timesheet system painless"
 authors = [{name = "David Pierron", email = "dpierron@gmail.com"}]
 readme = "README.md"

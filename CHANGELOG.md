@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-07-24
+
 ### Removed
 
 - **The one-time "N tasks due" startup toast** (BIZ-062): it duplicated the always-visible Tasks nav
@@ -12,6 +14,23 @@ All notable changes to Walker are documented here. Format loosely follows
   due-tasks indicator.
 
 ### Changed
+
+- **Core tracking surfaces redesign** — the timer bar, code picker, Activity list, and the Timesheet
+  period view, brought in line with the "Texas Ledger" design system:
+  - **Timer bar** — while running, the readout reads as a lit, breathing instrument panel with a
+    live pulse from the status dot, and a larger clock.
+  - **Activity list** — every entry leads with its code-colour bar; the per-row actions (edit /
+    break / resume / delete) reveal on hover and are keyboard-focusable (with an always-visible
+    fallback on touch); the Merge control is a quiet circular join-node on the seam that expands into
+    a labelled "⇕ Merge" pill bracketing both rows.
+  - **Code picker** — a command-palette list: one-line rows (name + code inline), activities
+    revealed on hover, the hovered row lifting into an accent-bordered box.
+  - **Timesheet period** — the header puts the title on its own line, Review / Enter become underline
+    tabs, and the rest of the controls sit on a raised toolbar (quarter-hour rounding highlighted
+    while active); the grid collapses non-working-day columns into a continuous greyed strip, adds
+    zebra striping and row-hover, echoes the daily total at the top, hides the code number behind
+    copy-on-hover, shows the rounded value with the exact value on hover, and keeps a constant row
+    height. The checklist cells are now keyboard-toggleable.
 
 - **Tasks, Code catalog, and Settings refinement pass** (BIZ-080/081/082), driven by `impeccable`
   design critiques:
