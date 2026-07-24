@@ -166,3 +166,49 @@ describe('SettingsScreen — accessibility', () => {
     expect(screen.getByRole('status')).toHaveTextContent('Saved')
   })
 })
+
+describe('SettingsScreen — absence range display (BIZ-039)', () => {
+  it('collapses consecutive same-reason days into one range chip', () => {
+    renderScreen({
+      absences: [
+        { date: '2026-07-10', reason: 'Leave' },
+        { date: '2026-07-11', reason: 'Leave' },
+        { date: '2026-07-12', reason: 'Leave' },
+      ],
+    })
+
+    const chips = document.querySelectorAll('.wk-absence-chip')
+    expect(chips).toHaveLength(1)
+    expect(chips[0].textContent).toContain('→')
+    expect(chips[0].textContent).toContain('Leave')
+  })
+
+  it('keeps a gap or a different reason as separate chips', () => {
+    renderScreen({
+      absences: [
+        { date: '2026-07-10', reason: 'Leave' },
+        { date: '2026-07-12', reason: 'Leave' }, // one-day gap
+        { date: '2026-07-13', reason: 'Sick' }, // adjacent but different reason
+      ],
+    })
+
+    expect(document.querySelectorAll('.wk-absence-chip')).toHaveLength(3)
+  })
+
+  it('removing a range deletes every day in it', () => {
+    const onRemoveAbsence = vi.fn()
+    renderScreen({
+      absences: [
+        { date: '2026-07-10', reason: 'Leave' },
+        { date: '2026-07-11', reason: 'Leave' },
+      ],
+      onRemoveAbsence,
+    })
+
+    fireEvent.click(screen.getByTitle('Remove this range'))
+
+    expect(onRemoveAbsence).toHaveBeenCalledTimes(2)
+    expect(onRemoveAbsence).toHaveBeenCalledWith('2026-07-10')
+    expect(onRemoveAbsence).toHaveBeenCalledWith('2026-07-11')
+  })
+})

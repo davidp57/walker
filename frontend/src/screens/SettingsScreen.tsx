@@ -100,6 +100,35 @@ const formatDate = (iso: string): string => {
     : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
+/** The calendar day after an ISO date, timezone-safe (Date.UTC handles month/year rollover). */
+const nextDay = (iso: string): string => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
+}
+
+/** A run of consecutive same-reason absence days — the backend stores a range as one row per day
+ *  (BIZ-039), so re-collapse them here to show (and remove) the range as a single chip. */
+interface AbsenceRun {
+  start: string
+  end: string
+  reason: string
+  dates: string[]
+}
+const groupAbsences = (absences: Absence[]): AbsenceRun[] => {
+  const sorted = [...absences].sort((a, b) => a.date.localeCompare(b.date))
+  const runs: AbsenceRun[] = []
+  for (const a of sorted) {
+    const last = runs[runs.length - 1]
+    if (last && last.reason === a.reason && nextDay(last.end) === a.date) {
+      last.end = a.date
+      last.dates.push(a.date)
+    } else {
+      runs.push({ start: a.date, end: a.date, reason: a.reason, dates: [a.date] })
+    }
+  }
+  return runs
+}
+
 export function SettingsScreen({
   workdays,
   onToggleWorkday,
@@ -267,18 +296,21 @@ export function SettingsScreen({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-            {absences.map((a) => (
-              <div key={a.date} className="wk-absence-chip">
+            {groupAbsences(absences).map((run) => (
+              <div key={run.start} className="wk-absence-chip">
                 <span className="wk-absence-swatch" />
                 <span style={{ flex: 1 }}>
-                  {formatDate(a.date)} · {a.reason}
+                  {run.start === run.end
+                    ? formatDate(run.start)
+                    : `${formatDate(run.start)} → ${formatDate(run.end)}`}{' '}
+                  · {run.reason}
                 </span>
                 <button
                   type="button"
                   className="wk-btn-icon"
-                  title="Remove absence"
+                  title={run.start === run.end ? 'Remove absence' : 'Remove this range'}
                   style={{ padding: '4px 9px' }}
-                  onClick={() => onRemoveAbsence(a.date)}
+                  onClick={() => run.dates.forEach((d) => onRemoveAbsence(d))}
                 >
                   ✕
                 </button>
@@ -297,7 +329,7 @@ export function SettingsScreen({
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="wk-absence-form">
             <input
               className="wk-input"
               type="date"
@@ -306,7 +338,7 @@ export function SettingsScreen({
               aria-label="Absence start date"
               onChange={(e) => setNewDate(e.target.value)}
             />
-            <span className="wk-screen-sub">to</span>
+            <span className="wk-screen-sub">to (optional)</span>
             <input
               className="wk-input"
               type="date"
@@ -314,14 +346,13 @@ export function SettingsScreen({
               min={newDate || undefined}
               style={{ width: 150 }}
               aria-label="Absence end date (optional)"
-              title="Optional — leave empty for a single day"
+              title="Leave empty for a single day"
               onChange={(e) => setNewEndDate(e.target.value)}
             />
             <input
-              className="wk-input"
+              className="wk-input wk-absence-reason"
               value={newReason}
               placeholder="Annual leave"
-              style={{ flex: 1 }}
               onChange={(e) => setNewReason(e.target.value)}
             />
             <button type="button" className="wk-btn-ghost" onClick={addAbsence}>
