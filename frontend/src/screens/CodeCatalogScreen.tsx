@@ -144,7 +144,7 @@ export function CodeCatalogScreen({
             ))}
             {codes.length === 0 && (
               <div className="wk-empty">
-                <div className="wk-empty-title">No codes yet.</div>
+                <div className="wk-empty-title">Nothing on the books yet.</div>
                 <div className="wk-empty-sub">
                   Your catalog has two tiers: import your full reference catalog once (
                   <span className="wk-accent">Import reference</span>), then search above to add the

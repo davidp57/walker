@@ -299,7 +299,7 @@ describe('CodeCatalogScreen', () => {
   it('guides the two-tier model and links the docs in the empty state (BIZ-046)', () => {
     renderScreen([])
 
-    expect(screen.getByText('No codes yet.')).toBeInTheDocument()
+    expect(screen.getByText('Nothing on the books yet.')).toBeInTheDocument()
     expect(screen.getByText(/two tiers/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Importing your code catalog/ })).toHaveAttribute(
       'href',
