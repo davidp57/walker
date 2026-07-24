@@ -576,7 +576,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
     await waitFor(() => expect(fetchPeriod).toHaveBeenCalled())
     const callsBeforeChange = fetchPeriod.mock.calls.length
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Monthly' }))
+    fireEvent.click(await screen.findByRole('radio', { name: 'Monthly' }))
 
     // The period view recomputes with no reload: a fresh grid fetch fires for the new scheme.
     await waitFor(() => expect(fetchPeriod.mock.calls.length).toBeGreaterThan(callsBeforeChange))
@@ -608,7 +608,7 @@ describe('App — configurable Timesheet period scheme (BIZ-027)', () => {
     render(<App />)
 
     await clickNav('Settings')
-    fireEvent.click(await screen.findByRole('button', { name: 'Weekly' }))
+    fireEvent.click(await screen.findByRole('radio', { name: 'Weekly' }))
 
     await waitFor(() =>
       expect(updateSettings).toHaveBeenCalledWith(

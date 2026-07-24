@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Absence, Density, PeriodScheme, Theme } from '../types'
 
 interface SettingsScreenProps {
@@ -127,6 +127,23 @@ export function SettingsScreen({
     setNewReason('')
   }
 
+  // Settings save optimistically (fire-and-forget) — flash a transient "Saved" beside the control
+  // just changed so the action isn't silent. `savedKey` names the control; it self-clears.
+  const [savedKey, setSavedKey] = useState<string | null>(null)
+  const savedTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(savedTimer.current), [])
+  const markSaved = (key: string) => {
+    setSavedKey(key)
+    window.clearTimeout(savedTimer.current)
+    savedTimer.current = window.setTimeout(() => setSavedKey(null), 1600)
+  }
+  const savedTick = (key: string) =>
+    savedKey === key ? (
+      <span className="wk-saved-tick" role="status">
+        ✓ Saved
+      </span>
+    ) : null
+
   return (
     <div className="wk-screen" style={{ maxWidth: 720 }}>
       <h1 className="wk-screen-title" style={{ margin: '0 0 5px' }}>
@@ -138,7 +155,10 @@ export function SettingsScreen({
 
       <div className="wk-set-list">
         <div className="wk-set-card">
-          <h2 className="wk-set-title">Work rhythm</h2>
+          <div className="wk-set-cardhead">
+            <h2 className="wk-set-title">Work rhythm</h2>
+            {savedTick('rhythm')}
+          </div>
           <div className="wk-set-desc" style={{ marginBottom: 12 }}>
             Which days count as workdays. Un-ticked days are greyed in the grid (also covers
             part-time).
@@ -154,7 +174,10 @@ export function SettingsScreen({
                 type="button"
                 aria-pressed={workdays[d]}
                 className={`wk-daytoggle${workdays[d] ? ' is-on' : ''}`}
-                onClick={() => onToggleWorkday(d)}
+                onClick={() => {
+                  onToggleWorkday(d)
+                  markSaved('rhythm')
+                }}
               >
                 {DAY_LABELS[d]}
               </button>
@@ -167,25 +190,40 @@ export function SettingsScreen({
             <h2 className="wk-set-title">Density</h2>
             <div className="wk-set-desc">Row height across the app.</div>
           </div>
-          <SegmentedControl
-            label="Density"
-            options={DENSITY_OPTIONS}
-            value={density}
-            onChange={onDensityChange}
-          />
+          <div className="wk-set-control">
+            {savedTick('density')}
+            <SegmentedControl
+              label="Density"
+              options={DENSITY_OPTIONS}
+              value={density}
+              onChange={(v) => {
+                onDensityChange(v)
+                markSaved('density')
+              }}
+            />
+          </div>
         </div>
 
         <div className="wk-set-card is-row">
           <div>
             <h2 className="wk-set-title">Timesheet period scheme</h2>
-            <div className="wk-set-desc">How the Timesheet period view splits the calendar.</div>
+            <div className="wk-set-desc">
+              How the Timesheet period view splits the calendar. Changing it reshapes your period
+              view right away.
+            </div>
           </div>
-          <SegmentedControl
-            label="Timesheet period scheme"
-            options={PERIOD_SCHEME_OPTIONS}
-            value={periodScheme}
-            onChange={onPeriodSchemeChange}
-          />
+          <div className="wk-set-control">
+            {savedTick('period')}
+            <SegmentedControl
+              label="Timesheet period scheme"
+              options={PERIOD_SCHEME_OPTIONS}
+              value={periodScheme}
+              onChange={(v) => {
+                onPeriodSchemeChange(v)
+                markSaved('period')
+              }}
+            />
+          </div>
         </div>
 
         <div className="wk-set-card is-row">
@@ -193,12 +231,18 @@ export function SettingsScreen({
             <h2 className="wk-set-title">Theme</h2>
             <div className="wk-set-desc">Dark, light, or match your system's appearance.</div>
           </div>
-          <SegmentedControl
-            label="Theme"
-            options={THEME_OPTIONS}
-            value={theme}
-            onChange={onThemeChange}
-          />
+          <div className="wk-set-control">
+            {savedTick('theme')}
+            <SegmentedControl
+              label="Theme"
+              options={THEME_OPTIONS}
+              value={theme}
+              onChange={(v) => {
+                onThemeChange(v)
+                markSaved('theme')
+              }}
+            />
+          </div>
         </div>
 
         <div className="wk-set-card">

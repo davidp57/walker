@@ -157,4 +157,12 @@ describe('SettingsScreen — accessibility', () => {
     expect(screen.getByRole('heading', { level: 2, name: 'Work rhythm' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { level: 2, name: 'Theme' })).toBeInTheDocument()
   })
+
+  it('acknowledges a saved preference change with a transient status', () => {
+    renderScreen()
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('radio', { name: 'Compact' }))
+    expect(screen.getByRole('status')).toHaveTextContent('Saved')
+  })
 })

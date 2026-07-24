@@ -2246,6 +2246,35 @@ html[data-theme='light'] body {
   font-size: var(--wk-fs-12);
   margin-top: 2px;
 }
+.wk-set-cardhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* Right-side control cluster on the is-row cards: the transient "Saved" tick sits beside its
+   segmented control. */
+.wk-set-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* The optimistic-save acknowledgement — a quiet accent readout that fades in and self-clears. */
+.wk-saved-tick {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-accent);
+  white-space: nowrap;
+  animation: wk-saved-fade 0.18s ease;
+}
+@keyframes wk-saved-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 .wk-set-value {
   font-family: var(--wk-font-mono);
   font-size: var(--wk-fs-12);
