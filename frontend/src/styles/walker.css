@@ -2094,15 +2094,29 @@ html[data-theme='light'] body {
 .wk-catalog-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 .wk-catalog-card {
   position: relative;
   overflow: hidden;
   background: var(--wk-bg-1);
   border: 1px solid var(--wk-line);
-  border-radius: 12px;
-  padding: 16px 18px;
+  border-radius: var(--wk-radius-md);
+  padding: 12px 16px;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+/* Row-hover: brighten the rule so a row in a 28+ list is followable under the cursor. Zebra is
+   deliberately omitted — it would collide with the virtual-tier wash — so hover carries it. */
+.wk-catalog-card:hover {
+  border-color: var(--wk-accent-line);
+}
+.wk-catalog-card:hover:not(.is-virtual) {
+  background: var(--wk-bg-2);
+}
+.wk-catalog-card.is-virtual:hover {
+  background: var(--wk-bg-3);
 }
 /* Virtual codes (ADR-0008) are a distinct tier — give them a muted wash so they read as a group in
    the mixed list, on top of the explicit badge. */
