@@ -2091,16 +2091,86 @@ html[data-theme='light'] body {
 }
 
 /* ---------- Code catalog ---------- */
+/* A borderless utility button — quieter than a ghost button, for occasional/setup actions that
+   shouldn't compete with the primary create actions (e.g. the catalog's one-time Import). */
+.wk-btn-quiet {
+  background: transparent;
+  border: none;
+  color: var(--wk-text-lo);
+  font-size: var(--wk-fs-13);
+  padding: 6px 4px;
+  cursor: pointer;
+  transition: color 0.12s ease;
+}
+.wk-btn-quiet:hover {
+  color: var(--wk-text);
+}
+.wk-header-divider {
+  width: 1px;
+  align-self: stretch;
+  margin: 4px 2px;
+  background: var(--wk-line);
+}
 .wk-catalog-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 .wk-catalog-card {
+  position: relative;
+  overflow: hidden;
   background: var(--wk-bg-1);
   border: 1px solid var(--wk-line);
-  border-radius: 12px;
-  padding: 16px 18px;
+  border-radius: var(--wk-radius-md);
+  padding: 12px 16px;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+/* Row-hover: brighten the rule so a row in a 28+ list is followable under the cursor. Zebra is
+   deliberately omitted — it would collide with the virtual-tier wash — so hover carries it. */
+.wk-catalog-card:hover {
+  border-color: var(--wk-accent-line);
+}
+.wk-catalog-card:hover:not(.is-virtual) {
+  background: var(--wk-bg-2);
+}
+.wk-catalog-card.is-virtual:hover {
+  background: var(--wk-bg-3);
+}
+/* Virtual codes (ADR-0008) are a distinct tier — give them a muted wash so they read as a group in
+   the mixed list, on top of the explicit badge. */
+.wk-catalog-card.is-virtual {
+  background: var(--wk-bg-2);
+}
+/* The leading code-colour rail — identity per DESIGN.md; full card height, clipped by the radius. */
+.wk-catalog-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+}
+/* A virtual code borrows its backing code's colour, so soften its rail to read as "derived". */
+.wk-catalog-card.is-virtual .wk-catalog-bar {
+  opacity: 0.5;
+}
+/* The "virtual" tier badge: outlined + micro-caps so it never reads as one of the filled, rounded
+   activity chips it used to borrow. */
+.wk-code-virtual-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--wk-text-mid);
+  background: transparent;
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  padding: 1px 6px;
 }
 .wk-catalog-head {
   display: flex;
@@ -2166,13 +2236,67 @@ html[data-theme='light'] body {
   align-items: center;
 }
 .wk-set-title {
+  margin: 0;
   color: var(--wk-text-hi);
   font-size: var(--wk-fs-14);
+  font-weight: normal;
 }
 .wk-set-desc {
   color: var(--wk-text-mid);
   font-size: var(--wk-fs-12);
   margin-top: 2px;
+}
+.wk-set-cardhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+/* Right-side control cluster on the is-row cards: the transient "Saved" tick sits beside its
+   segmented control. */
+.wk-set-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+/* The optimistic-save acknowledgement — a quiet accent readout that fades in and self-clears. */
+.wk-saved-tick {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-accent);
+  white-space: nowrap;
+  animation: wk-saved-fade 0.18s ease;
+}
+@keyframes wk-saved-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* Absence add-row: wraps so the reason keeps a usable width instead of collapsing on narrow screens. */
+.wk-absence-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.wk-absence-reason {
+  flex: 1 1 180px;
+  min-width: 180px;
+}
+/* Below ~640px the two-column setting cards stack, so the segmented controls stop squishing and the
+   body never scrolls sideways (DESIGN.md). */
+@media (max-width: 640px) {
+  .wk-set-card.is-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .wk-set-control {
+    justify-content: flex-start;
+  }
 }
 .wk-set-value {
   font-family: var(--wk-font-mono);
@@ -2224,6 +2348,15 @@ html[data-theme='light'] body {
   background: var(--wk-accent-soft);
   border-color: var(--wk-accent-line);
   color: var(--wk-text-hi);
+  /* A weight cue in addition to colour, so "on" doesn't rely on hue alone (WCAG 1.4.1). */
+  font-weight: var(--wk-fw-semibold);
+}
+/* Keyboard focus rings on the settings controls, matching the app's accent ring convention — the
+   segmented radios and day toggles had none. */
+.wk-seg:focus-visible,
+.wk-daytoggle:focus-visible {
+  outline: 2px solid var(--wk-accent);
+  outline-offset: 2px;
 }
 
 /* ---------- Undo toast (BIZ-011) ---------- */
@@ -2322,7 +2455,7 @@ html[data-theme='light'] body {
 .wk-task-table th {
   text-align: left;
   font-family: var(--wk-font-mono);
-  font-size: var(--wk-fs-9);
+  font-size: var(--wk-fs-11);
   letter-spacing: 0.5px;
   text-transform: uppercase;
   color: var(--wk-text-lo);
@@ -2458,6 +2591,60 @@ html[data-theme='light'] body {
   background: var(--wk-accent-soft);
   color: var(--wk-accent);
 }
+/* Focus filter (redesign): surface only tasks needing attention — overdue, due today, high
+   priority — across both List and Board, without touching the saved view. Amber is the rationed
+   "attention" hue (DESIGN.md), so this control wears it rather than the blue accent reserved for
+   live/interactive state: quiet at rest, amber-lit when engaged. */
+.wk-task-focus {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--wk-bg-2);
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  color: var(--wk-text-lo);
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition:
+    color 0.12s ease,
+    border-color 0.12s ease,
+    background 0.12s ease;
+}
+.wk-task-focus:hover:not(:disabled) {
+  color: var(--wk-text);
+  border-color: color-mix(in srgb, var(--wk-amber) 45%, var(--wk-line));
+}
+.wk-task-focus:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.wk-task-focus.is-active {
+  background: color-mix(in srgb, var(--wk-amber) 14%, transparent);
+  border-color: color-mix(in srgb, var(--wk-amber) 55%, var(--wk-line));
+  color: var(--wk-amber);
+}
+.wk-task-focus-flag {
+  font-size: var(--wk-fs-12);
+  line-height: 1;
+}
+.wk-task-focus-count {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.4em;
+  text-align: center;
+  padding: 1px 5px;
+  border-radius: var(--wk-radius-pill);
+  background: color-mix(in srgb, var(--wk-amber) 18%, transparent);
+  color: var(--wk-amber);
+  font-size: var(--wk-fs-10);
+}
+.wk-task-focus.is-active .wk-task-focus-count {
+  background: var(--wk-amber);
+  color: var(--wk-bg-0);
+}
 .wk-board {
   display: flex;
   gap: var(--wk-space-4);
@@ -2483,6 +2670,7 @@ html[data-theme='light'] body {
   gap: 8px;
 }
 .wk-board-column {
+  position: relative;
   flex: 1 1 0;
   min-width: 200px;
   background: var(--wk-bg-1);
@@ -2532,17 +2720,44 @@ html[data-theme='light'] body {
   text-transform: none;
   letter-spacing: normal;
 }
+/* Column edit controls reveal on hover/focus-within, floating over the header's right edge so they
+   stay out of the way until wanted and never reflow the cards below. Touch devices (no hover) keep
+   them pinned in-flow. */
 .wk-board-column-tools {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  z-index: 2;
   display: flex;
   gap: 2px;
-  justify-content: flex-end;
-  padding: 4px 6px;
-  border-bottom: 1px solid var(--wk-line);
-  background: var(--wk-bg-2);
+  padding: 2px;
+  border: 1px solid var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  background: var(--wk-bg-3);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
+}
+.wk-board-column:hover > .wk-board-column-tools,
+.wk-board-column:focus-within > .wk-board-column-tools {
+  opacity: 1;
+  visibility: visible;
 }
 .wk-board-column-tools .wk-btn-icon {
   font-size: var(--wk-fs-11);
   padding: 2px 6px;
+}
+@media (hover: none) {
+  .wk-board-column-tools {
+    position: static;
+    opacity: 1;
+    visibility: visible;
+    justify-content: flex-end;
+    border: none;
+    border-bottom: 1px solid var(--wk-line);
+    border-radius: 0;
+    background: var(--wk-bg-2);
+  }
 }
 .wk-board-add-column {
   flex: 0 0 auto;
@@ -2562,6 +2777,13 @@ html[data-theme='light'] body {
 .wk-board-add-column:hover {
   color: var(--wk-text);
   border-color: var(--wk-text-lo);
+}
+/* The inline editing state: a real text field, so drop the uppercase/tracking of the button label. */
+.wk-board-add-column--editing {
+  text-transform: none;
+  letter-spacing: normal;
+  border-style: solid;
+  color: var(--wk-text-hi);
 }
 .wk-board-column-body {
   display: flex;
@@ -2585,19 +2807,42 @@ html[data-theme='light'] body {
   align-items: center;
   gap: 6px;
 }
-/* BIZ-050: one-click start-timer on a board card, pinned to the head's right edge. */
+/* BIZ-050: one-click start-timer on a board card, pinned to the head's right edge. Starting a timer
+   is the card's key action, so it wears the reserved interactive accent at rest (not the faint
+   text-lo it used to) and fills into an accent chip on hover/focus — clearly the button, not noise. */
 .wk-board-card-start {
   flex: 0 0 auto;
   margin-left: auto;
   border: none;
-  background: transparent;
-  color: var(--wk-text-lo);
+  background: var(--wk-accent-soft);
+  color: var(--wk-accent);
   cursor: pointer;
-  padding: 2px;
+  padding: 4px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  border-radius: var(--wk-radius-pill);
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
-.wk-board-card-start:hover {
+.wk-board-card-start:hover,
+.wk-board-card-start:focus-visible {
+  background: var(--wk-accent);
+  color: var(--wk-bg-0);
+}
+/* The list-row twin of the card's start button: accent at rest so it reads as the action, filling
+   to an accent chip on hover/focus — consistent with the board card, lighter for the dense table. */
+.wk-task-row-start {
+  color: var(--wk-accent);
+  border-radius: var(--wk-radius-pill);
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+.wk-task-row-start:hover,
+.wk-task-row-start:focus-visible {
+  background: var(--wk-accent-soft);
   color: var(--wk-accent);
 }
 .wk-board-drag-handle {
@@ -2675,6 +2920,24 @@ html[data-theme='light'] body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+/* Inline delete confirmation (arms in the footer's left slot): a quiet caution strip so the
+   destructive second step reads as deliberate without a modal-over-panel. */
+.wk-delete-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.wk-delete-confirm-label {
+  font-size: var(--wk-fs-13);
+  color: var(--wk-text-mid);
+}
+/* Why a disabled Save is disabled — a quiet inline hint beside it, not a dead dimmed button. */
+.wk-form-hint {
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
+  max-width: 260px;
+  text-align: right;
 }
 .wk-tag-input-wrap {
   position: relative;

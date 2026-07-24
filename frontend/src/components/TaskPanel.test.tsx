@@ -187,7 +187,7 @@ describe('TaskPanel', () => {
     expect(onCreateNew).toHaveBeenCalledWith('New thing')
   })
 
-  it('calls onDelete then onClose when Delete is clicked', () => {
+  it('deletes only after an inline confirm (Delete → Delete), then closes', () => {
     const onDelete = vi.fn()
     const onClose = vi.fn()
     const task = makeTask()
@@ -202,10 +202,40 @@ describe('TaskPanel', () => {
       />,
     )
 
-    fireEvent.click(screen.getByText('Delete'))
+    // First click arms the confirm — nothing is deleted yet.
+    fireEvent.click(screen.getByTestId('wk-task-delete'))
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(screen.getByText('Delete this task?')).toBeInTheDocument()
 
+    // Confirming commits the deletion and closes the panel.
+    fireEvent.click(screen.getByTestId('wk-task-delete-confirm'))
     expect(onDelete).toHaveBeenCalled()
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('cancels the delete via Keep, leaving the task intact', () => {
+    const onDelete = vi.fn()
+    const onClose = vi.fn()
+    render(
+      <TaskPanel
+        task={makeTask()}
+        codes={[]}
+        tagSuggestions={[]}
+        onSave={vi.fn()}
+        onDelete={onDelete}
+        onClose={onClose}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-task-delete'))
+    fireEvent.click(screen.getByTestId('wk-task-delete-cancel'))
+
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(onClose).not.toHaveBeenCalled()
+    // Back to the armed-less state: the plain Delete button is shown again.
+    expect(screen.getByTestId('wk-task-delete')).toBeInTheDocument()
+    expect(screen.queryByText('Delete this task?')).not.toBeInTheDocument()
   })
 
   it('hides the Delete action when onDelete is omitted (creating)', () => {

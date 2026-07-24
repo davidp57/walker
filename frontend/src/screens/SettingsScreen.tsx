@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Absence, Density, PeriodScheme, Theme } from '../types'
 
 interface SettingsScreenProps {
@@ -26,11 +26,66 @@ const DAY_LABELS: Record<number, string> = {
   0: 'Sun',
 }
 
+const DENSITY_OPTIONS: { value: Density; label: string }[] = [
+  { value: 'comfortable', label: 'Comfortable' },
+  { value: 'compact', label: 'Compact' },
+]
+
 const PERIOD_SCHEME_OPTIONS: { value: PeriodScheme; label: string }[] = [
   { value: 'weekly', label: 'Weekly' },
   { value: 'semi_monthly', label: 'Semi-monthly' },
   { value: 'monthly', label: 'Monthly' },
 ]
+
+/**
+ * A single-select segmented control exposed to assistive tech as a proper radiogroup: each option is
+ * a `radio` with `aria-checked`, the group carries a label, and Arrow keys move the selection with a
+ * roving tab stop (WAI-ARIA radiogroup pattern) — the visual `.wk-seg` styling is unchanged.
+ */
+function SegmentedControl<T extends string>({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  options: { value: T; label: string }[]
+  value: T
+  onChange: (value: T) => void
+}) {
+  const index = options.findIndex((o) => o.value === value)
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const delta =
+      e.key === 'ArrowRight' || e.key === 'ArrowDown'
+        ? 1
+        : e.key === 'ArrowLeft' || e.key === 'ArrowUp'
+          ? -1
+          : 0
+    if (delta === 0) return
+    e.preventDefault()
+    onChange(options[(index + delta + options.length) % options.length].value)
+  }
+  return (
+    <div className="wk-period" role="radiogroup" aria-label={label} onKeyDown={onKeyDown}>
+      {options.map((o) => {
+        const active = o.value === value
+        return (
+          <button
+            key={o.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            tabIndex={active ? 0 : -1}
+            className={`wk-seg${active ? ' is-active' : ''}`}
+            onClick={() => onChange(o.value)}
+          >
+            {o.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: 'dark', label: 'Dark' },
@@ -43,6 +98,35 @@ const formatDate = (iso: string): string => {
   return Number.isNaN(d.getTime())
     ? iso
     : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+/** The calendar day after an ISO date, timezone-safe (Date.UTC handles month/year rollover). */
+const nextDay = (iso: string): string => {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
+}
+
+/** A run of consecutive same-reason absence days — the backend stores a range as one row per day
+ *  (BIZ-039), so re-collapse them here to show (and remove) the range as a single chip. */
+interface AbsenceRun {
+  start: string
+  end: string
+  reason: string
+  dates: string[]
+}
+const groupAbsences = (absences: Absence[]): AbsenceRun[] => {
+  const sorted = [...absences].sort((a, b) => a.date.localeCompare(b.date))
+  const runs: AbsenceRun[] = []
+  for (const a of sorted) {
+    const last = runs[runs.length - 1]
+    if (last && last.reason === a.reason && nextDay(last.end) === a.date) {
+      last.end = a.date
+      last.dates.push(a.date)
+    } else {
+      runs.push({ start: a.date, end: a.date, reason: a.reason, dates: [a.date] })
+    }
+  }
+  return runs
 }
 
 export function SettingsScreen({
@@ -72,29 +156,57 @@ export function SettingsScreen({
     setNewReason('')
   }
 
+  // Settings save optimistically (fire-and-forget) — flash a transient "Saved" beside the control
+  // just changed so the action isn't silent. `savedKey` names the control; it self-clears.
+  const [savedKey, setSavedKey] = useState<string | null>(null)
+  const savedTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(savedTimer.current), [])
+  const markSaved = (key: string) => {
+    setSavedKey(key)
+    window.clearTimeout(savedTimer.current)
+    savedTimer.current = window.setTimeout(() => setSavedKey(null), 1600)
+  }
+  const savedTick = (key: string) =>
+    savedKey === key ? (
+      <span className="wk-saved-tick" role="status">
+        ✓ Saved
+      </span>
+    ) : null
+
   return (
     <div className="wk-screen" style={{ maxWidth: 720 }}>
-      <div className="wk-screen-title" style={{ marginBottom: 5 }}>
+      <h1 className="wk-screen-title" style={{ margin: '0 0 5px' }}>
         Settings
-      </div>
+      </h1>
       <div className="wk-screen-sub" style={{ marginBottom: 22 }}>
         Personalize how the Timesheet period view reads.
       </div>
 
       <div className="wk-set-list">
         <div className="wk-set-card">
-          <div className="wk-set-title">Work rhythm</div>
+          <div className="wk-set-cardhead">
+            <h2 className="wk-set-title">Work rhythm</h2>
+            {savedTick('rhythm')}
+          </div>
           <div className="wk-set-desc" style={{ marginBottom: 12 }}>
             Which days count as workdays. Un-ticked days are greyed in the grid (also covers
             part-time).
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div
+            role="group"
+            aria-label="Workdays"
+            style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
+          >
             {DAY_ORDER.map((d) => (
               <button
                 key={d}
                 type="button"
+                aria-pressed={workdays[d]}
                 className={`wk-daytoggle${workdays[d] ? ' is-on' : ''}`}
-                onClick={() => onToggleWorkday(d)}
+                onClick={() => {
+                  onToggleWorkday(d)
+                  markSaved('rhythm')
+                }}
               >
                 {DAY_LABELS[d]}
               </button>
@@ -104,64 +216,61 @@ export function SettingsScreen({
 
         <div className="wk-set-card is-row">
           <div>
-            <div className="wk-set-title">Density</div>
+            <h2 className="wk-set-title">Density</h2>
             <div className="wk-set-desc">Row height across the app.</div>
           </div>
-          <div className="wk-period">
-            <button
-              type="button"
-              className={`wk-seg${density === 'comfortable' ? ' is-active' : ''}`}
-              onClick={() => onDensityChange('comfortable')}
-            >
-              Comfortable
-            </button>
-            <button
-              type="button"
-              className={`wk-seg${density === 'compact' ? ' is-active' : ''}`}
-              onClick={() => onDensityChange('compact')}
-            >
-              Compact
-            </button>
+          <div className="wk-set-control">
+            {savedTick('density')}
+            <SegmentedControl
+              label="Density"
+              options={DENSITY_OPTIONS}
+              value={density}
+              onChange={(v) => {
+                onDensityChange(v)
+                markSaved('density')
+              }}
+            />
           </div>
         </div>
 
         <div className="wk-set-card is-row">
           <div>
-            <div className="wk-set-title">Timesheet period scheme</div>
+            <h2 className="wk-set-title">Timesheet period scheme</h2>
             <div className="wk-set-desc">
-              How the Timesheet period view splits the calendar (ADR-0009).
+              How the Timesheet period view splits the calendar. Changing it reshapes your period
+              view right away.
             </div>
           </div>
-          <div className="wk-period">
-            {PERIOD_SCHEME_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`wk-seg${periodScheme === option.value ? ' is-active' : ''}`}
-                onClick={() => onPeriodSchemeChange(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="wk-set-control">
+            {savedTick('period')}
+            <SegmentedControl
+              label="Timesheet period scheme"
+              options={PERIOD_SCHEME_OPTIONS}
+              value={periodScheme}
+              onChange={(v) => {
+                onPeriodSchemeChange(v)
+                markSaved('period')
+              }}
+            />
           </div>
         </div>
 
         <div className="wk-set-card is-row">
           <div>
-            <div className="wk-set-title">Theme</div>
+            <h2 className="wk-set-title">Theme</h2>
             <div className="wk-set-desc">Dark, light, or match your system's appearance.</div>
           </div>
-          <div className="wk-period">
-            {THEME_OPTIONS.map((option) => (
-              <button
-                key={option.value}
-                type="button"
-                className={`wk-seg${theme === option.value ? ' is-active' : ''}`}
-                onClick={() => onThemeChange(option.value)}
-              >
-                {option.label}
-              </button>
-            ))}
+          <div className="wk-set-control">
+            {savedTick('theme')}
+            <SegmentedControl
+              label="Theme"
+              options={THEME_OPTIONS}
+              value={theme}
+              onChange={(v) => {
+                onThemeChange(v)
+                markSaved('theme')
+              }}
+            />
           </div>
         </div>
 
@@ -174,7 +283,7 @@ export function SettingsScreen({
               marginBottom: 12,
             }}
           >
-            <div className="wk-set-title">Absences</div>
+            <h2 className="wk-set-title">Absences</h2>
             <span
               style={{
                 fontFamily: 'var(--wk-font-mono)',
@@ -187,18 +296,21 @@ export function SettingsScreen({
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-            {absences.map((a) => (
-              <div key={a.date} className="wk-absence-chip">
+            {groupAbsences(absences).map((run) => (
+              <div key={run.start} className="wk-absence-chip">
                 <span className="wk-absence-swatch" />
                 <span style={{ flex: 1 }}>
-                  {formatDate(a.date)} · {a.reason}
+                  {run.start === run.end
+                    ? formatDate(run.start)
+                    : `${formatDate(run.start)} → ${formatDate(run.end)}`}{' '}
+                  · {run.reason}
                 </span>
                 <button
                   type="button"
                   className="wk-btn-icon"
-                  title="Remove absence"
+                  title={run.start === run.end ? 'Remove absence' : 'Remove this range'}
                   style={{ padding: '4px 9px' }}
-                  onClick={() => onRemoveAbsence(a.date)}
+                  onClick={() => run.dates.forEach((d) => onRemoveAbsence(d))}
                 >
                   ✕
                 </button>
@@ -217,7 +329,7 @@ export function SettingsScreen({
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div className="wk-absence-form">
             <input
               className="wk-input"
               type="date"
@@ -226,7 +338,7 @@ export function SettingsScreen({
               aria-label="Absence start date"
               onChange={(e) => setNewDate(e.target.value)}
             />
-            <span className="wk-screen-sub">to</span>
+            <span className="wk-screen-sub">to (optional)</span>
             <input
               className="wk-input"
               type="date"
@@ -234,14 +346,13 @@ export function SettingsScreen({
               min={newDate || undefined}
               style={{ width: 150 }}
               aria-label="Absence end date (optional)"
-              title="Optional — leave empty for a single day"
+              title="Leave empty for a single day"
               onChange={(e) => setNewEndDate(e.target.value)}
             />
             <input
-              className="wk-input"
+              className="wk-input wk-absence-reason"
               value={newReason}
               placeholder="Annual leave"
-              style={{ flex: 1 }}
               onChange={(e) => setNewReason(e.target.value)}
             />
             <button type="button" className="wk-btn-ghost" onClick={addAbsence}>

@@ -114,6 +114,9 @@ export function TaskPanel({
   const [recurrenceRule, setRecurrenceRule] = useState<RecurrenceRule | null>(
     task?.recurrenceRule ?? null,
   )
+  // A deletion needs a deliberate second step (the panel has no undo): the Delete button arms an
+  // inline confirm in place, rather than firing straight through.
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
 
   const suggestions = useMemo(() => {
     const q = tagInput.trim().toLowerCase()
@@ -483,19 +486,43 @@ export function TaskPanel({
 
         <div className="wk-panel-foot">
           <div>
-            {onDelete && (
-              <button
-                type="button"
-                className="wk-btn wk-btn-danger"
-                style={{ padding: '10px 18px' }}
-                onClick={() => {
-                  onDelete()
-                  onClose()
-                }}
-              >
-                Delete
-              </button>
-            )}
+            {onDelete &&
+              (confirmingDelete ? (
+                <div className="wk-delete-confirm" role="group" aria-label="Confirm deletion">
+                  <span className="wk-delete-confirm-label">Delete this task?</span>
+                  <button
+                    type="button"
+                    className="wk-btn-ghost"
+                    onClick={() => setConfirmingDelete(false)}
+                    data-testid="wk-task-delete-cancel"
+                  >
+                    Keep
+                  </button>
+                  <button
+                    type="button"
+                    className="wk-btn wk-btn-danger"
+                    style={{ padding: '10px 18px' }}
+                    onClick={() => {
+                      onDelete()
+                      onClose()
+                    }}
+                    data-testid="wk-task-delete-confirm"
+                    autoFocus
+                  >
+                    Delete
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="wk-btn wk-btn-danger"
+                  style={{ padding: '10px 18px' }}
+                  onClick={() => setConfirmingDelete(true)}
+                  data-testid="wk-task-delete"
+                >
+                  Delete
+                </button>
+              ))}
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
             <button type="button" className="wk-btn-ghost" onClick={onClose}>

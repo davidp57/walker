@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import type { Activity, TimesheetCode } from '../types'
 import { ColorPicker } from './ColorPicker'
+import { InlineDeleteConfirm } from './InlineDeleteConfirm'
+import { useEscapeToClose } from '../lib/useEscapeToClose'
+import { formatList } from '../lib/text'
 import { suggestColor } from '../lib/palette'
 
 /** Fields borrowed from a reference-catalog entry when activating it through the editor (BIZ-049). */
@@ -42,6 +45,7 @@ export function CodeEditor({
   const [color, setColor] = useState(
     () => code?.color ?? suggestColor(otherCodes.map((c) => c.color)),
   )
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [activities, setActivities] = useState<Activity[]>(() => {
     const source = code?.activities.length ? code.activities : prefill?.activities
     return source?.length ? source.map((a) => ({ ...a })) : [{ code: '0001', label: '' }]
@@ -54,6 +58,15 @@ export function CodeEditor({
 
   const cleanActivities = activities.filter((a) => a.label.trim())
   const canSave = number.trim().length > 0 && label.trim().length > 0 && cleanActivities.length > 0
+  // What's still missing, so a disabled Save can say why instead of just dimming (BIZ clarify).
+  const missing = [
+    number.trim() ? null : 'a number',
+    label.trim() ? null : 'a technical label',
+    cleanActivities.length ? null : 'an activity',
+  ].filter((m): m is string => m !== null)
+
+  // Escape closes the editor (cancelling an armed delete-confirm first).
+  useEscapeToClose(() => (confirmingDelete ? setConfirmingDelete(false) : onClose()))
 
   const save = () => {
     if (!canSave) return
@@ -181,21 +194,36 @@ export function CodeEditor({
             }}
           >
             <div>
-              {onDelete && (
-                <button
-                  type="button"
-                  className="wk-btn wk-btn-danger"
-                  style={{ padding: '10px 18px' }}
-                  onClick={() => {
-                    onDelete()
-                    onClose()
-                  }}
-                >
-                  Delete
-                </button>
-              )}
+              {onDelete &&
+                (confirmingDelete ? (
+                  <InlineDeleteConfirm
+                    prompt="Delete this code?"
+                    testid="wk-code-editor-delete"
+                    confirmStyle={{ padding: '10px 18px' }}
+                    onCancel={() => setConfirmingDelete(false)}
+                    onConfirm={() => {
+                      onDelete()
+                      onClose()
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="wk-btn wk-btn-danger"
+                    style={{ padding: '10px 18px' }}
+                    data-testid="wk-code-editor-delete"
+                    onClick={() => setConfirmingDelete(true)}
+                  >
+                    Delete
+                  </button>
+                ))}
             </div>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              {missing.length > 0 && (
+                <span className="wk-form-hint" data-testid="wk-code-editor-save-hint">
+                  Add {formatList(missing)} to save
+                </span>
+              )}
               <button type="button" className="wk-btn-ghost" onClick={onClose}>
                 Cancel
               </button>

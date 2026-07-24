@@ -51,11 +51,24 @@ function renderScreen(
 }
 
 describe('CodeCatalogScreen', () => {
-  it('shows a virtual badge and the backing real code for a virtual code', () => {
+  it('marks a virtual code with a distinct "virtual" badge', () => {
     renderScreen([realCode, virtualCode])
 
     expect(screen.getByText('virtual')).toBeInTheDocument()
-    expect(screen.getByText(/backed by N9\/1042/)).toBeInTheDocument()
+  })
+
+  it('shows "backed by" only when the backing code differs from the shown number', () => {
+    // The shared fixture borrows its backing code's number, so "backed by" would just repeat it.
+    const distinct: TimesheetCode = {
+      ...virtualCode,
+      id: '3',
+      name: 'Distinct backing',
+      realCodeNumber: 'N9/7777',
+    }
+    renderScreen([virtualCode, distinct])
+
+    expect(screen.queryByText(/backed by N9\/1042/)).not.toBeInTheDocument()
+    expect(screen.getByText(/backed by N9\/7777/)).toBeInTheDocument()
   })
 
   it('does not show a virtual badge for a real code', () => {
@@ -71,6 +84,76 @@ describe('CodeCatalogScreen', () => {
     fireEvent.click(screen.getByText('+ New virtual code'))
 
     expect(onNewVirtual).toHaveBeenCalledOnce()
+  })
+
+  it('removes a code only after an inline confirm (✕ → Remove)', () => {
+    const onDelete = vi.fn()
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={onDelete}
+        isCodeInUse={() => false}
+        onSearchReference={async () => []}
+        onActivateReference={vi.fn()}
+      />,
+    )
+
+    // First ✕ arms the confirm — nothing removed yet.
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1'))
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(screen.getByText('Remove?')).toBeInTheDocument()
+
+    // Confirming removes the code.
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1-confirm'))
+    expect(onDelete).toHaveBeenCalledWith(realCode)
+  })
+
+  it('cancels a code removal via Keep', () => {
+    const onDelete = vi.fn()
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={onDelete}
+        isCodeInUse={() => false}
+        onSearchReference={async () => []}
+        onActivateReference={vi.fn()}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1'))
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1-cancel'))
+
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(screen.getByTestId('wk-catalog-delete-1')).toBeInTheDocument()
+  })
+
+  it('keeps an in-use code’s remove control disabled with no confirm', () => {
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={vi.fn()}
+        isCodeInUse={() => true}
+        onSearchReference={async () => []}
+        onActivateReference={vi.fn()}
+      />,
+    )
+
+    const remove = screen.getByTestId('wk-catalog-delete-1')
+    expect(remove).toBeDisabled()
+    fireEvent.click(remove)
+    expect(screen.queryByText('Remove?')).not.toBeInTheDocument()
   })
 
   it('routes the Edit button to onEdit for a real code', () => {
@@ -216,7 +299,7 @@ describe('CodeCatalogScreen', () => {
   it('guides the two-tier model and links the docs in the empty state (BIZ-046)', () => {
     renderScreen([])
 
-    expect(screen.getByText('No codes yet.')).toBeInTheDocument()
+    expect(screen.getByText('Nothing on the books yet.')).toBeInTheDocument()
     expect(screen.getByText(/two tiers/i)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Importing your code catalog/ })).toHaveAttribute(
       'href',
