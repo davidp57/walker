@@ -63,7 +63,16 @@ The three living lots stay open as containers for future work, but hold no open 
 - **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped. See
   `.backlog/TECH/PRD.md`.
 
-Next work comes from triaging `IDEAS.md` (currently empty) into new tickets.
+## Next — HABITS
+
+- **HABITS** (likely codes) — rank (Timesheet code, Activity) pairs by a contextual habit score over
+  the user's own past Entries (time of day + day of week, 8-week window) and surface the top ones in a
+  band **above** the picker's name-sorted Tier 1, which is left untouched. BIZ-083 ships the slice
+  end-to-end (service + endpoint + band, cap hardcoded at 5); BIZ-084 makes the row count a view
+  preference where 0 disables the band. See `.backlog/HABITS/PRD.md`, ADR-0015. No hard dependency —
+  can start immediately.
+
+Further work comes from triaging `IDEAS.md` into new tickets.
 
 ## Forward-looking (not scheduled)
 
