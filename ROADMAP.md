@@ -80,7 +80,16 @@ The three living lots stay open as containers for future work, but hold no open 
   overwrote it back to Uncategorized. The running Entry is now the single source of truth for its
   categorization. See `.backlog/POLISH/tickets/42-running-entry-categorization-desync.md`.
 
-So the only open ticket is **BIZ-084**.
+Open tickets, in the order I'd take them:
+
+- **BIZ-086** (P1, POLISH) — period-relative recurring Tasks never become due: no initial due date is
+  ever computed, the period scheme is hardcoded to `semi_monthly` despite ADR-0009, and the first
+  occurrence can never land in the current period. A feature that is currently inert.
+  See `.backlog/POLISH/tickets/43-period-relative-recurrence-never-fires.md`.
+- **BIZ-087** (P2, POLISH) — hide terminal-state Tasks in the list behind a persisted toggle with a
+  count. See `.backlog/POLISH/tickets/44-tasks-list-hide-done.md`.
+- **BIZ-084** (P2, HABITS) — the `likely_count` view preference; still deliberately waiting on a few
+  days of living with the band.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 
