@@ -5,6 +5,46 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-07-31
+
+### Fixed
+
+- **Tasks that recur relative to the Timesheet period now actually come due** (BIZ-086) — the feature
+  was inert: setting such a rule never gave the Task a due date, and since the recurrence only advanced
+  when a Task was completed, a Task that never came due was never completed. It now gets its first due
+  date the moment the rule is set, landing **in the current period** when that date is still ahead
+  (including today) instead of always skipping to the next one. Two further corrections: the date is
+  computed against **your** Timesheet-period scheme rather than always the semi-monthly one, and adding
+  a rule to an existing Task seeds a date too. Offsets still snap to working days, stepping over
+  weekends and Absences; an explicit due date is never overwritten.
+
+- **Setting the code of the running entry from the Activity list no longer gets lost** (BIZ-085,
+  reported by Julien) — the Timer chip stayed on "Uncategorized" and pressing Stop wiped the code back
+  to nothing, so tracked work silently vanished from the Timesheet period matrix. The running entry is
+  now the single source of truth for its own categorization, so every surface that can set it (Activity
+  list, cell drill-down, entry editor) reaches the Timer chip, and closing the segment can no longer
+  overwrite it. **Complete** was affected the same way and is fixed with it. A code picked *before*
+  Start is now applied to the new entry straight away, and a failure to do so is reported instead of
+  passing silently. The description keeps its own rule: what you type on the bar wins, but a comment
+  written from another surface is no longer blanked.
+
+### Added
+
+- **The Tasks list keeps finished work out of the way** (BIZ-087) — Tasks in the final state no longer
+  sit in the middle of what still has to be done. A `✓ Done (N)` toggle on the toolbar brings them
+  back, and the count means nothing ever looks as though it vanished; when everything is finished, the
+  list says so and reports how many are hidden. The choice is remembered per user. The kanban is
+  unchanged — there the Done column collapses instead.
+
+- **Likely codes in the code picker** (BIZ-083, ADR-0015) — a "Likely at this time" band above the
+  picker's list offers the (Timesheet code, Activity) pairs you usually work on *at this hour, on this
+  kind of day*, scored from your own past Entries. The list below it keeps its name ordering: the band
+  is a layer on top, never a re-sort, so a wrong guess costs a glance instead of hiding the code you
+  came for. It stays silent when nothing looks like a habit, disappears as soon as you type a search,
+  and the moment it ranks against follows the context — "now" from the Timer, the start time you just
+  typed when adding or editing an entry. The day being categorized is excluded from its own evidence,
+  so what you just finished never sits at the top. New endpoint `GET /api/codes/likely`; no migration.
+
 ## [1.9.0] - 2026-07-24
 
 ### Removed

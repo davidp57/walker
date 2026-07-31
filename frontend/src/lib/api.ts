@@ -3,6 +3,7 @@
 // share an origin, so relative paths work in both.
 import type {
   Entry,
+  LikelyCode,
   PeriodScheme,
   ReferenceCode,
   RecurrenceRule,
@@ -74,6 +75,30 @@ function mapCode(code: ApiCode): TimesheetCode {
 export async function fetchCodes(): Promise<TimesheetCode[]> {
   const codes = await getJson<ApiCode[]>('/api/codes')
   return codes.map(mapCode)
+}
+
+interface ApiLikelyCode {
+  code_id: number
+  number: string
+  name: string
+  color: string
+  activity: string
+}
+
+/**
+ * Fetch the (code, activity) pairs likely at `at` — a local ISO moment, `"YYYY-MM-DDTHH:MM"`
+ * (BIZ-083). An empty array means nothing cleared the habit threshold, so no band is shown.
+ */
+export async function fetchLikelyCodes(at: string, limit?: number): Promise<LikelyCode[]> {
+  const query = `at=${encodeURIComponent(at)}${limit === undefined ? '' : `&limit=${limit}`}`
+  const likely = await getJson<ApiLikelyCode[]>(`/api/codes/likely?${query}`)
+  return likely.map((row) => ({
+    codeId: String(row.code_id),
+    codeNumber: row.number,
+    codeName: row.name,
+    color: row.color,
+    activity: row.activity,
+  }))
 }
 
 interface ApiEntry {

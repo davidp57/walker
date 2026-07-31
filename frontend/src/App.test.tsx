@@ -857,6 +857,147 @@ describe('App — editing the running Timer (BIZ-058)', () => {
   })
 })
 
+// BIZ-085 — the running Entry, not the Timer bar's draft, owns its categorization. Reported by
+// Julien: setting the code from the Activity list left the chip stale and Stop wiped the code.
+describe('App — the running entry owns its categorization (BIZ-085)', () => {
+  const runningUncategorized: Entry = {
+    id: '11',
+    date: TODAY_ISO,
+    start: 540,
+    end: null,
+    codeId: null,
+    activity: null,
+    description: '',
+  }
+  const runningCategorized: Entry = {
+    ...runningUncategorized,
+    codeId: realCode.id,
+    activity: 'Bug fixing',
+  }
+
+  /** Mock the API so a successful patch is reflected by the next entries reload, as the server would. */
+  function mockLiveEntries(initial: Entry[]) {
+    let current = initial
+    vi.spyOn(api, 'fetchEntriesRange').mockImplementation(async () => current)
+    const patchEntry = vi.spyOn(api, 'patchEntry').mockImplementation(async (id, patch) => {
+      current = current.map((e) => (e.id === id ? { ...e, ...patch } : e))
+      return current.find((e) => e.id === id) as Entry
+    })
+    return patchEntry
+  }
+
+  const timerChip = (container: HTMLElement): string =>
+    container.querySelector('.wk-timerbar .wk-taskchip-main')?.textContent ?? ''
+
+  it('categorizing the running entry from the Activity list updates the Timer chip', async () => {
+    mockBaseApi([realCode], [runningUncategorized])
+    mockLiveEntries([runningUncategorized])
+
+    const { container } = render(<App />)
+    await screen.findByPlaceholderText('What are you working on?')
+    expect(timerChip(container)).toBe('Uncategorized')
+
+    fireEvent.click(await screen.findByText('⚑ Add code & activity'))
+    fireEvent.click(await screen.findByText('Bug fixing'))
+
+    await waitFor(() => expect(timerChip(container)).toBe('Paper V4'))
+  })
+
+  it('stopping afterwards never nulls the code the Activity list just set', async () => {
+    mockBaseApi([realCode], [runningUncategorized])
+    const patchEntry = mockLiveEntries([runningUncategorized])
+    const stopTimer = vi.spyOn(api, 'stopTimer').mockResolvedValue(runningCategorized)
+
+    render(<App />)
+    await screen.findByPlaceholderText('What are you working on?')
+
+    fireEvent.click(await screen.findByText('⚑ Add code & activity'))
+    fireEvent.click(await screen.findByText('Bug fixing'))
+    await waitFor(() => expect(patchEntry).toHaveBeenCalled())
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop' }))
+
+    await waitFor(() => expect(stopTimer).toHaveBeenCalled())
+    // The regression: Stop used to push the stale draft, whose codeId was null.
+    const nulled = patchEntry.mock.calls.filter(([, patch]) => patch.codeId === null)
+    expect(nulled).toEqual([])
+  })
+
+  it('a description typed on the bar still reaches the entry on Stop', async () => {
+    mockBaseApi([realCode], [runningCategorized])
+    const patchEntry = mockLiveEntries([runningCategorized])
+    const stopTimer = vi.spyOn(api, 'stopTimer').mockResolvedValue(runningCategorized)
+
+    render(<App />)
+    const input = await screen.findByPlaceholderText('What are you working on?')
+    fireEvent.change(input, { target: { value: 'writing spec' } })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop' }))
+
+    await waitFor(() =>
+      expect(patchEntry).toHaveBeenCalledWith('11', { description: 'writing spec' }),
+    )
+    await waitFor(() => expect(stopTimer).toHaveBeenCalled())
+  })
+
+  it('stopping does not blank a description written from another surface', async () => {
+    // Found while verifying in the browser: categorizing from the Activity list also prefills the
+    // description (BIZ-013). The bar's buffer knows nothing about it, so a "push if it differs" rule
+    // would blank it on Stop — the same data loss, just moved to another field.
+    const withDescription: Entry = { ...runningCategorized, description: 'from the list' }
+    mockBaseApi([realCode], [withDescription])
+    const patchEntry = mockLiveEntries([withDescription])
+    const stopTimer = vi.spyOn(api, 'stopTimer').mockResolvedValue(withDescription)
+
+    render(<App />)
+    await screen.findByPlaceholderText('What are you working on?')
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop' }))
+
+    await waitFor(() => expect(stopTimer).toHaveBeenCalled())
+    const blanked = patchEntry.mock.calls.filter(([, patch]) => patch.description === '')
+    expect(blanked).toEqual([])
+  })
+
+  it('reports a failure to carry the picked code, instead of pretending it stuck', async () => {
+    mockBaseApi([realCode], [])
+    vi.spyOn(api, 'fetchEntriesRange').mockResolvedValue([])
+    vi.spyOn(api, 'startTimer').mockResolvedValue(runningUncategorized)
+    vi.spyOn(api, 'patchEntry').mockRejectedValue(new Error('500 Internal Server Error'))
+
+    render(<App />)
+    await screen.findByPlaceholderText('What are you working on?')
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    fireEvent.click(await screen.findByText('Bug fixing'))
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not be saved/i)
+  })
+
+  it('a code picked before Start is carried onto the new entry', async () => {
+    mockBaseApi([realCode], [])
+    mockLiveEntries([])
+    const patchEntry = vi.spyOn(api, 'patchEntry').mockResolvedValue(runningCategorized)
+    vi.spyOn(api, 'startTimer').mockResolvedValue(runningUncategorized)
+
+    render(<App />)
+    await screen.findByPlaceholderText('What are you working on?')
+
+    // Pick a code while stopped, then Start.
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    fireEvent.click(await screen.findByText('Bug fixing'))
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+    await waitFor(() =>
+      expect(patchEntry).toHaveBeenCalledWith(
+        runningUncategorized.id,
+        expect.objectContaining({ codeId: realCode.id, activity: 'Bug fixing' }),
+      ),
+    )
+  })
+})
+
 describe('App — task due dates nav badge (BIZ-062)', () => {
   it('badges the Tasks nav with the overdue/due-today count, excluding done', async () => {
     mockBaseApi([], [])

@@ -63,7 +63,35 @@ The three living lots stay open as containers for future work, but hold no open 
 - **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped. See
   `.backlog/TECH/PRD.md`.
 
-Next work comes from triaging `IDEAS.md` (currently empty) into new tickets.
+## Next — HABITS
+
+- **HABITS** (likely codes) — rank (Timesheet code, Activity) pairs by a contextual habit score over
+  the user's own past Entries (time of day + day of week, 8-week window) and surface the top ones in a
+  band **above** the picker's name-sorted Tier 1, which is left untouched. See
+  `.backlog/HABITS/PRD.md`, ADR-0015.
+  - **BIZ-083 shipped** (PR #144, merged to `develop`): the slice end-to-end — `services/likely_codes.py`,
+    `GET /api/codes/likely`, and the band wired to the Timer, entry categorization and manual add. Row
+    cap hardcoded at 5.
+  - **BIZ-084 open**: make the row count a view preference (`likely_count`, 0–10, 0 disabling the
+    band). Deliberately left until the band has been lived with, so the default is chosen from use
+    rather than guessed.
+- **BIZ-085 shipped** (P1, POLISH — PR #145, merged to `develop`): the bug reported by Julien —
+  categorizing the **running** entry from the Activity list never reached the Timer chip, and Stop
+  overwrote it back to Uncategorized. The running Entry is now the single source of truth for its
+  categorization. See `.backlog/POLISH/tickets/42-running-entry-categorization-desync.md`.
+
+Open tickets, in the order I'd take them:
+
+- **BIZ-086 shipped** (P1, POLISH — PR #146, merged to `develop`): period-relative recurring Tasks were
+  inert — no initial due date was ever computed, the period scheme was hardcoded despite ADR-0009, and
+  an occurrence could never land in the current period.
+  See `.backlog/POLISH/tickets/43-period-relative-recurrence-never-fires.md`.
+- **BIZ-087 shipped** (P2, POLISH — PR #147, merged to `develop`): the Tasks list hides terminal-state
+  Tasks behind a persisted `✓ Done (N)` toggle. See `.backlog/POLISH/tickets/44-tasks-list-hide-done.md`.
+- **BIZ-084** (P2, HABITS) — the `likely_count` view preference; still deliberately waiting on a few
+  days of living with the band. **The only ticket left open.**
+
+Further work comes from triaging `IDEAS.md` into new tickets.
 
 ## Forward-looking (not scheduled)
 

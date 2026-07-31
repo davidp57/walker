@@ -16,9 +16,40 @@ from walker.exceptions import NotFoundError, ValidationError
 from walker.models import Task, TaskPriority
 from walker.services import catalog, states
 from walker.services import settings as settings_service
-from walker.services.recurrence import RecurrenceRule, next_due_date, rule_from_dict, rule_to_dict
+from walker.services.recurrence import (
+    RecurrenceRule,
+    first_due_date,
+    next_due_date,
+    rule_from_dict,
+    rule_to_dict,
+)
 
 _VALID_PRIORITIES = {member.value for member in TaskPriority}
+
+
+def _seeded_due_date(
+    session: Session,
+    user_id: int,
+    recurrence_rule: dict[str, object] | None,
+    due_date: date_type | None,
+) -> date_type | None:
+    """Give a newly-set recurrence rule its first due date (BIZ-086).
+
+    Without this a recurring Task keeps ``due_date`` ``None`` for ever: the roll-forward only runs on
+    completion, and a Task that never comes due is never completed — the rule sits there inert. An
+    explicit ``due_date`` always wins; the user's period scheme, work rhythm and Absences come from
+    their settings.
+    """
+    if recurrence_rule is None or due_date is not None:
+        return due_date
+    settings_view = settings_service.get_settings(session, user_id)
+    return first_due_date(
+        rule_from_dict(recurrence_rule),
+        period_scheme=settings_view.period_scheme,
+        on=date_type.today(),
+        workdays=settings_view.workdays,
+        absences={absence.date for absence in settings_view.absences},
+    )
 
 
 def _resolve_status(session: Session, user_id: int, status: str | None) -> str:
@@ -95,19 +126,21 @@ def create_task(
 ) -> Task:
     """Create a Task. Orphan Tasks (``timesheet_code_id`` ``None``) are allowed.
 
-    ``status`` ``None`` defaults to the user's first (initial) state (BIZ-056).
+    ``status`` ``None`` defaults to the user's first (initial) state (BIZ-056). A recurrence rule with
+    no explicit ``due_date`` is seeded with its first occurrence (BIZ-086).
     """
     _validate_code(session, user_id, timesheet_code_id)
+    validated_rule = _validate_recurrence_rule(recurrence_rule)
     task = Task(
         user_id=user_id,
         title=title,
         description=description,
         status=_resolve_status(session, user_id, status),
         priority=_validate_priority(priority),
-        due_date=due_date,
+        due_date=_seeded_due_date(session, user_id, validated_rule, due_date),
         tags=list(tags),
         timesheet_code_id=timesheet_code_id,
-        recurrence_rule=_validate_recurrence_rule(recurrence_rule),
+        recurrence_rule=validated_rule,
     )
     session.add(task)
     session.commit()
@@ -129,17 +162,22 @@ def update_task(
     timesheet_code_id: int | None,
     recurrence_rule: dict[str, object] | None = None,
 ) -> Task:
-    """Replace every field of a Task."""
+    """Replace every field of a Task.
+
+    Adding a recurrence rule to a Task that has no due date seeds one, exactly as creating it would
+    (BIZ-086) — otherwise the rule would be just as inert as it was on create.
+    """
     task = get_task(session, user_id, task_id)
     _validate_code(session, user_id, timesheet_code_id)
+    validated_rule = _validate_recurrence_rule(recurrence_rule)
     task.title = title
     task.description = description
     task.status = _resolve_status(session, user_id, status)
     task.priority = _validate_priority(priority)
-    task.due_date = due_date
+    task.due_date = _seeded_due_date(session, user_id, validated_rule, due_date)
     task.tags = list(tags)
     task.timesheet_code_id = timesheet_code_id
-    task.recurrence_rule = _validate_recurrence_rule(recurrence_rule)
+    task.recurrence_rule = validated_rule
     session.commit()
     session.refresh(task)
     return task
@@ -166,6 +204,7 @@ def complete_task(session: Session, user_id: int, task_id: int) -> Task:
     absences = {absence.date for absence in settings_view.absences}
     task.due_date = next_due_date(
         rule,
+        period_scheme=settings_view.period_scheme,
         current_due=current_due,
         workdays=settings_view.workdays,
         absences=absences,

@@ -45,10 +45,14 @@ DEFAULT_VIEW_PREFERENCES: dict[str, object] = {
     "period_mode": "review",
     "done_collapsed": False,
     "enter_rounding": False,
+    # BIZ-087: the Tasks *list* hides terminal-state Tasks by default — finished work otherwise piles up
+    # in the middle of what is still to do. Distinct from ``done_collapsed``, which collapses the
+    # kanban's terminal column (BIZ-044); the two surfaces are configured separately on purpose.
+    "task_hide_done": True,
 }
 
 # The bool view-preference keys (not enum-constrained): handled uniformly in resolve/clean.
-_BOOL_VIEW_PREFERENCES = ("done_collapsed", "enter_rounding")
+_BOOL_VIEW_PREFERENCES = ("done_collapsed", "enter_rounding", "task_hide_done")
 
 
 def _resolve_view_preferences(stored: dict[str, object] | None) -> dict[str, object]:

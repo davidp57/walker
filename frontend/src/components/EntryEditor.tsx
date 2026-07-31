@@ -12,7 +12,10 @@ interface EntryEditorProps {
   entry: Entry
   code: TimesheetCode | null
   onSave: (patch: Partial<Entry>) => void
-  onOpenPicker: () => void // reuse CodePicker to change code/activity
+  // Reuse CodePicker to change code/activity. Carries the date + start **currently typed** (not the
+  // saved Entry's), so the likely-codes band ranks against the moment the user just entered
+  // (BIZ-083); `startMinute` is null while the field doesn't parse, and then no band is shown.
+  onOpenPicker: (context: { date: string; startMinute: number | null }) => void
   onDelete?: () => void // omit to hide the Delete action
   onInsertBreak?: () => void // BIZ-076: punch a hole (e.g. lunch) in this entry
   onClose: () => void
@@ -138,7 +141,7 @@ export function EntryEditor({
               type="button"
               className="wk-taskchip"
               style={{ width: '100%' }}
-              onClick={onOpenPicker}
+              onClick={() => onOpenPicker({ date, startMinute: parseMilitaryClock(start) })}
             >
               <span
                 className="wk-dot"

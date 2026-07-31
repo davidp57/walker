@@ -508,6 +508,17 @@ html[data-theme='light'] body {
   flex-shrink: 0;
 }
 
+/* Likely-codes band at the top of the code picker (BIZ-083, ADR-0015): an in-flow section above the
+   name-sorted list, which it never reorders. Rows reuse the .wk-suggest-item shape. */
+.wk-likely {
+  border-bottom: 1px solid var(--wk-line);
+  margin-bottom: 6px;
+}
+.wk-likely .wk-suggest-desc,
+.wk-likely .wk-suggest-meta {
+  display: block;
+}
+
 /* In-flow reference suggestions on the Code catalog screen (BIZ-074): a section below the code
    list, never a floating overlay. */
 .wk-ref-suggest {
@@ -2595,7 +2606,8 @@ html[data-theme='light'] body {
    priority — across both List and Board, without touching the saved view. Amber is the rationed
    "attention" hue (DESIGN.md), so this control wears it rather than the blue accent reserved for
    live/interactive state: quiet at rest, amber-lit when engaged. */
-.wk-task-focus {
+.wk-task-focus,
+.wk-task-toggle {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -2614,15 +2626,18 @@ html[data-theme='light'] body {
     border-color 0.12s ease,
     background 0.12s ease;
 }
-.wk-task-focus:hover:not(:disabled) {
+.wk-task-focus:hover:not(:disabled),
+.wk-task-toggle:hover:not(:disabled) {
   color: var(--wk-text);
   border-color: color-mix(in srgb, var(--wk-amber) 45%, var(--wk-line));
 }
-.wk-task-focus:disabled {
+.wk-task-focus:disabled,
+.wk-task-toggle:disabled {
   opacity: 0.45;
   cursor: default;
 }
-.wk-task-focus.is-active {
+.wk-task-focus.is-active,
+.wk-task-toggle.is-active {
   background: color-mix(in srgb, var(--wk-amber) 14%, transparent);
   border-color: color-mix(in srgb, var(--wk-amber) 55%, var(--wk-line));
   color: var(--wk-amber);
@@ -2641,7 +2656,8 @@ html[data-theme='light'] body {
   color: var(--wk-amber);
   font-size: var(--wk-fs-10);
 }
-.wk-task-focus.is-active .wk-task-focus-count {
+.wk-task-focus.is-active .wk-task-focus-count,
+.wk-task-toggle.is-active .wk-task-focus-count {
   background: var(--wk-amber);
   color: var(--wk-bg-0);
 }

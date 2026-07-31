@@ -154,6 +154,79 @@ describe('CodePicker', () => {
     expect(screen.queryByText('Workday contact info')).not.toBeInTheDocument()
   })
 
+  // BIZ-083 (ADR-0015) — the likely-codes band.
+  describe('likely-codes band', () => {
+    const likely = [
+      {
+        codeId: '2',
+        codeNumber: 'N9/1042',
+        codeName: 'Workday contact info',
+        color: '#abcdef',
+        activity: 'Bug fixing',
+      },
+    ]
+
+    it('shows the likely pairs above the list when a context is given', async () => {
+      renderPicker({ at: '2026-07-29T09:30', onFetchLikely: async () => likely })
+
+      expect(await screen.findByText('Likely at this time')).toBeInTheDocument()
+      expect(screen.getByText('N9/1042 · Bug fixing')).toBeInTheDocument()
+    })
+
+    it('picking a band row selects that code and activity', async () => {
+      const onPick = vi.fn()
+      renderPicker({ at: '2026-07-29T09:30', onFetchLikely: async () => likely, onPick })
+
+      fireEvent.click(await screen.findByText('N9/1042 · Bug fixing'))
+
+      expect(onPick).toHaveBeenCalledWith('2', 'Bug fixing')
+    })
+
+    it('hides the band as soon as a query is typed', async () => {
+      renderPicker({ at: '2026-07-29T09:30', onFetchLikely: async () => likely })
+      await screen.findByText('Likely at this time')
+
+      fireEvent.change(screen.getByPlaceholderText('Search code or activity…'), {
+        target: { value: 'paper' },
+      })
+
+      expect(screen.queryByText('Likely at this time')).not.toBeInTheDocument()
+    })
+
+    it('shows no band without a context', () => {
+      renderPicker({ at: null, onFetchLikely: async () => likely })
+
+      expect(screen.queryByText('Likely at this time')).not.toBeInTheDocument()
+    })
+
+    it('shows no band when nothing clears the habit threshold', async () => {
+      const onFetchLikely = vi.fn(async () => [])
+      renderPicker({ at: '2026-07-29T09:30', onFetchLikely })
+
+      await vi.waitFor(() => expect(onFetchLikely).toHaveBeenCalledWith('2026-07-29T09:30'))
+      expect(screen.queryByText('Likely at this time')).not.toBeInTheDocument()
+    })
+
+    it('never fetches in codeOnly or realOnly mode', () => {
+      const onFetchLikely = vi.fn(async () => likely)
+      renderPicker({ at: '2026-07-29T09:30', onFetchLikely, codeOnly: true })
+
+      expect(onFetchLikely).not.toHaveBeenCalled()
+    })
+
+    it('keeps the band out of the way when the fetch fails', async () => {
+      renderPicker({
+        at: '2026-07-29T09:30',
+        onFetchLikely: async () => {
+          throw new Error('boom')
+        },
+      })
+
+      await screen.findByText('Paper V4')
+      expect(screen.queryByText('Likely at this time')).not.toBeInTheDocument()
+    })
+  })
+
   it('activates a Tier-2 reference code through onActivateReference', async () => {
     const onActivateReference = vi.fn()
     const ref = { id: 'r1', number: 'N9/9', name: 'Ref Project', label: 'REF', activities: [] }

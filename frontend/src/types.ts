@@ -101,6 +101,20 @@ export interface TaskSuggestion {
   color: string
 }
 
+/**
+ * A (Timesheet code, Activity) pair the User usually works on around a given moment (BIZ-083,
+ * ADR-0015) — shown in a band above the code picker's list. Distinct from {@link TaskSuggestion},
+ * which is the recency-based autocomplete of Entry *descriptions*. Carries no score: the ranking is
+ * not calibrated and is never surfaced.
+ */
+export interface LikelyCode {
+  codeId: string
+  codeNumber: string
+  codeName: string
+  color: string
+  activity: ActivityName
+}
+
 export type Density = 'comfortable' | 'compact'
 
 /** A User's theme preference (ADAPTIVE lot); `"system"` follows the OS's `prefers-color-scheme`. */
@@ -119,6 +133,7 @@ export interface ViewPreferences {
   period_mode: 'review' | 'enter'
   done_collapsed: boolean
   enter_rounding: boolean // BIZ-063: round Enter-view durations to the quarter-hour
+  task_hide_done: boolean // BIZ-087: keep terminal-state Tasks out of the Tasks *list*
 }
 
 /** The built-in view-preference defaults, mirroring the server's (services/settings.py). */
@@ -130,6 +145,7 @@ export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
   period_mode: 'review',
   done_collapsed: false,
   enter_rounding: false,
+  task_hide_done: true,
 }
 
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`

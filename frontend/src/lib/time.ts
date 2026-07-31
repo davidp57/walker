@@ -27,6 +27,15 @@ export function formatClock(min: number): string {
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 }
 
+/**
+ * An ISO date + minutes-since-midnight -> a local ISO moment `"YYYY-MM-DDTHH:MM"`, the `at` context
+ * the likely-codes endpoint ranks against (BIZ-083). Deliberately local and timezone-free: the
+ * backend compares it against `Entry.date` + `start_minute`, which are wall-clock too.
+ */
+export function formatLocalMoment(date: string, minute: number): string {
+  return `${date}T${formatClock(minute)}`
+}
+
 /** Parse a duration entry. "1:30"/"130" -> 90, "45" -> 45, "" -> 0. */
 export function parseDuration(input: string): number {
   const s = (input || '').trim()

@@ -12,7 +12,7 @@ type SortDir = 'asc' | 'desc'
 /** The view-preference keys this screen owns (BIZ-053). */
 type TaskViewPrefs = Pick<
   ViewPreferences,
-  'task_view' | 'task_sort' | 'task_sort_dir' | 'task_group'
+  'task_view' | 'task_sort' | 'task_sort_dir' | 'task_group' | 'task_hide_done'
 >
 
 interface TasksScreenProps {
@@ -134,6 +134,7 @@ export function TasksScreen({
     task_sort: 'due' as TaskSortField,
     task_sort_dir: 'asc' as SortDir,
     task_group: 'none' as TaskGroupField,
+    task_hide_done: true,
   })
   const patchPrefs = (patch: Partial<TaskViewPrefs>) => {
     if (onPreferencesChange) onPreferencesChange(patch)
@@ -164,10 +165,24 @@ export function TasksScreen({
     [terminalId, today],
   )
   const focusCount = useMemo(() => tasks.filter(isFocusTask).length, [tasks, isFocusTask])
-  const visibleTasks = useMemo(
-    () => (focus ? tasks.filter(isFocusTask) : tasks),
-    [tasks, focus, isFocusTask],
+
+  // BIZ-087: the *list* hides Tasks in the terminal state by default — finished work otherwise piles
+  // up in the middle of what is still to do, on the default view. The board is left alone: there the
+  // terminal column collapses instead (BIZ-044), which is the same intent in kanban terms.
+  const hideDone = preferences?.task_hide_done ?? local.task_hide_done
+  const doneCount = useMemo(
+    () => (terminalId ? tasks.filter((t) => t.status === terminalId).length : 0),
+    [tasks, terminalId],
   )
+  // Focus already excludes terminal Tasks, so while it is on this toggle has nothing to add and is
+  // hidden rather than left there doing nothing.
+  const showDoneToggle = view === 'list' && !focus
+
+  const visibleTasks = useMemo(() => {
+    const base = focus ? tasks.filter(isFocusTask) : tasks
+    if (view !== 'list' || !hideDone) return base
+    return base.filter((t) => t.status !== terminalId)
+  }, [tasks, focus, isFocusTask, view, hideDone, terminalId])
 
   const toggleSort = (field: TaskSortField) => {
     if (field === sort) {
@@ -371,6 +386,23 @@ export function TasksScreen({
           Focus
           <span className="wk-task-focus-count">{focusCount}</span>
         </button>
+        {showDoneToggle && (
+          <button
+            type="button"
+            className={`wk-task-toggle${hideDone ? '' : ' is-active'}`}
+            aria-pressed={!hideDone}
+            disabled={hideDone && doneCount === 0}
+            onClick={() => patchPrefs({ task_hide_done: !hideDone })}
+            data-testid="wk-task-show-done"
+            title="Show tasks in the final state as well"
+          >
+            <span className="wk-task-focus-flag" aria-hidden="true">
+              ✓
+            </span>
+            Done
+            <span className="wk-task-focus-count">{doneCount}</span>
+          </button>
+        )}
         {view === 'list' && (
           <label>
             Sort by
@@ -427,7 +459,10 @@ export function TasksScreen({
         <div className="wk-modal-empty">
           {focus
             ? 'All quiet — nothing overdue, due today, or high priority.'
-            : 'Clean ledger. Rope in your first to-do with “New task.”'}
+            : hideDone && doneCount > 0
+              ? // Say why it looks empty, rather than implying there is nothing at all (BIZ-087).
+                `All done — nothing active left. ${doneCount} finished task${doneCount > 1 ? 's' : ''} hidden.`
+              : 'Clean ledger. Rope in your first to-do with “New task.”'}
         </div>
       ) : (
         // BIZ-051: one table with per-group section rows, so columns stay aligned across groups.

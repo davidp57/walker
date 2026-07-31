@@ -132,6 +132,14 @@ Organization. Populated by **importing** a list (codes / labels / activities) ex
 from the Timesheet system.
 _Avoid_: "referential" (franglais), "project list".
 
+**Likely code**:
+A (Timesheet code [+ Activity]) pair ranked by how often the User worked on it **around this time of
+day, on this kind of day** — scored from their own past Entries (ADR-0015). Likely codes appear as a
+band **above** the code picker's list, which keeps its name ordering; they change display order only,
+never pre-filling or assigning anything, and never show a probability.
+_Avoid_: "suggestion" (already the recency-based dropdown of Entry descriptions, and the reference-catalog
+additions); "prediction", "recommendation" (both overpromise — the ranking is not calibrated).
+
 **Entry checklist**:
 The aviation-style checklist that tracks progress re-keying the Timesheet into the Timesheet system:
 each line / cell is ticked once reported there.

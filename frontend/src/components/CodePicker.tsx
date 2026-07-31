@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { ActivityName, ReferenceCode, TimesheetCode } from '../types'
+import type { ActivityName, LikelyCode, ReferenceCode, TimesheetCode } from '../types'
 import { searchUserCodes, sortReferenceByName } from '../lib/codeSearch'
 
 interface CodePickerProps {
@@ -17,6 +17,11 @@ interface CodePickerProps {
   // Activate a reference-catalog (Tier 2) code — routes through the code editor so the newly
   // activated real code gets a deliberate colour (BIZ-049).
   onActivateReference?: (ref: ReferenceCode) => void
+  // BIZ-083 (ADR-0015): the moment being categorized, as a local ISO `"YYYY-MM-DDTHH:MM"` — "now"
+  // from the Timer, the start time currently typed from the entry editor. Omitted (or null) when
+  // there is no usable context, in which case no likely-codes band is shown.
+  at?: string | null
+  onFetchLikely?: (at: string) => Promise<LikelyCode[]>
 }
 
 /** Modal chooser for a Timesheet code (+ Activity). Tiered search: your codes, then the reference catalog. */
@@ -29,6 +34,8 @@ export function CodePicker({
   onCreateNewVirtual,
   onSearchReference,
   onActivateReference,
+  at,
+  onFetchLikely,
   codeOnly = false,
   realOnly = false,
 }: CodePickerProps) {
@@ -66,6 +73,30 @@ export function CodePicker({
   }, [query, onSearchReference])
   const refToAdd = sortReferenceByName(refResults, activeNumbers)
 
+  // Tier 0 — the likely-codes band (BIZ-083, ADR-0015). Fetched once when the picker opens: the
+  // context cannot change while it is open (the start-time field sits behind this modal), so there is
+  // nothing to debounce. Not cached across opens — reopening after correcting a start time must
+  // reflect the new hour.
+  const [likely, setLikely] = useState<LikelyCode[]>([])
+  const wantsLikely = !!at && !!onFetchLikely && !codeOnly && !realOnly
+  useEffect(() => {
+    if (!at || !onFetchLikely || codeOnly || realOnly) {
+      setLikely([])
+      return
+    }
+    let cancelled = false
+    onFetchLikely(at)
+      .then((rows) => !cancelled && setLikely(rows))
+      .catch(() => !cancelled && setLikely([]))
+    return () => {
+      cancelled = true
+    }
+  }, [at, onFetchLikely, codeOnly, realOnly])
+
+  // Hidden as soon as a query is typed — you've said what you want, so an hourly guess adds nothing —
+  // and never a skeleton while loading, which would make the list below it jump.
+  const showLikely = wantsLikely && !query.trim() && likely.length > 0
+
   return (
     <div className="wk-overlay" onClick={onClose}>
       <div className="wk-modal wk-modal--picker" onClick={(e) => e.stopPropagation()}>
@@ -85,6 +116,27 @@ export function CodePicker({
           />
         </div>
         <div className="wk-modal-body">
+          {showLikely && (
+            <div className="wk-likely">
+              <div className="wk-suggest-title">Likely at this time</div>
+              {likely.map((row) => (
+                <button
+                  key={`${row.codeId}|${row.activity}`}
+                  type="button"
+                  className="wk-suggest-item"
+                  onClick={() => onPick(row.codeId, row.activity)}
+                >
+                  <span className="wk-dot" style={{ background: row.color }} />
+                  <span className="wk-suggest-body">
+                    <span className="wk-suggest-desc">{row.codeName}</span>
+                    <span className="wk-suggest-meta">
+                      {row.codeNumber} · {row.activity}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
           {shown.length > 0 && <div className="wk-suggest-title">Your codes</div>}
           {shown.map(({ code, activities }) => {
             const head = (
