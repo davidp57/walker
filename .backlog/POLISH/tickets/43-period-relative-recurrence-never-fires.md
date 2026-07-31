@@ -1,7 +1,7 @@
 # BIZ-086 — A period-relative recurring Task never becomes due
 
 ID: BIZ-086
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: bug
 Priority: P1
 
@@ -58,17 +58,31 @@ With the fix for (1) naively applied — seeding from today — a Task created o
 
 ## Acceptance criteria
 
-- [ ] Creating a recurring Task with no due date gives it one immediately, and it shows in the due
-      badge / Focus when that date arrives.
-- [ ] Adding a rule to an existing dateless Task seeds a date too.
-- [ ] "Period end − 1 working day" created mid-period is due **in that same period**; created after
-      that date has passed, it lands in the next one.
-- [ ] The date is computed against the user's own `period_scheme` — a test per scheme (`weekly`,
-      `semi_monthly`, `monthly`) proving the three differ.
-- [ ] Roll-forward on completion still advances to the *next* period (no regression on BIZ-025).
-- [ ] Offsets still snap to working days, skipping weekends per the work rhythm and Absences.
-- [ ] An explicit due date passed at creation is never overwritten by the seeding.
-- [ ] Quality gate clean both sides.
+- [x] Creating a recurring Task with no due date gives it one immediately.
+- [x] Adding a rule to an existing dateless Task seeds a date too.
+- [x] "Period end − 1 working day" set mid-period is due **in that same period**; set after that date
+      has passed, it lands in the next one. The occurrence falling on **today** counts as ahead — "at
+      or after", not "after", which is the whole point of the reported case.
+- [x] The date is computed against the user's own `period_scheme`, proven by a test where the same rule
+      on the same day yields three different dates for `weekly` / `semi_monthly` / `monthly`.
+- [x] Roll-forward on completion still advances to the *next* period (BIZ-025 tests untouched, beyond
+      threading the scheme argument through).
+- [x] Offsets still snap to working days, skipping weekends per the work rhythm and Absences.
+- [x] An explicit due date is never overwritten by the seeding.
+- [x] Quality gate clean (`ruff`, `mypy`, 356 pytest, 95%). Backend-only — the SPA already sends a null
+      due date and renders whatever comes back, so no frontend change was needed.
+- [x] Verified live against a copy of the real settings (Wed–Fri work rhythm, real Absences): a rule
+      anchored on the period end with offset 0, created on the period's **last day**, comes due **that
+      day** instead of skipping a month — the reported symptom. With offset −1 it seeded 2026-08-13,
+      correctly stepping over the 2026-08-14 Absence.
+
+## Design note: two functions, not a flag
+
+`next_due_date` (advance *past* a date) and `first_due_date` (first occurrence *at or after* a date) are
+kept as separate functions. A boolean on one function would put the distinction at the call site, where
+it is exactly the kind of thing that gets passed wrong — and getting it wrong is invisible, since both
+answers are plausible dates. `period_scheme` is likewise a **required** argument: defaulting it is how
+it came to be hardcoded in the first place.
 
 ## Blocked by
 

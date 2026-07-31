@@ -1,19 +1,24 @@
-"""Recurrence date math — roll-forward for recurring Tasks (BIZ-025).
+"""Recurrence date math for recurring Tasks (BIZ-025, BIZ-086).
 
-Web-independent, pure, dependency-injected: ``next_due_date`` takes the rule, the current due
-date, the work rhythm, and absences as plain inputs (no database access), so it is deterministic
-and directly unit-testable (see lot TASKS PRD, "Recurrence math is a pure, dependency-injected
-function"). Reuses the same **Timesheet period** and **work rhythm / Absence** concepts as
-``services/period.py`` and ``services/settings.py`` to keep "snapped to working days"
+Web-independent, pure, dependency-injected: the rule, the reference date, the Timesheet period
+scheme, the work rhythm, and absences are all plain inputs (no database access), so this is
+deterministic and directly unit-testable (see lot TASKS PRD, "Recurrence math is a pure,
+dependency-injected function"). Reuses the same **Timesheet period** and **work rhythm / Absence**
+concepts as ``services/period.py`` and ``services/settings.py`` to keep "snapped to working days"
 consistent across the app.
+
+**Two questions, two functions** (BIZ-086): ``next_due_date`` advances *past* a current due date —
+the roll-forward when a recurring Task is completed — while ``first_due_date`` gives the first
+occurrence *at or after* a date, which is what a rule must be seeded with when it is set. Using the
+roll-forward to seed skips the very occurrence the user is waiting for.
 
 Four rule kinds, no RRULE/iCal:
 
-- ``EveryNDaysRule``: due date + N calendar days.
+- ``EveryNDaysRule``: due date + N calendar days (no absolute phase — seeding starts the cycle).
 - ``WeeklyRule``: the next occurrence of one of the chosen weekdays.
 - ``MonthlyRule``: the same day-of-month next month (clamped to the month's length).
-- ``PeriodRelativeRule``: anchored on the *next* semi-monthly Timesheet period's start (1st/16th)
-  or end (15th/month-end), offset by N working days, and snapped to a working day.
+- ``PeriodRelativeRule``: anchored on a Timesheet period's start or end — per the **user's** period
+  scheme (ADR-0009), not a fixed one — offset by N working days, and snapped to a working day.
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Literal
 
+from walker.models.settings import PeriodScheme
 from walker.services.period import period_bounds
 
 RuleKind = Literal["every_n_days", "weekly", "monthly", "period_relative"]
@@ -142,31 +148,47 @@ def _next_monthly(rule: MonthlyRule, current_due: date) -> date:
     return date(next_month.year, next_month.month, min(rule.day, last_day))
 
 
+def _period_occurrence(
+    rule: PeriodRelativeRule,
+    period_scheme: PeriodScheme,
+    within: date,
+    workdays: list[bool],
+    absences: set[date],
+) -> date:
+    """The rule's occurrence for the period containing ``within``."""
+    start, end = period_bounds(period_scheme, within)
+    anchor = start if rule.anchor == "start" else end
+    return _shift_working_days(anchor, rule.offset_days, workdays, absences)
+
+
 def _next_period_relative(
     rule: PeriodRelativeRule,
+    period_scheme: PeriodScheme,
     current_due: date,
     workdays: list[bool],
     absences: set[date],
 ) -> date:
-    _, current_end = period_bounds("semi_monthly", current_due)
-    next_period_anchor_day = current_end + timedelta(days=1)
-    next_start, next_end = period_bounds("semi_monthly", next_period_anchor_day)
-    anchor = next_start if rule.anchor == "start" else next_end
-    return _shift_working_days(anchor, rule.offset_days, workdays, absences)
+    _, current_end = period_bounds(period_scheme, current_due)
+    return _period_occurrence(rule, period_scheme, current_end + timedelta(days=1), workdays, absences)
 
 
 def next_due_date(
     rule: RecurrenceRule,
     *,
+    period_scheme: PeriodScheme,
     current_due: date,
     workdays: list[bool],
     absences: set[date],
 ) -> date:
-    """Compute the next due date for a recurring Task, per ``rule``.
+    """Advance a recurring Task **past** ``current_due`` — the roll-forward on completion (BIZ-025).
 
-    Pure and dependency-injected: ``workdays`` (Sunday-first booleans, see
-    ``services/settings.py``) and ``absences`` (a set of dates) are supplied by the caller — no
-    database access here.
+    Pure and dependency-injected: ``period_scheme`` (ADR-0009), ``workdays`` (Sunday-first booleans,
+    see ``services/settings.py``) and ``absences`` (a set of dates) are supplied by the caller — no
+    database access here. ``period_scheme`` is deliberately **required**: defaulting it is how it came
+    to be hardcoded to ``semi_monthly`` in the first place (BIZ-086), silently ignoring the setting.
+
+    For the *first* occurrence of a rule, use ``first_due_date`` — this function always moves on, so
+    seeding with it would skip the occurrence the user is waiting for.
     """
     if isinstance(rule, EveryNDaysRule):
         return _next_every_n_days(rule, current_due)
@@ -174,7 +196,43 @@ def next_due_date(
         return _next_weekly(rule, current_due)
     if isinstance(rule, MonthlyRule):
         return _next_monthly(rule, current_due)
-    return _next_period_relative(rule, current_due, workdays, absences)
+    return _next_period_relative(rule, period_scheme, current_due, workdays, absences)
+
+
+def first_due_date(
+    rule: RecurrenceRule,
+    *,
+    period_scheme: PeriodScheme,
+    on: date,
+    workdays: list[bool],
+    absences: set[date],
+) -> date:
+    """The rule's first occurrence **at or after** ``on`` — the due date to seed a new rule with.
+
+    The counterpart of ``next_due_date``, kept as its own function rather than a flag on that one: the
+    two answer different questions ("when does this recur next" vs "when does this first fire"), and a
+    boolean argument would put the difference at the call site, where it is easy to get wrong.
+
+    Per rule kind: a period-relative rule takes the **current** period's occurrence when it is still
+    ahead, else the next period's; a weekly rule accepts ``on`` itself when the weekday matches; a
+    monthly rule takes this month's day when it has not passed; and "every N days" has no absolute
+    phase at all, so its cycle simply starts on ``on``.
+    """
+    if isinstance(rule, EveryNDaysRule):
+        return on
+    if isinstance(rule, WeeklyRule):
+        chosen = sorted(rule.weekdays)
+        if on.weekday() in chosen:
+            return on
+        return _next_weekly(rule, on)
+    if isinstance(rule, MonthlyRule):
+        last_day = calendar.monthrange(on.year, on.month)[1]
+        this_month = date(on.year, on.month, min(rule.day, last_day))
+        return this_month if this_month >= on else _next_monthly(rule, on)
+    occurrence = _period_occurrence(rule, period_scheme, on, workdays, absences)
+    if occurrence >= on:
+        return occurrence
+    return _next_period_relative(rule, period_scheme, on, workdays, absences)
 
 
 def _require_int(data: dict[str, object], key: str) -> int:

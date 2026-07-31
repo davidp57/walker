@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import calendar
+from datetime import date
+
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
@@ -343,6 +346,77 @@ def test_completing_a_period_relative_task_snaps_to_working_days_via_settings(
     body = response.json()
     assert body["status"] == "todo"
     assert body["due_date"] == "2026-06-26"  # last working day before 2026-06-29, itself skipped
+
+
+def test_creating_a_recurring_task_without_a_due_date_seeds_one(client: TestClient) -> None:
+    """BIZ-086: the rule used to sit inert — no date, so never due, so never completed, so never rolled."""
+    response = client.post(
+        "/api/tasks",
+        json={
+            "title": "Key in Timesheet system",
+            "recurrence_rule": {"kind": "period_relative", "anchor": "end", "offset_days": -1},
+        },
+    )
+
+    assert response.status_code == 201
+    due_date = response.json()["due_date"]
+    assert due_date is not None
+    assert date.fromisoformat(due_date) >= date.today()
+
+
+def test_seeding_never_overrides_an_explicit_due_date(client: TestClient) -> None:
+    response = client.post(
+        "/api/tasks",
+        json={
+            "title": "Key in Timesheet system",
+            "due_date": "2026-07-01",
+            "recurrence_rule": {"kind": "period_relative", "anchor": "end", "offset_days": -1},
+        },
+    )
+
+    assert response.json()["due_date"] == "2026-07-01"
+
+
+def test_a_task_without_a_rule_keeps_no_due_date(client: TestClient) -> None:
+    response = client.post("/api/tasks", json={"title": "One-off"})
+
+    assert response.json()["due_date"] is None
+
+
+def test_adding_a_rule_to_a_dateless_task_seeds_a_due_date(client: TestClient) -> None:
+    created = client.post("/api/tasks", json={"title": "Key in Timesheet system"}).json()
+    assert created["due_date"] is None
+
+    response = client.put(
+        f"/api/tasks/{created['id']}",
+        json={
+            "title": "Key in Timesheet system",
+            "recurrence_rule": {"kind": "period_relative", "anchor": "start", "offset_days": 0},
+        },
+    )
+
+    assert response.status_code == 200
+    due_date = response.json()["due_date"]
+    assert due_date is not None
+    assert date.fromisoformat(due_date) >= date.today()
+
+
+def test_the_seeded_date_follows_the_users_period_scheme(client: TestClient) -> None:
+    """The scheme used to be hardcoded to semi_monthly, silently ignoring this setting (ADR-0009)."""
+    client.put("/api/settings", json={"workdays": [True] * 7, "density": "comfortable", "period_scheme": "monthly"})
+
+    created = client.post(
+        "/api/tasks",
+        json={
+            "title": "Key in Timesheet system",
+            "recurrence_rule": {"kind": "period_relative", "anchor": "end", "offset_days": 0},
+        },
+    ).json()
+
+    # A monthly scheme anchors on the end of a calendar month; a semi-monthly one could land on a 15th.
+    seeded = date.fromisoformat(created["due_date"])
+    last_of_month = calendar.monthrange(seeded.year, seeded.month)[1]
+    assert seeded.day == last_of_month
 
 
 def test_complete_unknown_task_returns_404(client: TestClient) -> None:
