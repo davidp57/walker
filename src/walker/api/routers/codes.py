@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from walker.api.dependencies import get_current_user
@@ -14,14 +16,16 @@ from walker.api.schemas import (
     CodeRead,
     CodeUpdate,
     ImportSummary,
+    LikelyCodeRead,
     VirtualCodeCreate,
     VirtualCodeUpdate,
 )
 from walker.db import get_session
 from walker.exceptions import CatalogImportError, NotFoundError, ValidationError
 from walker.models import TimesheetCode, User
-from walker.services import catalog, reference
+from walker.services import catalog, likely_codes, reference
 from walker.services.catalog import ParsedActivity
+from walker.services.likely_codes import DEFAULT_LIKELY_COUNT, MAX_LIKELY_COUNT
 
 router = APIRouter(tags=["codes"])
 
@@ -56,6 +60,35 @@ def list_codes(
     """Return the codes visible to the current user: their Organization's real codes + their own virtual codes."""
     codes = catalog.list_codes(session, user.id)
     return [_code_read(code) for code in codes]
+
+
+@router.get("/codes/likely", response_model=list[LikelyCodeRead])
+def list_likely_codes(
+    at: datetime,
+    limit: int = Query(DEFAULT_LIKELY_COUNT, ge=1, le=MAX_LIKELY_COUNT),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> list[LikelyCodeRead]:
+    """Return the (code, activity) pairs the user usually works on around ``at`` (BIZ-083, ADR-0015).
+
+    ``at`` is the moment being categorized — "now" from the Timer, the start time being typed from the
+    entry editor — and is required: without a context there is nothing to rank against. An empty list
+    means nothing cleared the habit threshold, and the caller shows no band.
+
+    ``limit`` starts at 1 on purpose: a disabled band (``likely_count`` 0, BIZ-084) means the SPA does
+    not call this at all, so asking for zero rows is a client bug, not a way to switch the band off.
+    """
+    ranked = likely_codes.likely_codes(session, user.id, at=at, limit=limit)
+    return [
+        LikelyCodeRead(
+            code_id=code.id,
+            number=code.resolved_number,
+            name=code.name,
+            color=code.color,
+            activity=activity,
+        )
+        for code, activity in likely_codes.resolve(session, user.id, ranked)
+    ]
 
 
 @router.post("/codes", response_model=CodeRead, status_code=status.HTTP_201_CREATED)

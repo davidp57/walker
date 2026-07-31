@@ -35,7 +35,7 @@ import type {
 } from './types'
 import { DEFAULT_TASK_STATES, DEFAULT_VIEW_PREFERENCES } from './types'
 import { resolveChecklistRows } from './lib/checklist'
-import { elapsedSecondsSince, formatDuration } from './lib/time'
+import { elapsedSecondsSince, formatDuration, formatLocalMoment } from './lib/time'
 import {
   applyResolvedTheme,
   readCachedThemePreference,
@@ -64,6 +64,7 @@ import {
   fetchChecklist,
   fetchCodes,
   fetchEntriesRange,
+  fetchLikelyCodes,
   fetchHealth,
   fetchPeriod,
   fetchSettings,
@@ -95,6 +96,16 @@ import {
 const isoDate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const TODAY = isoDate(new Date())
+
+// The moment the code picker's likely-codes band ranks against (BIZ-083, ADR-0015). Local wall clock,
+// matching how an Entry stores its `date` + minutes-since-midnight.
+const momentNow = (): string => {
+  const d = new Date()
+  return formatLocalMoment(isoDate(d), d.getHours() * 60 + d.getMinutes())
+}
+// The moment of an existing Entry — the context when categorizing one from a list or the drill-down.
+const momentOf = (entry: Entry | undefined): string | null =>
+  entry ? formatLocalMoment(entry.date, entry.start) : null
 
 // Shift an ISO date by whole days; label a day for the tracker's section headers.
 const addDays = (iso: string, delta: number): string => {
@@ -260,7 +271,9 @@ function AppInner() {
   // BIZ-070: per-day minutes tracked but excluded from the matrix (missing a code or activity).
   const [uncategorizedByDay, setUncategorizedByDay] = useState<Record<number, number>>({})
   const [checked, setChecked] = useState<ChecklistState>({})
-  const [picker, setPicker] = useState<{ target: 'timer' | string } | null>(null)
+  // `at` is the moment the picker's likely-codes band ranks against (BIZ-083, ADR-0015): "now" from
+  // the Timer, the date + start being edited elsewhere. Null when there is no usable context.
+  const [picker, setPicker] = useState<{ target: 'timer' | string; at: string | null } | null>(null)
   // `prefill` populates the editor from a reference-catalog entry being activated (BIZ-049);
   // `onActivated` is the continuation run after the real code is saved (e.g. select it as a virtual
   // code's backing, or set a task's code).
@@ -276,6 +289,9 @@ function AppInner() {
   const [virtualEditor, setVirtualEditor] = useState<{
     code: TimesheetCode | null
     reopenPicker?: string | null
+    // The reopened picker's likely-codes context, carried through so the band survives the detour
+    // (BIZ-083) rather than silently falling back to "now" for a past Entry.
+    reopenAt?: string | null
   } | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
@@ -553,7 +569,7 @@ function AppInner() {
         else startTimer()
       } else if (e.key.toLowerCase() === 'k') {
         e.preventDefault()
-        setPicker({ target: 'timer' })
+        setPicker({ target: 'timer', at: momentNow() })
       }
     }
     window.addEventListener('keydown', onKeyDown)
@@ -737,11 +753,12 @@ function AppInner() {
     color: string
   }): Promise<void> => {
     const reopenTarget = virtualEditor?.reopenPicker ?? null
+    const reopenAt = virtualEditor?.reopenAt ?? null
     const op = virtualEditor?.code
       ? apiUpdateVirtualCode(virtualEditor.code.id, input)
       : apiCreateVirtualCode(input)
     return op.then(reloadCodes).then(() => {
-      if (reopenTarget !== null) setPicker({ target: reopenTarget })
+      if (reopenTarget !== null) setPicker({ target: reopenTarget, at: reopenAt })
     })
   }
   const importCatalogFile = () => {
@@ -1134,7 +1151,7 @@ function AppInner() {
       onStart={startTimer}
       onStop={stopTimer}
       onCancel={cancelTimer}
-      onSwitchTask={() => setPicker({ target: 'timer' })}
+      onSwitchTask={() => setPicker({ target: 'timer', at: momentNow() })}
       onSubmitDescription={() => startTimerWithDescription(draft.description)}
       taskId={running?.taskId ?? null}
       onComplete={completeTimer}
@@ -1183,7 +1200,9 @@ function AppInner() {
               .then(reload)
               .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
           }
-          onCategorizeEntry={(id) => setPicker({ target: id })}
+          onCategorizeEntry={(id) =>
+            setPicker({ target: id, at: momentOf(entries.find((e) => e.id === id)) })
+          }
           onOpenEntry={(id) => {
             const found = entries.find((e) => e.id === id)
             if (found) setEditorEntry(found)
@@ -1281,7 +1300,12 @@ function AppInner() {
           code={addDraft.codeId ? (codesById[addDraft.codeId] ?? null) : null}
           title="New entry"
           onSave={saveAddDraft}
-          onOpenPicker={() => setPicker({ target: 'new' })}
+          onOpenPicker={({ date, startMinute }) =>
+            setPicker({
+              target: 'new',
+              at: startMinute === null ? null : formatLocalMoment(date, startMinute),
+            })
+          }
           onClose={() => setAddDraft(null)}
         />
       )}
@@ -1317,8 +1341,11 @@ function AppInner() {
               })
               .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
           }
-          onOpenPicker={() => {
-            setPicker({ target: editorEntry.id })
+          onOpenPicker={({ date, startMinute }) => {
+            setPicker({
+              target: editorEntry.id,
+              at: startMinute === null ? null : formatLocalMoment(date, startMinute),
+            })
             setEditorEntry(null)
           }}
           onDelete={() => deleteEntryWithUndo(editorEntry, refreshCell)}
@@ -1369,7 +1396,9 @@ function AppInner() {
               })
               .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
           }
-          onCategorizeEntry={(id) => setPicker({ target: id })}
+          onCategorizeEntry={(id) =>
+            setPicker({ target: id, at: momentOf(cellEntries.find((e) => e.id === id)) })
+          }
           onOpenEntry={(id) => {
             const found = cellEntries.find((e) => e.id === id)
             if (found) setEditorEntry(found)
@@ -1396,11 +1425,14 @@ function AppInner() {
                 : 'Categorize entry'
           }
           codes={visibleCodes}
+          at={picker.at}
+          onFetchLikely={fetchLikelyCodes}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
           onCreateNewVirtual={() => {
             const reopenPicker = picker.target
+            const reopenAt = picker.at
             setPicker(null)
-            setVirtualEditor({ code: null, reopenPicker })
+            setVirtualEditor({ code: null, reopenPicker, reopenAt })
           }}
           onSearchReference={searchReference}
           onActivateReference={(ref) => activateReference(ref)}

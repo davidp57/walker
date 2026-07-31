@@ -101,6 +101,20 @@ export interface TaskSuggestion {
   color: string
 }
 
+/**
+ * A (Timesheet code, Activity) pair the User usually works on around a given moment (BIZ-083,
+ * ADR-0015) — shown in a band above the code picker's list. Distinct from {@link TaskSuggestion},
+ * which is the recency-based autocomplete of Entry *descriptions*. Carries no score: the ranking is
+ * not calibrated and is never surfaced.
+ */
+export interface LikelyCode {
+  codeId: string
+  codeNumber: string
+  codeName: string
+  color: string
+  activity: ActivityName
+}
+
 export type Density = 'comfortable' | 'compact'
 
 /** A User's theme preference (ADAPTIVE lot); `"system"` follows the OS's `prefers-color-scheme`. */

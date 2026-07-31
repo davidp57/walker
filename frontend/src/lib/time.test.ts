@@ -3,6 +3,7 @@ import {
   elapsedSecondsSince,
   formatClock,
   formatDuration,
+  formatLocalMoment,
   parseDuration,
   parseMilitaryClock,
 } from './time'
@@ -29,6 +30,16 @@ describe('parseMilitaryClock', () => {
 
   it('round-trips through formatClock', () => {
     expect(formatClock(parseMilitaryClock('13:45') ?? 0)).toBe('13:45')
+  })
+})
+
+describe('formatLocalMoment', () => {
+  it('builds the local ISO moment the likely-codes context uses (BIZ-083)', () => {
+    expect(formatLocalMoment('2026-07-29', 9 * 60 + 30)).toBe('2026-07-29T09:30')
+  })
+
+  it('carries no timezone suffix — it is wall clock, like Entry.date + start', () => {
+    expect(formatLocalMoment('2026-07-29', 0)).toBe('2026-07-29T00:00')
   })
 })
 

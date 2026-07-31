@@ -508,6 +508,17 @@ html[data-theme='light'] body {
   flex-shrink: 0;
 }
 
+/* Likely-codes band at the top of the code picker (BIZ-083, ADR-0015): an in-flow section above the
+   name-sorted list, which it never reorders. Rows reuse the .wk-suggest-item shape. */
+.wk-likely {
+  border-bottom: 1px solid var(--wk-line);
+  margin-bottom: 6px;
+}
+.wk-likely .wk-suggest-desc,
+.wk-likely .wk-suggest-meta {
+  display: block;
+}
+
 /* In-flow reference suggestions on the Code catalog screen (BIZ-074): a section below the code
    list, never a floating overlay. */
 .wk-ref-suggest {
