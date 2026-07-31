@@ -242,6 +242,16 @@ def test_limit_caps_the_result(session: Session) -> None:
     assert len(svc.likely_codes(session, uid, at=WEDNESDAY_0930, limit=2)) == 2
 
 
+def test_a_limit_of_zero_returns_nothing(session: Session) -> None:
+    """Direct callers may ask for zero rows; over HTTP the endpoint requires at least 1 (BIZ-084)."""
+    uid = _user(session)
+    code_id = _code(session, uid, "N9/1")
+    for day in WEDNESDAYS:
+        _used(session, uid, code_id, on=day, at=_at(9, 30))
+
+    assert svc.likely_codes(session, uid, at=WEDNESDAY_0930, limit=0) == []
+
+
 def test_another_users_history_does_not_leak(session: Session) -> None:
     mine = _user(session)
     theirs = User(username="them")

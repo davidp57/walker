@@ -74,6 +74,9 @@ def list_likely_codes(
     ``at`` is the moment being categorized — "now" from the Timer, the start time being typed from the
     entry editor — and is required: without a context there is nothing to rank against. An empty list
     means nothing cleared the habit threshold, and the caller shows no band.
+
+    ``limit`` starts at 1 on purpose: a disabled band (``likely_count`` 0, BIZ-084) means the SPA does
+    not call this at all, so asking for zero rows is a client bug, not a way to switch the band off.
     """
     ranked = likely_codes.likely_codes(session, user.id, at=at, limit=limit)
     return [

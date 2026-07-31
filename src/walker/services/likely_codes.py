@@ -131,7 +131,10 @@ def likely_codes(
         user_id: Owner of the Entries and of the catalog the results are drawn from.
         at: The moment being categorized — "now" from the Timer, the start time being typed from the
             entry editor. Its date bounds the evidence window and is itself excluded from it.
-        limit: Maximum number of pairs returned. ``0`` returns nothing.
+        limit: Maximum number of pairs returned; ``0`` (or less) returns nothing without querying.
+            Note the HTTP endpoint requires at least 1: a disabled band (``likely_count`` 0, BIZ-084)
+            is handled by the caller *not asking*, so a request for zero rows is a client bug rather
+            than a supported call. This guard is for direct, non-HTTP callers.
 
     Returns:
         Pairs scoring at least ``MIN_SCORE``, highest first; ties broken by code name then activity so
