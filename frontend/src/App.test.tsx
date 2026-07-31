@@ -915,7 +915,7 @@ describe('App — the running entry owns its categorization (BIZ-085)', () => {
     fireEvent.click(await screen.findByText('Bug fixing'))
     await waitFor(() => expect(patchEntry).toHaveBeenCalled())
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop' }))
 
     await waitFor(() => expect(stopTimer).toHaveBeenCalled())
     // The regression: Stop used to push the stale draft, whose codeId was null.
@@ -932,7 +932,7 @@ describe('App — the running entry owns its categorization (BIZ-085)', () => {
     const input = await screen.findByPlaceholderText('What are you working on?')
     fireEvent.change(input, { target: { value: 'writing spec' } })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop' }))
 
     await waitFor(() =>
       expect(patchEntry).toHaveBeenCalledWith('11', { description: 'writing spec' }),
@@ -952,7 +952,7 @@ describe('App — the running entry owns its categorization (BIZ-085)', () => {
     render(<App />)
     await screen.findByPlaceholderText('What are you working on?')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Stop' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop' }))
 
     await waitFor(() => expect(stopTimer).toHaveBeenCalled())
     const blanked = patchEntry.mock.calls.filter(([, patch]) => patch.description === '')
