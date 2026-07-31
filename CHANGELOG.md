@@ -5,6 +5,18 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **Setting the code of the running entry from the Activity list no longer gets lost** (BIZ-085,
+  reported by Julien) — the Timer chip stayed on "Uncategorized" and pressing Stop wiped the code back
+  to nothing, so tracked work silently vanished from the Timesheet period matrix. The running entry is
+  now the single source of truth for its own categorization, so every surface that can set it (Activity
+  list, cell drill-down, entry editor) reaches the Timer chip, and closing the segment can no longer
+  overwrite it. **Complete** was affected the same way and is fixed with it. A code picked *before*
+  Start is now applied to the new entry straight away, and a failure to do so is reported instead of
+  passing silently. The description keeps its own rule: what you type on the bar wins, but a comment
+  written from another surface is no longer blanked.
+
 ### Added
 
 - **Likely codes in the code picker** (BIZ-083, ADR-0015) — a "Likely at this time" band above the

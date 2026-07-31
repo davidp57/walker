@@ -1,7 +1,7 @@
 # BIZ-085 — Categorizing the running entry from the Activity list is lost on Stop
 
 ID: BIZ-085
-Status: 🔄 in-progress
+Status: ✅ done
 Type: bug
 Priority: P1
 
@@ -104,6 +104,19 @@ the user types into it, and only then wins, until the segment closes. Every whol
       468 vitest).
 - [x] Verified live on a copy of the real database — never on the live one, since the scenario writes:
       chip follows, Stop keeps all three fields, a hand-typed comment beats the prefill.
+
+## Delivery
+
+Shipped in [PR #145](https://github.com/davidp57/walker/pull/145) → `develop`.
+
+Two follow-ups came out of review rather than the plan:
+
+- CI caught a flaky query the local run didn't: `getByRole('Stop')` is synchronous, but the button only
+  renders once the entries fetch lands — the same race `App.keyboard.test.tsx` already documents.
+- Sourcery flagged the silent `catch` around Start's categorization patch. Its premise was wrong (the
+  chip reads the Entry now, so a failed patch shows Uncategorized rather than a false success) but the
+  silence was real, so the failure is now surfaced on its own terms — "Timer started, but its code could
+  not be saved" — rather than as a start failure.
 
 ## Blocked by
 
