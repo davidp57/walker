@@ -86,10 +86,10 @@ Open tickets, in the order I'd take them:
   inert — no initial due date was ever computed, the period scheme was hardcoded despite ADR-0009, and
   an occurrence could never land in the current period.
   See `.backlog/POLISH/tickets/43-period-relative-recurrence-never-fires.md`.
-- **BIZ-087** (P2, POLISH) — hide terminal-state Tasks in the list behind a persisted toggle with a
-  count. See `.backlog/POLISH/tickets/44-tasks-list-hide-done.md`.
+- **BIZ-087 shipped** (P2, POLISH — PR #147, merged to `develop`): the Tasks list hides terminal-state
+  Tasks behind a persisted `✓ Done (N)` toggle. See `.backlog/POLISH/tickets/44-tasks-list-hide-done.md`.
 - **BIZ-084** (P2, HABITS) — the `likely_count` view preference; still deliberately waiting on a few
-  days of living with the band.
+  days of living with the band. **The only ticket left open.**
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 

@@ -28,6 +28,12 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ### Added
 
+- **The Tasks list keeps finished work out of the way** (BIZ-087) — Tasks in the final state no longer
+  sit in the middle of what still has to be done. A `✓ Done (N)` toggle on the toolbar brings them
+  back, and the count means nothing ever looks as though it vanished; when everything is finished, the
+  list says so and reports how many are hidden. The choice is remembered per user. The kanban is
+  unchanged — there the Done column collapses instead.
+
 - **Likely codes in the code picker** (BIZ-083, ADR-0015) — a "Likely at this time" band above the
   picker's list offers the (Timesheet code, Activity) pairs you usually work on *at this hour, on this
   kind of day*, scored from your own past Entries. The list below it keeps its name ordering: the band

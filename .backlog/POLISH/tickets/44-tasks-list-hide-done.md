@@ -1,7 +1,7 @@
 # BIZ-087 — Done Tasks clutter the Tasks list: hide them behind a toggle
 
 ID: BIZ-087
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -56,6 +56,11 @@ Four pre-existing `TasksScreen` tests relied on terminal-state Tasks being liste
 single-table assertion, the custom state order, and "never flags a terminal Task as overdue"). Each now
 clicks the toggle first. That is the honest consequence of the new default rather than a regression —
 but it is worth knowing that hiding Done by default touches any test that reasons about the full list.
+
+## Delivery
+
+Shipped in [PR #147](https://github.com/davidp57/walker/pull/147) → `develop`. CI and Sourcery clean on
+the first run.
 
 ## Blocked by
 
