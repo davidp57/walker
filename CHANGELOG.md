@@ -7,6 +7,15 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ### Fixed
 
+- **Tasks that recur relative to the Timesheet period now actually come due** (BIZ-086) — the feature
+  was inert: setting such a rule never gave the Task a due date, and since the recurrence only advanced
+  when a Task was completed, a Task that never came due was never completed. It now gets its first due
+  date the moment the rule is set, landing **in the current period** when that date is still ahead
+  (including today) instead of always skipping to the next one. Two further corrections: the date is
+  computed against **your** Timesheet-period scheme rather than always the semi-monthly one, and adding
+  a rule to an existing Task seeds a date too. Offsets still snap to working days, stepping over
+  weekends and Absences; an explicit due date is never overwritten.
+
 - **Setting the code of the running entry from the Activity list no longer gets lost** (BIZ-085,
   reported by Julien) — the Timer chip stayed on "Uncategorized" and pressing Stop wiped the code back
   to nothing, so tracked work silently vanished from the Timesheet period matrix. The running entry is

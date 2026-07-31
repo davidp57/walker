@@ -1,7 +1,7 @@
 # BIZ-086 — A period-relative recurring Task never becomes due
 
 ID: BIZ-086
-Status: 🔄 in-progress
+Status: ✅ done
 Type: bug
 Priority: P1
 
@@ -83,6 +83,11 @@ kept as separate functions. A boolean on one function would put the distinction 
 it is exactly the kind of thing that gets passed wrong — and getting it wrong is invisible, since both
 answers are plausible dates. `period_scheme` is likewise a **required** argument: defaulting it is how
 it came to be hardcoded in the first place.
+
+## Delivery
+
+Shipped in [PR #146](https://github.com/davidp57/walker/pull/146) → `develop`. CI and Sourcery clean on
+the first run.
 
 ## Blocked by
 

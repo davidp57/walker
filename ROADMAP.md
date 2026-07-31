@@ -82,9 +82,9 @@ The three living lots stay open as containers for future work, but hold no open 
 
 Open tickets, in the order I'd take them:
 
-- **BIZ-086** (P1, POLISH) — period-relative recurring Tasks never become due: no initial due date is
-  ever computed, the period scheme is hardcoded to `semi_monthly` despite ADR-0009, and the first
-  occurrence can never land in the current period. A feature that is currently inert.
+- **BIZ-086 shipped** (P1, POLISH — PR #146, merged to `develop`): period-relative recurring Tasks were
+  inert — no initial due date was ever computed, the period scheme was hardcoded despite ADR-0009, and
+  an occurrence could never land in the current period.
   See `.backlog/POLISH/tickets/43-period-relative-recurrence-never-fires.md`.
 - **BIZ-087** (P2, POLISH) — hide terminal-state Tasks in the list behind a persisted toggle with a
   count. See `.backlog/POLISH/tickets/44-tasks-list-hide-done.md`.
