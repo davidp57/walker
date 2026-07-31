@@ -500,7 +500,14 @@ function AppInner() {
           composed.codeId === null &&
           composed.activity === null &&
           composed.description.trim() === ''
-        return nothingComposed ? created : apiPatchEntry(created.id, composed).catch(() => created)
+        if (nothingComposed) return created
+        return apiPatchEntry(created.id, composed).catch((err: unknown) => {
+          // The Timer *did* start — capture-first is never undone by this — so report the failure on
+          // its own terms rather than as "could not start". The reload then shows the truth: the chip
+          // reads the Entry now, so it self-corrects to Uncategorized instead of lying (BIZ-085).
+          notifyError(errorMessage(err, 'Timer started, but its code could not be saved.'))
+          return created
+        })
       })
       .then(reload)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not start the timer.')))

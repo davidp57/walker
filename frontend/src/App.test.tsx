@@ -959,6 +959,22 @@ describe('App — the running entry owns its categorization (BIZ-085)', () => {
     expect(blanked).toEqual([])
   })
 
+  it('reports a failure to carry the picked code, instead of pretending it stuck', async () => {
+    mockBaseApi([realCode], [])
+    vi.spyOn(api, 'fetchEntriesRange').mockResolvedValue([])
+    vi.spyOn(api, 'startTimer').mockResolvedValue(runningUncategorized)
+    vi.spyOn(api, 'patchEntry').mockRejectedValue(new Error('500 Internal Server Error'))
+
+    render(<App />)
+    await screen.findByPlaceholderText('What are you working on?')
+
+    fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
+    fireEvent.click(await screen.findByText('Bug fixing'))
+    fireEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not be saved/i)
+  })
+
   it('a code picked before Start is carried onto the new entry', async () => {
     mockBaseApi([realCode], [])
     mockLiveEntries([])
