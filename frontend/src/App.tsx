@@ -388,17 +388,7 @@ function AppInner() {
   // Load entries for the tracker window (BIZ-003); widening `trackerFrom` loads earlier days.
   useEffect(() => {
     fetchEntriesRange(trackerFrom, TODAY)
-      .then((es) => {
-        setEntries(es)
-        const active = es.find((e) => e.end === null)
-        if (active) {
-          setDraft({
-            codeId: active.codeId,
-            activity: active.activity,
-            description: active.description,
-          })
-        }
-      })
+      .then(setEntries)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your entries.')))
       .finally(() => setEntriesLoading(false))
   }, [trackerFrom, notifyError])
@@ -463,55 +453,91 @@ function AppInner() {
   // built from the full set so a checklist line still resolves its number/label by id.
   const visibleCodes = useMemo(() => codes.filter((c) => !c.backingOnly), [codes])
 
-  const timerCode = draft.codeId ? (codesById[draft.codeId] ?? null) : null
+  // BIZ-085: while an Entry is running it is the **single source of truth** for its categorization.
+  // Every surface can edit it — the Activity list, the cell drill-down, the full entry editor — and
+  // they all write the Entry, so reading the Timer chip from anywhere else guarantees a desync.
+  // `draft` only composes the *next* segment, for when nothing is running.
+  const timerCodeId = running ? running.codeId : draft.codeId
+  const timerActivity = running ? running.activity : draft.activity
+  const timerCode = timerCodeId ? (codesById[timerCodeId] ?? null) : null
   const elapsedSeconds = running ? elapsedSecondsSince(running.date, running.start, now) : 0
   const runningMinutes = Math.floor(elapsedSeconds / 60)
 
+  // The description is the one field the bar can legitimately lead: it is typed live while the Timer
+  // runs. So it is a local buffer over the running Entry's — **mirroring** the Entry until the user
+  // types in it, and only then winning, until the segment closes.
+  //
+  // `descriptionTouched` is what tells those two states apart, and it has to be a flag: comparing the
+  // buffer against the Entry cannot distinguish "the user typed" from "another surface wrote", and
+  // guessing wrong destroys data in one direction or the other — a stale buffer blanking a description
+  // set from the Activity list, or a reload wiping what is half-typed (BIZ-085).
+  const descriptionTouched = useRef(false)
+  const resetDraft = (next: TimerDraft) => {
+    descriptionTouched.current = false
+    setDraft(next)
+  }
+  useEffect(() => {
+    if (!running) return
+    if (descriptionTouched.current) return
+    const stored = running.description
+    setDraft((d) => (d.description === stored ? d : { ...d, description: stored }))
+  }, [running])
+
   // ---- Timer operations (server-backed) ----
+  // Capture-first (ADR-0006): Start needs no input. But anything already composed on the bar — a
+  // pre-picked code, a typed comment (Enter-to-start, BIZ-009) — is attributed to the new Entry
+  // straight away, so the Entry is the source of truth from its very first moment (BIZ-085). An
+  // untouched bar patches nothing at all.
   const startTimer = () => {
     apiStartTimer()
+      .then((created) => {
+        const composed = {
+          codeId: draft.codeId,
+          activity: draft.activity,
+          description: draft.description,
+        }
+        const nothingComposed =
+          composed.codeId === null &&
+          composed.activity === null &&
+          composed.description.trim() === ''
+        if (nothingComposed) return created
+        return apiPatchEntry(created.id, composed).catch((err: unknown) => {
+          // The Timer *did* start — capture-first is never undone by this — so report the failure on
+          // its own terms rather than as "could not start". The reload then shows the truth: the chip
+          // reads the Entry now, so it self-corrects to Uncategorized instead of lying (BIZ-085).
+          notifyError(errorMessage(err, 'Timer started, but its code could not be saved.'))
+          return created
+        })
+      })
       .then(reload)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not start the timer.')))
   }
-  // Enter-to-start (BIZ-009): start a Timer, then immediately attribute the typed description to
-  // it — the one-click empty Start (capture-first — ADR-0006) is untouched, this is a distinct
-  // gesture only reachable via Enter in the description field or the start/stop shortcut.
-  const startTimerWithDescription = (description: string) => {
-    apiStartTimer()
-      .then((created) =>
-        description.trim() === ''
-          ? created
-          : apiPatchEntry(created.id, { description }).catch(() => created),
-      )
-      .then(reload)
-      .catch(() => reload())
-  }
+  // Shared by Stop and Complete: the only thing left to save when closing a segment is the
+  // description, and only when the user actually typed it on the bar. The code and activity are
+  // already on the Entry — pushing the bar's copy of them here is exactly what used to wipe a
+  // categorization made from any other surface (BIZ-085).
+  const saveRunningDescription = (entry: Entry): Promise<unknown> =>
+    descriptionTouched.current
+      ? apiPatchEntry(entry.id, { description: draft.description })
+      : Promise.resolve()
   const stopTimer = () => {
     if (!running) return
-    apiPatchEntry(running.id, {
-      codeId: draft.codeId,
-      activity: draft.activity,
-      description: draft.description,
-    })
+    saveRunningDescription(running)
       .then(() => apiStopTimer())
       .then(() => {
-        setDraft(EMPTY_DRAFT)
+        resetDraft(EMPTY_DRAFT)
         return reload()
       })
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not stop the timer.')))
   }
-  // Complete (BIZ-023): stop the Timer and mark its linked Task Done, in one call — the running
-  // entry's categorization is saved first, exactly as Stop does, so nothing typed is lost.
+  // Complete (BIZ-023): stop the Timer and mark its linked Task Done, in one call — closing the
+  // segment saves exactly what Stop does, so nothing typed is lost.
   const completeTimer = () => {
     if (!running) return
-    apiPatchEntry(running.id, {
-      codeId: draft.codeId,
-      activity: draft.activity,
-      description: draft.description,
-    })
+    saveRunningDescription(running)
       .then(() => apiCompleteTimer())
       .then(() => {
-        setDraft(EMPTY_DRAFT)
+        resetDraft(EMPTY_DRAFT)
         return Promise.all([reload(), reloadTasks()])
       })
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not complete the task.')))
@@ -525,7 +551,7 @@ function AppInner() {
     const code = task.codeId ? (codesById[task.codeId] ?? null) : null
     const activity = soleActivity(code)
     const category = { codeId: task.codeId, activity, description: task.title, taskId: task.id }
-    setDraft({ codeId: task.codeId, activity, description: task.title })
+    resetDraft({ codeId: task.codeId, activity, description: task.title })
     const apply =
       running && shouldRetagInPlace(running)
         ? apiPatchEntry(running.id, category)
@@ -541,12 +567,12 @@ function AppInner() {
     if (running) {
       apiDeleteEntry(running.id)
         .then(() => {
-          setDraft(EMPTY_DRAFT)
+          resetDraft(EMPTY_DRAFT)
           return reload()
         })
         .catch((err: unknown) => notifyError(errorMessage(err, 'Could not cancel the timer.')))
     } else {
-      setDraft(EMPTY_DRAFT)
+      resetDraft(EMPTY_DRAFT)
     }
   }
 
@@ -592,7 +618,7 @@ function AppInner() {
     const e = entries.find((x) => x.id === id)
     if (!e) return
     const category = { codeId: e.codeId, activity: e.activity, description: e.description }
-    setDraft(category)
+    resetDraft(category)
     // Re-tag an empty stub in place; otherwise start a fresh segment (closing real running work).
     const apply =
       running && shouldRetagInPlace(running)
@@ -855,7 +881,8 @@ function AppInner() {
     }, 400)
   }
 
-  // Comment suggestions (scoped to the draft's code when set)
+  // Comment suggestions, scoped to the Timer's current code when it has one — the running Entry's
+  // when a Timer runs, the composed draft's otherwise (BIZ-085).
   const suggestions: TaskSuggestion[] = useMemo(() => {
     const q = draft.description.trim().toLowerCase()
     const seen = new Set<string>()
@@ -869,7 +896,7 @@ function AppInner() {
         return true
       })
     return pool
-      .filter((e) => (draft.codeId ? e.codeId === draft.codeId : true))
+      .filter((e) => (timerCodeId ? e.codeId === timerCodeId : true))
       .filter(
         (e) =>
           !q ||
@@ -885,7 +912,7 @@ function AppInner() {
         description: e.description,
         color: e.codeId ? (codesById[e.codeId]?.color ?? 'var(--wk-amber)') : 'var(--wk-amber)',
       }))
-  }, [entries, draft.description, draft.codeId, codesById])
+  }, [entries, draft.description, timerCodeId, codesById])
 
   // Timesheet period columns + rows (matrix comes from GET /api/period/{date}). Days are keyed by
   // day-of-month (matching the backend's `minutes_by_day`), which is unambiguous for the
@@ -1145,14 +1172,18 @@ function AppInner() {
       elapsedSeconds={elapsedSeconds}
       description={draft.description}
       code={timerCode}
-      activity={draft.activity}
+      activity={timerActivity}
       suggestions={suggestions}
-      onDescriptionChange={(v) => setDraft((d) => ({ ...d, description: v }))}
+      onDescriptionChange={(v) => {
+        // From here on the bar's text wins over the stored one, until the segment closes (BIZ-085).
+        descriptionTouched.current = true
+        setDraft((d) => ({ ...d, description: v }))
+      }}
       onStart={startTimer}
       onStop={stopTimer}
       onCancel={cancelTimer}
       onSwitchTask={() => setPicker({ target: 'timer', at: momentNow() })}
-      onSubmitDescription={() => startTimerWithDescription(draft.description)}
+      onSubmitDescription={() => startTimer()}
       taskId={running?.taskId ?? null}
       onComplete={completeTimer}
       onInsertBreak={running ? () => setBreakTarget(running) : undefined}
@@ -1165,7 +1196,7 @@ function AppInner() {
         }
       }}
       onPickSuggestion={(s) => {
-        setDraft({ codeId: s.codeId, activity: s.activity, description: s.description })
+        resetDraft({ codeId: s.codeId, activity: s.activity, description: s.description })
         if (running) {
           apiPatchEntry(running.id, {
             codeId: s.codeId,
@@ -1446,6 +1477,8 @@ function AppInner() {
             if (picker.target === 'timer') {
               pickTask(codeId, activity)
               if (lastDescription !== null) {
+                // Written to the Entry too (below), so the buffer is mirroring, not user-typed.
+                descriptionTouched.current = false
                 setDraft((d) => ({ ...d, description: lastDescription }))
                 if (running) {
                   apiPatchEntry(running.id, { description: lastDescription })

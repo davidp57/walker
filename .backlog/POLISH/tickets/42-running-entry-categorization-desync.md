@@ -1,7 +1,7 @@
 # BIZ-085 — Categorizing the running entry from the Activity list is lost on Stop
 
 ID: BIZ-085
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: bug
 Priority: P1
 
@@ -69,16 +69,41 @@ added to the running entry can reintroduce the desync; the recommended fix does 
 Either way the description field needs care: it is edited live on the Timer bar while stopped *and*
 while running, so it is the one field where the bar legitimately leads.
 
+## A second data loss, found while verifying
+
+The recommended fix was applied, and browser verification then exposed **the same bug hiding in the
+description field** — which the first cut of this ticket had waved through as "the bar legitimately
+leads".
+
+Categorizing from the Activity list also prefills the description (the last comment used on that code,
+BIZ-013). That write lands on the Entry, and the bar's buffer knows nothing about it. The first attempt
+guarded Stop with "push the description only if it differs from the Entry's" — which blanks it, because
+**comparing values cannot tell "the user typed" from "another surface wrote"**, and guessing wrong
+destroys data in one direction or the other.
+
+So the description needs an explicit `descriptionTouched` flag: the buffer **mirrors** the Entry until
+the user types into it, and only then wins, until the segment closes. Every wholesale draft replacement
+(Stop, Complete, Cancel, resume, start-from-Task, suggestion pick, BIZ-013 prefill) rearms it; only
+`onDescriptionChange` sets it.
+
 ## Acceptance criteria
 
-- [ ] Categorizing the running entry from the Activity list updates the Timer chip immediately.
-- [ ] Stopping the Timer afterwards **keeps** that code + activity.
-- [ ] Same for **Complete** (BIZ-023) and for a code set through the full entry editor or the cell
-      drill-down on the running entry.
-- [ ] Editing the running entry's description on the Timer bar still wins, and is saved on Stop.
-- [ ] Regression test in `App.test.tsx`: categorize the running entry through the list, assert the chip
-      shows the code, then Stop and assert the patch sent to the API carries the code (not `null`).
-- [ ] Quality gate clean both sides.
+- [x] Categorizing the running entry from the Activity list updates the Timer chip immediately.
+- [x] Stopping the Timer afterwards **keeps** that code + activity.
+- [x] Same for **Complete** (BIZ-023) — it shares the one `saveRunningDescription` helper with Stop, so
+      the two cannot drift apart — and for a code set through the entry editor or the cell drill-down,
+      which all write the Entry that the bar now reads.
+- [x] A description **typed** on the bar still wins and is saved on Stop.
+- [x] A description written by another surface is **not** blanked on Stop, and is mirrored onto the bar.
+- [x] A code picked *before* Start is carried onto the new Entry (it used to arrive only via the Stop
+      push, which this fix removes).
+- [x] Capture-first is untouched: an empty Start still patches nothing (BIZ-009 tests still green).
+- [x] Regression tests in `App.test.tsx` (5 cases: chip sync, no null code on Stop, typed description
+      saved, foreign description not blanked, code carried onto Start).
+- [x] Quality gate clean both sides (`ruff`, `mypy`, 342 pytest 95%; `lint`, `format:check`, `build`,
+      468 vitest).
+- [x] Verified live on a copy of the real database — never on the live one, since the scenario writes:
+      chip follows, Stop keeps all three fields, a hand-typed comment beats the prefill.
 
 ## Blocked by
 
