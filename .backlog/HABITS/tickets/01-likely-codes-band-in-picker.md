@@ -1,7 +1,7 @@
 # BIZ-083 — Likely-codes band in the code picker
 
 ID: BIZ-083
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -83,6 +83,15 @@ No schema migration.
       `build`, `test` 463 ✓).
 - [x] Verified against the real dev database: at 08:30 the band offers only the morning mail/admin
       routine, by 11:30 project work has overtaken it, and at 17:30 the band is empty.
+
+## Delivery
+
+Shipped in [PR #144](https://github.com/davidp57/walker/pull/144) → `develop`.
+
+One acceptance criterion was wrong as first written ("a pair used only once scores below 1.0"): a lone
+**perfectly aligned** same-weekday day scores exactly 1.0 and *is* shown — that case is precisely what
+the threshold is calibrated on. What stays below the bar is a lone use an hour off, or on another
+weekday. Both are now tested separately.
 
 ## Blocked by
 

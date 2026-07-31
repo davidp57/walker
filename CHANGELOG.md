@@ -5,6 +5,17 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- **Likely codes in the code picker** (BIZ-083, ADR-0015) — a "Likely at this time" band above the
+  picker's list offers the (Timesheet code, Activity) pairs you usually work on *at this hour, on this
+  kind of day*, scored from your own past Entries. The list below it keeps its name ordering: the band
+  is a layer on top, never a re-sort, so a wrong guess costs a glance instead of hiding the code you
+  came for. It stays silent when nothing looks like a habit, disappears as soon as you type a search,
+  and the moment it ranks against follows the context — "now" from the Timer, the start time you just
+  typed when adding or editing an entry. The day being categorized is excluded from its own evidence,
+  so what you just finished never sits at the top. New endpoint `GET /api/codes/likely`; no migration.
+
 ## [1.9.0] - 2026-07-24
 
 ### Removed

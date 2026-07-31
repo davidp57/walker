@@ -67,10 +67,14 @@ The three living lots stay open as containers for future work, but hold no open 
 
 - **HABITS** (likely codes) — rank (Timesheet code, Activity) pairs by a contextual habit score over
   the user's own past Entries (time of day + day of week, 8-week window) and surface the top ones in a
-  band **above** the picker's name-sorted Tier 1, which is left untouched. BIZ-083 ships the slice
-  end-to-end (service + endpoint + band, cap hardcoded at 5); BIZ-084 makes the row count a view
-  preference where 0 disables the band. See `.backlog/HABITS/PRD.md`, ADR-0015. No hard dependency —
-  can start immediately.
+  band **above** the picker's name-sorted Tier 1, which is left untouched. See
+  `.backlog/HABITS/PRD.md`, ADR-0015.
+  - **BIZ-083 shipped** (PR #144, merged to `develop`): the slice end-to-end — `services/likely_codes.py`,
+    `GET /api/codes/likely`, and the band wired to the Timer, entry categorization and manual add. Row
+    cap hardcoded at 5.
+  - **BIZ-084 open**: make the row count a view preference (`likely_count`, 0–10, 0 disabling the
+    band). Deliberately left until the band has been lived with, so the default is chosen from use
+    rather than guessed.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 
