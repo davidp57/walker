@@ -48,6 +48,23 @@ def test_invalid_enum_value_falls_back_to_default(session: Session) -> None:
     assert view.view_preferences["task_view"] == "list"
 
 
+def test_task_hide_done_defaults_to_hiding(session: Session) -> None:
+    """BIZ-087: the Tasks list starts clear of finished work; the toggle brings it back."""
+    assert get_settings(session, 1).view_preferences["task_hide_done"] is True
+
+
+def test_task_hide_done_can_be_turned_off_and_persists(session: Session) -> None:
+    update_view_preferences(session, 1, {"task_hide_done": False})
+
+    assert get_settings(session, 1).view_preferences["task_hide_done"] is False
+
+
+def test_task_hide_done_rejects_a_non_boolean(session: Session) -> None:
+    view = update_view_preferences(session, 1, {"task_hide_done": "yes"})
+
+    assert view.view_preferences["task_hide_done"] is True
+
+
 def test_unknown_keys_are_ignored(session: Session) -> None:
     view = update_view_preferences(session, 1, {"nonsense": "x", "task_sort": "title"})
     assert "nonsense" not in view.view_preferences

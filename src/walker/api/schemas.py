@@ -315,6 +315,7 @@ class ViewPreferencesRead(BaseModel):
     period_mode: PeriodMode
     done_collapsed: bool
     enter_rounding: bool
+    task_hide_done: bool
 
 
 class ViewPreferencesUpdate(BaseModel):
@@ -327,6 +328,7 @@ class ViewPreferencesUpdate(BaseModel):
     period_mode: PeriodMode | None = None
     done_collapsed: bool | None = None
     enter_rounding: bool | None = None
+    task_hide_done: bool | None = None
 
 
 class TaskStateRead(BaseModel):

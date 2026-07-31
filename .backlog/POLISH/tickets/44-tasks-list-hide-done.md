@@ -1,7 +1,7 @@
 # BIZ-087 — Done Tasks clutter the Tasks list: hide them behind a toggle
 
 ID: BIZ-087
-Status: ⬜ ready
+Status: 🔄 in-progress
 Type: feature
 Priority: P2
 
@@ -32,14 +32,30 @@ equivalent.
 
 ## Acceptance criteria
 
-- [ ] By default the list shows no terminal-state Tasks; the toggle reveals them with a count.
-- [ ] The choice is persisted per user and survives a reload.
-- [ ] "Terminal" resolves through the user's own state list (renaming or reordering states keeps
-      working — ADR-0011), with no hardcoded status id.
-- [ ] Grouping and sorting still behave with the terminal Tasks hidden (no empty group left behind).
-- [ ] The toggle is accessible: labelled, focus ring, state not conveyed by colour alone (BIZ-082).
-- [ ] Tests: default hides, toggle reveals, count correct, preference persisted.
-- [ ] Quality gate clean both sides.
+- [x] By default the list shows no terminal-state Tasks; the toggle reveals them with a count.
+- [x] The choice is persisted per user (`task_hide_done`, default `true`) and survives a reload.
+- [x] "Terminal" resolves through the user's own state list — the existing `terminalId` (last state,
+      ADR-0011), no hardcoded status id. Covered by the custom-states test, where the terminal state is
+      named `z`/"Shipped".
+- [x] Grouping and sorting still behave with the terminal Tasks hidden: the filter is applied *before*
+      grouping, so a group that ends up empty is not rendered at all.
+- [x] The toggle is accessible: it carries `aria-pressed`, is disabled when there is nothing to reveal,
+      and shares the `.wk-task-focus` styling (focus ring, weight + count chip, not colour alone).
+- [x] Empty-list case handled: when everything is finished the list says so and reports how many are
+      hidden, rather than showing the "no tasks yet" copy and looking broken.
+- [x] The board is untouched — its terminal column collapses instead (BIZ-044) — and the toggle is not
+      rendered there, nor while Focus is on (which already excludes terminal Tasks).
+- [x] Quality gate clean both sides (`ruff`, `mypy`, 359 pytest 95%; `lint`, `format:check`, `build`,
+      476 vitest — 7 new cases).
+- [x] Verified live on a copy of the real data: `✓ DONE 3` on the toolbar, 3 finished Tasks hidden then
+      revealed, the choice persisted server-side and surviving a reload.
+
+## Note on the four tests this changed
+
+Four pre-existing `TasksScreen` tests relied on terminal-state Tasks being listed (status grouping, the
+single-table assertion, the custom state order, and "never flags a terminal Task as overdue"). Each now
+clicks the toggle first. That is the honest consequence of the new default rather than a regression —
+but it is worth knowing that hiding Done by default touches any test that reasons about the full list.
 
 ## Blocked by
 

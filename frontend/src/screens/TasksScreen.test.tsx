@@ -130,6 +130,7 @@ describe('TasksScreen', () => {
       makeTask({ id: '2', title: 'Done task', status: 'done' }),
     ]
     render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('wk-task-show-done')) // the list hides them by default (BIZ-087)
 
     fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
 
@@ -355,6 +356,7 @@ describe('TasksScreen', () => {
     try {
       const done = makeTask({ id: '9', title: 'Shipped', dueDate: '2026-07-01', status: 'done' })
       render(<TasksScreen tasks={[done]} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+      fireEvent.click(screen.getByTestId('wk-task-show-done')) // hidden by default (BIZ-087)
       expect(screen.getByTitle('2026-07-01')).not.toHaveClass('is-overdue')
     } finally {
       vi.useRealTimers()
@@ -378,9 +380,9 @@ describe('TasksScreen', () => {
       const focus = screen.getByTestId('wk-task-focus')
       expect(focus.querySelector('.wk-task-focus-count')).toHaveTextContent('3')
 
-      // Off: every task is listed, including the far-off and the shipped one.
+      // Off: every task is listed except the terminal one, which the list hides by default (BIZ-087).
       expect(screen.getByText('Someday')).toBeInTheDocument()
-      expect(screen.getByText('Shipped')).toBeInTheDocument()
+      expect(screen.queryByText('Shipped')).not.toBeInTheDocument()
 
       fireEvent.click(focus)
 
@@ -482,6 +484,113 @@ describe('TasksScreen', () => {
     expect(screen.getByText('backend')).toBeInTheDocument()
   })
 
+  // BIZ-087 — finished work stays out of the list unless asked for.
+  describe('hiding done tasks in the list', () => {
+    const mixed = () => [
+      // High priority so the Focus button is engageable in the test below.
+      makeTask({ id: '1', title: 'Still going', status: 'todo', priority: 'high' }),
+      makeTask({ id: '2', title: 'Shipped', status: 'done' }),
+      makeTask({ id: '3', title: 'Also shipped', status: 'done' }),
+    ]
+
+    it('hides terminal-state tasks by default and counts them on the toggle', () => {
+      render(<TasksScreen tasks={mixed()} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+      expect(screen.getByText('Still going')).toBeInTheDocument()
+      expect(screen.queryByText('Shipped')).not.toBeInTheDocument()
+      const toggle = screen.getByTestId('wk-task-show-done')
+      expect(toggle.querySelector('.wk-task-focus-count')).toHaveTextContent('2')
+      expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    })
+
+    it('reveals them when toggled, without losing the active ones', () => {
+      render(<TasksScreen tasks={mixed()} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+      fireEvent.click(screen.getByTestId('wk-task-show-done'))
+
+      expect(screen.getByText('Still going')).toBeInTheDocument()
+      expect(screen.getByText('Shipped')).toBeInTheDocument()
+      expect(screen.getByText('Also shipped')).toBeInTheDocument()
+      expect(screen.getByTestId('wk-task-show-done')).toHaveAttribute('aria-pressed', 'true')
+    })
+
+    it('reports the change as a view preference (BIZ-053)', () => {
+      const onPreferencesChange = vi.fn()
+      render(
+        <TasksScreen
+          tasks={mixed()}
+          codesById={{}}
+          onNew={vi.fn()}
+          onOpenTask={vi.fn()}
+          preferences={{
+            task_view: 'list',
+            task_group: 'none',
+            task_sort: 'due',
+            task_sort_dir: 'asc',
+            period_mode: 'review',
+            done_collapsed: false,
+            enter_rounding: false,
+            task_hide_done: true,
+          }}
+          onPreferencesChange={onPreferencesChange}
+        />,
+      )
+
+      fireEvent.click(screen.getByTestId('wk-task-show-done'))
+
+      expect(onPreferencesChange).toHaveBeenCalledWith({ task_hide_done: false })
+    })
+
+    it('leaves the board alone — its terminal column collapses instead (BIZ-044)', () => {
+      render(
+        <TasksScreen
+          tasks={mixed()}
+          codesById={{}}
+          onNew={vi.fn()}
+          onOpenTask={vi.fn()}
+          preferences={{
+            task_view: 'board',
+            task_group: 'none',
+            task_sort: 'due',
+            task_sort_dir: 'asc',
+            period_mode: 'review',
+            done_collapsed: false,
+            enter_rounding: false,
+            task_hide_done: true,
+          }}
+          onPreferencesChange={vi.fn()}
+        />,
+      )
+
+      expect(screen.getByText('Shipped')).toBeInTheDocument()
+      expect(screen.queryByTestId('wk-task-show-done')).not.toBeInTheDocument()
+    })
+
+    it('is disabled when there is nothing finished to reveal', () => {
+      const active = [makeTask({ id: '1', title: 'Still going', status: 'todo' })]
+      render(<TasksScreen tasks={active} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+      const toggle = screen.getByTestId('wk-task-show-done')
+      expect(toggle.querySelector('.wk-task-focus-count')).toHaveTextContent('0')
+      expect(toggle).toBeDisabled()
+    })
+
+    it('steps aside while Focus is on, which already excludes finished work', () => {
+      render(<TasksScreen tasks={mixed()} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+      fireEvent.click(screen.getByTestId('wk-task-focus'))
+
+      expect(screen.queryByTestId('wk-task-show-done')).not.toBeInTheDocument()
+    })
+
+    it('explains an empty list caused by the filter rather than looking broken', () => {
+      const allDone = [makeTask({ id: '1', title: 'Shipped', status: 'done' })]
+      render(<TasksScreen tasks={allDone} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+
+      expect(screen.getByText(/nothing active/i)).toBeInTheDocument()
+    })
+  })
+
   it('is controlled by view preferences and reports changes (BIZ-053)', () => {
     const onPreferencesChange = vi.fn()
     const preferences = {
@@ -492,6 +601,7 @@ describe('TasksScreen', () => {
       period_mode: 'review' as const,
       done_collapsed: false,
       enter_rounding: false,
+      task_hide_done: true,
     }
     const tasks = [makeTask({ id: '1', title: 'A' })]
     render(
@@ -537,6 +647,7 @@ describe('TasksScreen', () => {
       makeTask({ id: '2', title: 'Done task', status: 'done' }),
     ]
     render(<TasksScreen tasks={tasks} codesById={{}} onNew={vi.fn()} onOpenTask={vi.fn()} />)
+    fireEvent.click(screen.getByTestId('wk-task-show-done')) // the list hides them by default (BIZ-087)
 
     fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
 
@@ -598,6 +709,8 @@ describe('TasksScreen', () => {
         onOpenTask={vi.fn()}
       />,
     )
+    // 'z' is the terminal state here, so its task is hidden until asked for (BIZ-087).
+    fireEvent.click(screen.getByTestId('wk-task-show-done'))
     fireEvent.change(screen.getByTestId('wk-task-group-select'), { target: { value: 'status' } })
     const headers = Array.from(document.querySelectorAll('.wk-task-group-title')).map(
       (n) => n.textContent,

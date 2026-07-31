@@ -133,6 +133,7 @@ export interface ViewPreferences {
   period_mode: 'review' | 'enter'
   done_collapsed: boolean
   enter_rounding: boolean // BIZ-063: round Enter-view durations to the quarter-hour
+  task_hide_done: boolean // BIZ-087: keep terminal-state Tasks out of the Tasks *list*
 }
 
 /** The built-in view-preference defaults, mirroring the server's (services/settings.py). */
@@ -144,6 +145,7 @@ export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
   period_mode: 'review',
   done_collapsed: false,
   enter_rounding: false,
+  task_hide_done: true,
 }
 
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`
