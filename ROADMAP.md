@@ -75,6 +75,10 @@ The three living lots stay open as containers for future work, but hold no open 
   - **BIZ-084 open**: make the row count a view preference (`likely_count`, 0–10, 0 disabling the
     band). Deliberately left until the band has been lived with, so the default is chosen from use
     rather than guessed.
+- **BIZ-085** (P1, POLISH) — bug reported by Julien: categorizing the **running** entry from the
+  Activity list doesn't reach the Timer chip, and Stop then overwrites it back to Uncategorized (real
+  work silently loses its code). Takes priority over BIZ-084. See
+  `.backlog/POLISH/tickets/42-running-entry-categorization-desync.md`.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 
