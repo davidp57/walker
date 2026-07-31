@@ -77,6 +77,21 @@ class CodeRead(BaseModel):
     backing_only: bool = False
 
 
+class LikelyCodeRead(BaseModel):
+    """One contextually likely (code, activity) pair, as returned by ``GET /api/codes/likely``.
+
+    Carries exactly what the picker's band renders and needs to pick. The habit **score is
+    deliberately absent** from the contract: it is a ranking device, not a calibrated probability, and
+    ADR-0015 forbids surfacing one — so it never crosses the wire.
+    """
+
+    code_id: int
+    number: str
+    name: str
+    color: str
+    activity: str
+
+
 class ActivityWrite(BaseModel):
     """An activity as supplied when creating/updating a code."""
 
