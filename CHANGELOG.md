@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-07-31
+
 ### Fixed
 
 - **Tasks that recur relative to the Timesheet period now actually come due** (BIZ-086) — the feature
