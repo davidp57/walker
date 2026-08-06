@@ -15,6 +15,7 @@ dist/
 *.db
 *.sqlite
 *.sqlite3
+*.devbak
 
 # --- Environment ---
 .env
@@ -45,3 +46,8 @@ Thumbs.db
 
 # --- Claude Code (personal, not shared) ---
 .claude/settings.local.json
+
+# --- Impeccable (design tooling) ---
+# design.json (the tokens) IS versioned; critique reports and live-session logs are local run output.
+.impeccable/critique/
+.impeccable/live/
