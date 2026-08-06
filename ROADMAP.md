@@ -43,7 +43,8 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
 ## Now — batch shipped to develop, release pending
 
 The queued batch (BIZ-063 … BIZ-066) is merged to `develop`; the next version has not been cut yet.
-The three living lots stay open as containers for future work, but hold no open tickets:
+The three living lots stay open as containers for future work; POLISH holds two open tickets
+(BIZ-088, BIZ-089 — see below), DOCS and TECH none:
 
 - **POLISH** (living lot of small UX improvements) — fully shipped: BIZ-038…047 (running Timer in
   Activity, absence date range, description de-noise, task priority/due pills + inline status,
@@ -89,7 +90,15 @@ Open tickets, in the order I'd take them:
 - **BIZ-087 shipped** (P2, POLISH — PR #147, merged to `develop`): the Tasks list hides terminal-state
   Tasks behind a persisted `✓ Done (N)` toggle. See `.backlog/POLISH/tickets/44-tasks-list-hide-done.md`.
 - **BIZ-084** (P2, HABITS) — the `likely_count` view preference; still deliberately waiting on a few
-  days of living with the band. **The only ticket left open.**
+  days of living with the band.
+- **BIZ-088** (P2, POLISH) — deleting a code blocked by its Entries is a dead end: identify the blocking
+  entries (count, range, minutes), then reassign them to another code+activity or delete them
+  deliberately. Amends the BIZ-030 org-wide guard, and carries an open authorization question about
+  entries owned by other Organization members.
+  See `.backlog/POLISH/tickets/45-code-delete-referencing-entries.md`.
+- **BIZ-089** (P2, POLISH) — per-code totals over an arbitrary date range, to answer "how much time did
+  you spend on X?". Every current aggregation is Timesheet-period-bound; this one is not.
+  See `.backlog/POLISH/tickets/46-time-spent-per-code-recap.md`.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 
