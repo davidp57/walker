@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
@@ -14,6 +14,7 @@ from walker.api.schemas import (
     AddFromReference,
     CodeCreate,
     CodeRead,
+    CodeTotalsRead,
     CodeUpdate,
     ImportSummary,
     LikelyCodeRead,
@@ -23,7 +24,7 @@ from walker.api.schemas import (
 from walker.db import get_session
 from walker.exceptions import CatalogImportError, NotFoundError, ValidationError
 from walker.models import TimesheetCode, User
-from walker.services import catalog, likely_codes, reference
+from walker.services import catalog, code_totals, likely_codes, reference
 from walker.services.catalog import ParsedActivity
 from walker.services.likely_codes import DEFAULT_LIKELY_COUNT, MAX_LIKELY_COUNT
 
@@ -89,6 +90,29 @@ def list_likely_codes(
         )
         for code, activity in likely_codes.resolve(session, user.id, ranked)
     ]
+
+
+@router.get("/codes/{code_id}/totals", response_model=CodeTotalsRead)
+def get_code_totals(
+    code_id: int,
+    date_from: date | None = Query(None, alias="from"),
+    date_to: date | None = Query(None, alias="to"),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> CodeTotalsRead:
+    """How much time the user spent on this code over ``from``–``to`` (BIZ-089).
+
+    Both bounds are optional and inclusive; omitting them totals **all time**, which is the most
+    common form of the question and needs no date input. Unlike ``/period/{on_date}`` the range is
+    arbitrary — it may span several Timesheet periods, or none completely.
+    """
+    try:
+        totals = code_totals.code_totals(session, user.id, code_id, start=date_from, end=date_to)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    return CodeTotalsRead.model_validate(totals)
 
 
 @router.post("/codes", response_model=CodeRead, status_code=status.HTTP_201_CREATED)

@@ -2,6 +2,7 @@
 // The dev server proxies /api to the FastAPI backend; in production the SPA and API
 // share an origin, so relative paths work in both.
 import type {
+  CodeTotals,
   Entry,
   LikelyCode,
   PeriodScheme,
@@ -349,6 +350,46 @@ export async function deleteCode(id: string): Promise<void> {
   const response = await fetch(`/api/codes/${id}`, { method: 'DELETE' })
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText} for /api/codes/${id}`)
+  }
+}
+
+interface ApiCodeTotals {
+  code_id: number
+  start: string | null
+  end: string | null
+  minutes: number
+  entries: number
+  days: number
+  by_activity: { activity: string | null; minutes: number; entries: number }[]
+  running: boolean
+  rollup: { minutes: number; entries: number; days: number } | null
+}
+
+/**
+ * Time spent on one code (BIZ-089). Omit both bounds for all time — the most common form of the
+ * question, and the one that needs no date input at all.
+ */
+export async function fetchCodeTotals(
+  codeId: string,
+  range: { from?: string; to?: string } = {},
+): Promise<CodeTotals> {
+  const params = new URLSearchParams()
+  if (range.from) params.set('from', range.from)
+  if (range.to) params.set('to', range.to)
+  const query = params.toString()
+  const body = await getJson<ApiCodeTotals>(
+    `/api/codes/${codeId}/totals${query ? `?${query}` : ''}`,
+  )
+  return {
+    codeId: String(body.code_id),
+    start: body.start,
+    end: body.end,
+    minutes: body.minutes,
+    entries: body.entries,
+    days: body.days,
+    byActivity: body.by_activity,
+    running: body.running,
+    rollup: body.rollup,
   }
 }
 

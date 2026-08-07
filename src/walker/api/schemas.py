@@ -174,6 +174,46 @@ class EntryRead(BaseModel):
     source: str | None  # "timer" | "manual" | None (legacy/unknown) — BIZ-065
 
 
+class ActivityTotalRead(BaseModel):
+    """One activity's share of a code's time (BIZ-089). ``activity`` is null for code-only entries."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    activity: str | None
+    minutes: int
+    entries: int
+
+
+class TotalsRead(BaseModel):
+    """A (minutes, entries, distinct days) triple — the code's own, or its roll-up (BIZ-089)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    minutes: int
+    entries: int
+    days: int
+
+
+class CodeTotalsRead(BaseModel):
+    """Time spent on one code over an arbitrary range (BIZ-089) — null dates mean all time.
+
+    A virtual code reports its own time (ADR-0008); a real code with virtual children additionally
+    carries ``rollup``, the same totals including them. The two are never merged.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    code_id: int
+    start: date | None
+    end: date | None
+    minutes: int
+    entries: int
+    days: int
+    by_activity: list[ActivityTotalRead]
+    running: bool  # a timer is running on this code; its time is not in the totals
+    rollup: TotalsRead | None
+
+
 class PeriodRowRead(BaseModel):
     """One Code × Activity row of the Timesheet period grid."""
 

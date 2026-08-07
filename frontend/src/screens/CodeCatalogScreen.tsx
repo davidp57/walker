@@ -13,6 +13,7 @@ interface CodeCatalogScreenProps {
   onEdit: (code: TimesheetCode) => void
   onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
+  onShowTotals: (code: TimesheetCode) => void // BIZ-089: "how much time did you spend on X?"
   isCodeInUse: (id: string) => boolean
   onImport?: () => void // import the reference catalog from a file
   importStatus?: string | null // result/error of the last import
@@ -29,6 +30,7 @@ export function CodeCatalogScreen({
   onEdit,
   onEditVirtual,
   onDelete,
+  onShowTotals,
   isCodeInUse,
   onImport,
   importStatus,
@@ -137,6 +139,7 @@ export function CodeCatalogScreen({
                 key={c.id}
                 code={c}
                 inUse={isCodeInUse(c.id)}
+                onShowTotals={onShowTotals}
                 onEdit={onEdit}
                 onEditVirtual={onEditVirtual}
                 onDelete={onDelete}
@@ -204,12 +207,14 @@ export function CodeCatalogScreen({
 function CatalogCard({
   code: c,
   inUse,
+  onShowTotals,
   onEdit,
   onEditVirtual,
   onDelete,
 }: {
   code: TimesheetCode
   inUse: boolean
+  onShowTotals: (code: TimesheetCode) => void
   onEdit: (code: TimesheetCode) => void
   onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
@@ -253,6 +258,15 @@ function CatalogCard({
             />
           ) : (
             <>
+              <button
+                type="button"
+                className="wk-btn-icon"
+                title="How much time have I spent on this?"
+                data-testid={`wk-catalog-totals-${c.id}`}
+                onClick={() => onShowTotals(c)}
+              >
+                ⏱
+              </button>
               <button
                 type="button"
                 className="wk-btn-ghost"

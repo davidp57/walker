@@ -115,6 +115,41 @@ export interface LikelyCode {
   activity: ActivityName
 }
 
+/** One activity's share of a code's time (BIZ-089). `activity` is null for code-only entries. */
+export interface ActivityTotal {
+  activity: ActivityName | null
+  minutes: number
+  entries: number
+}
+
+/** A (minutes, entries, distinct days) triple — a code's own totals, or its roll-up (BIZ-089). */
+export interface Totals {
+  minutes: number
+  entries: number
+  days: number
+}
+
+/**
+ * How much time you spent on one code over an arbitrary range (BIZ-089) — null dates mean all time.
+ * Unlike everything in `PeriodRow`, this is **not** bound to a Timesheet period.
+ *
+ * A virtual code reports its own time rather than collapsing into its backing real code (ADR-0008 —
+ * `resolve_to_real_codes` serves the opposite, Timesheet-facing case). A real code with virtual
+ * children also carries `rollup`, the same totals including them; the two are shown side by side and
+ * never merged.
+ */
+export interface CodeTotals {
+  codeId: string
+  start: string | null // ISO date
+  end: string | null
+  minutes: number
+  entries: number
+  days: number
+  byActivity: ActivityTotal[]
+  running: boolean // a timer is running on this code; its time is not counted in the totals
+  rollup: Totals | null
+}
+
 export type Density = 'comfortable' | 'compact'
 
 /** A User's theme preference (ADAPTIVE lot); `"system"` follows the OS's `prefers-color-scheme`. */
