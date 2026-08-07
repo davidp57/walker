@@ -7,6 +7,14 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ### Added
 
+- **A code can be retired instead of deleted** (BIZ-090). A closed project or a charge line replaced
+  by its successor could not be deleted — its entries are real captured time — so it stayed in the
+  catalog forever and kept turning up in every picker, as easy to click as the live one. Retiring it
+  takes it out of the catalog (behind a `Retired (N)` toggle) and out of every picker, including the
+  likely-codes band, while everything it already carries goes on reading exactly as before. When you
+  retire it you can optionally move the **current period's** entries onto a replacement code and
+  activity; earlier periods are left alone, since they have already been keyed into the Timesheet
+  system. Retiring a shared code says so first — it hides it for everyone in your organization.
 - **"How much time did you spend on X?"** (BIZ-089) — per-code totals over any date range, reachable
   from the Code catalog: total, per-activity breakdown, entry count and days worked. Presets for all
   time (the default — the question usually needs no dates), the current period, this month, this

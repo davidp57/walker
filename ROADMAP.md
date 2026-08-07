@@ -64,7 +64,10 @@ Whether a given version has been cut is **not** recorded here — that is `CHANG
   inert: no initial due date, the scheme hardcoded despite ADR-0009), BIZ-087 (the Tasks list hides
   terminal-state Tasks behind a persisted `✓ Done (N)` toggle), then BIZ-088 (a blocked code deletion
   now reports what is in the way and offers reassign-or-delete) and BIZ-089 (per-code totals over an
-  arbitrary date range). See `.backlog/POLISH/PRD.md`.
+  arbitrary date range) and BIZ-090 (a code can be retired rather than deleted: hidden from the
+  catalog behind a counted toggle and from every picker, still resolving everywhere past work
+  references it, with an optional sweep of the open period onto a replacement).
+  See `.backlog/POLISH/PRD.md`.
 - **HABITS** (likely codes) — rank (Timesheet code, Activity) pairs by a contextual habit score over
   the user's own past Entries (time of day + day of week, 8-week window) and surface the top ones in a
   band **above** the picker's name-sorted Tier 1, which is left untouched. BIZ-083 shipped (PR #144):
@@ -84,9 +87,7 @@ One `- **ID** (priority, LOT) — …` entry per open ticket. The shape is load-
 reads exactly these lines, so prose elsewhere may cite a closed ticket without being mistaken for a
 claim that it is open.
 
-- **BIZ-090** (P2, POLISH) — mark a code obsolete: hide it from the catalog behind a "show obsolete"
-  toggle, and optionally sweep the open Timesheet period's entries onto a replacement code+activity.
-  See `.backlog/POLISH/tickets/47-obsolete-codes.md`.
+_Nothing open._
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 

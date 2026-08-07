@@ -1,7 +1,7 @@
 # BIZ-090 — Mark a code obsolete: hide it, and optionally sweep the open period onto its replacement
 
 ID: BIZ-090
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -64,22 +64,26 @@ different data model, and needs its own ADR.
 
 ## Acceptance criteria
 
-- [ ] A code can be marked obsolete and un-marked, from the catalog.
-- [ ] Obsolete codes are absent from the catalog by default, and from every picker including the
+- [x] A code can be marked obsolete and un-marked, from the catalog.
+- [x] Obsolete codes are absent from the catalog by default, and from every picker including the
       likely-codes band, with no exception.
-- [ ] A persisted "Show obsolete codes" toggle reveals them in the catalog, labelled with the count.
-- [ ] Entries, the period grid and the checklist still resolve an obsolete code's number, label and
+- [x] A persisted "Show obsolete codes" toggle reveals them in the catalog, labelled with the count.
+- [x] Entries, the period grid and the checklist still resolve an obsolete code's number, label and
       colour — past work stays readable.
-- [ ] Marking obsolete offers, optionally, to reassign the **open Timesheet period's** entries to a
+- [x] Marking obsolete offers, optionally, to reassign the **open Timesheet period's** entries to a
       chosen code + activity; declining leaves every entry untouched.
-- [ ] The sweep never touches entries outside the open period, and never another member's entries.
-- [ ] Marking a **real** code obsolete states that it applies to the whole Organization before it is
+- [x] The sweep never touches entries outside the open period, and never another member's entries.
+- [x] Marking a **real** code obsolete states that it applies to the whole Organization before it is
       applied, per the section above.
-- [ ] An obsolete code is still deletable through the normal path (BIZ-088) — obsolete is not a
+- [x] An obsolete code is still deletable through the normal path (BIZ-088) — obsolete is not a
       substitute for deletion, it is the state for work that legitimately happened.
-- [ ] Alembic migration for the new column, defaulting existing rows to not-obsolete.
-- [ ] Quality gate clean both sides.
+- [x] Alembic migration for the new column, defaulting existing rows to not-obsolete.
+- [x] Quality gate clean both sides.
 
 ## Blocked by
 
 None. (Builds on BIZ-088's reassign service, already shipped.)
+
+## Delivery
+
+Shipped in [PR #154](https://github.com/davidp57/walker/pull/154) -> `develop`.
