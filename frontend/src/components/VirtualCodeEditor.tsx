@@ -12,7 +12,8 @@ interface VirtualCodeEditorProps {
   realCodes: TimesheetCode[] // real codes only — the candidates for the backing code
   codes: TimesheetCode[] // all visible codes — for the colour picker's avoidance + used markers
   onSave: (input: { realCodeId: string; name: string; color: string }) => Promise<void>
-  onDelete?: () => void // omitted when the code can't be deleted (new, or in use)
+  onDelete?: () => void // omitted when the code cannot be deleted (new, or genuinely blocked)
+  deleteBlockedReason?: string // TEC-016: why, when it is — never a silent omission
   onClose: () => void
   // Backing-code selection via the shared CodePicker (BIZ-049). Optional so the editor still works
   // without them (e.g. in isolation tests).
@@ -29,6 +30,7 @@ export function VirtualCodeEditor({
   codes,
   onSave,
   onDelete,
+  deleteBlockedReason,
   onClose,
   onSearchReference,
   onActivateReference,
@@ -152,6 +154,11 @@ export function VirtualCodeEditor({
             }}
           >
             <div>
+              {!onDelete && deleteBlockedReason && (
+                <span className="wk-editor-blocked" role="note">
+                  {deleteBlockedReason}
+                </span>
+              )}
               {onDelete &&
                 (confirmingDelete ? (
                   <InlineDeleteConfirm

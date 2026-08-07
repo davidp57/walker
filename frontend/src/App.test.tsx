@@ -1096,4 +1096,46 @@ describe('App — code picker stacks above the Timesheet-period cell modal (TEC-
     expect(await screen.findByText('My sub-project')).toBeInTheDocument()
     expect(screen.queryByText('Hidden backing')).not.toBeInTheDocument()
   })
+
+  // TEC-016 — the client only knows the loaded date window, so it must not decide that entries block
+  // a deletion. Only virtual children do; everything else goes to the server (BIZ-088).
+  it('offers Delete for a code whose entries all fall outside the loaded window', async () => {
+    // No entries loaded at all — the state the SPA is in for a code only used months ago.
+    mockBaseApi([realCode], [])
+    render(<App />)
+
+    await clickNav('Code catalog')
+    fireEvent.click(await screen.findByTestId('wk-catalog-delete-1'))
+
+    expect(screen.getByTestId('wk-catalog-delete-1-confirm')).toBeInTheDocument()
+  })
+
+  // BIZ-090 — the whole point of retiring a code is that it stops being offered. It must still reach
+  // the catalog (behind its toggle), so this is exactly the invariant a shared `visibleCodes` breaks.
+  it('keeps a retired code out of the code picker while leaving it in the catalog', async () => {
+    const retired: TimesheetCode = { ...realCode, id: '9', name: 'Closed project', obsolete: true }
+    mockBaseApi([realCode, retired], [uncategorizedEntry])
+    render(<App />)
+
+    await clickNav('Code catalog')
+    fireEvent.click(await screen.findByRole('button', { name: 'Retired (1)' }))
+    expect(await screen.findByText('Closed project')).toBeInTheDocument()
+
+    await clickNav('Activity')
+    fireEvent.click(await screen.findByText('pick a code'))
+
+    await screen.findByText('Paper V4')
+    expect(screen.queryByText('Closed project')).not.toBeInTheDocument()
+  })
+
+  it('keeps Delete out of reach — and says why — when virtual codes point at the code', async () => {
+    mockBaseApi([realCode, virtualCode], [])
+    render(<App />)
+
+    await clickNav('Code catalog')
+
+    const remove = await screen.findByTestId('wk-catalog-delete-1')
+    expect(remove).toBeDisabled()
+    expect(remove).toHaveAttribute('title', expect.stringContaining('delete those first'))
+  })
 })

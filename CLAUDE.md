@@ -80,7 +80,11 @@ Per-lot markdown under `.backlog/`.
 
 - One active lot per directory: `.backlog/<LOT-ID>/PRD.md` + `tickets/<NN>-<slug>.md`. Each ticket
   keeps a stable ID (`BIZ-`/`TEC-`/`CHR-`) in its `ID:` line; priorities P1–P3.
-- `.backlog/README.md` is the hand-maintained lot index; `ROADMAP.md` holds sequencing.
+- `.backlog/README.md` is the hand-maintained lot index; `ROADMAP.md` holds **sequencing only** —
+  never release status, which lives in `CHANGELOG.md` (CHR-014). Its `## Next` section lists one
+  `- **ID** (priority, LOT) — …` entry per open ticket, and
+  `tests/test_roadmap_matches_backlog.py` fails if that list and the `Status:` lines in `.backlog/`
+  disagree in either direction. Opening or closing a ticket means editing both.
 - Status: single `Status:` line (⬜ ready · 🔄 in-progress · 🧑 waiting-human · ✅ done · 🚫 wontfix).
 - `CHANGELOG.md` = shipped work; `.backlog/` = planned work — an item never lives in both. Move closed
   lots to `.backlog/archive/<LOT-ID>.md`.

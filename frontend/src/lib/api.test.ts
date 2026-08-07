@@ -61,6 +61,7 @@ describe('fetchCodes', () => {
         realCodeId: null,
         realCodeNumber: null,
         backingOnly: false,
+        obsolete: false,
         customer: null,
         type: null,
       },

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
@@ -12,18 +12,23 @@ from walker.api.schemas import (
     ActivityRead,
     ActivityWrite,
     AddFromReference,
+    BlockingEntriesRead,
     CodeCreate,
     CodeRead,
+    CodeTotalsRead,
     CodeUpdate,
+    EntryRead,
     ImportSummary,
     LikelyCodeRead,
+    ReassignBlockingEntries,
+    SetObsolete,
     VirtualCodeCreate,
     VirtualCodeUpdate,
 )
 from walker.db import get_session
 from walker.exceptions import CatalogImportError, NotFoundError, ValidationError
 from walker.models import TimesheetCode, User
-from walker.services import catalog, likely_codes, reference
+from walker.services import catalog, code_totals, likely_codes, reference
 from walker.services.catalog import ParsedActivity
 from walker.services.likely_codes import DEFAULT_LIKELY_COUNT, MAX_LIKELY_COUNT
 
@@ -49,6 +54,7 @@ def _code_read(code: TimesheetCode) -> CodeRead:
         real_code_id=code.real_code_id,
         real_code_number=code.real_code.number if code.real_code is not None else None,
         backing_only=code.backing_only,
+        obsolete=code.obsolete,
     )
 
 
@@ -89,6 +95,29 @@ def list_likely_codes(
         )
         for code, activity in likely_codes.resolve(session, user.id, ranked)
     ]
+
+
+@router.get("/codes/{code_id}/totals", response_model=CodeTotalsRead)
+def get_code_totals(
+    code_id: int,
+    date_from: date | None = Query(None, alias="from"),
+    date_to: date | None = Query(None, alias="to"),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> CodeTotalsRead:
+    """How much time the user spent on this code over ``from``–``to`` (BIZ-089).
+
+    Both bounds are optional and inclusive; omitting them totals **all time**, which is the most
+    common form of the question and needs no date input. Unlike ``/period/{on_date}`` the range is
+    arbitrary — it may span several Timesheet periods, or none completely.
+    """
+    try:
+        totals = code_totals.code_totals(session, user.id, code_id, start=date_from, end=date_to)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    return CodeTotalsRead.model_validate(totals)
 
 
 @router.post("/codes", response_model=CodeRead, status_code=status.HTTP_201_CREATED)
@@ -183,13 +212,51 @@ def update_code(
     return _code_read(code)
 
 
+@router.put("/codes/{code_id}/obsolete", response_model=CodeRead)
+def set_code_obsolete(
+    code_id: int,
+    body: SetObsolete,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> CodeRead:
+    """Retire a code, or bring it back (BIZ-090).
+
+    With ``sweep``, the caller's own Entries in that window move onto the replacement code + activity
+    **before** the flag is applied, so the retired code is left carrying only what predates the window.
+    The SPA passes the open Timesheet period: earlier periods have already been keyed into the
+    Timesheet system, and rewriting them would put Walker out of step with what was declared.
+
+    For a **real** code the flag is Organization-wide — the row is shared (BIZ-030, ADR-0010).
+    """
+    try:
+        if body.sweep is not None:
+            catalog.reassign_entries_in_range(
+                session,
+                user.id,
+                code_id,
+                target_code_id=body.sweep.target_code_id,
+                activity=body.sweep.activity,
+                start=body.sweep.start,
+                end=body.sweep.end,
+            )
+        return _code_read(catalog.set_obsolete(session, user.id, code_id, obsolete=body.obsolete))
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+
+
 @router.delete("/codes/{code_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_code(
     code_id: int,
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Response:
-    """Delete a code, unless an Entry references it."""
+    """Delete a code, unless an Entry references it.
+
+    The 409 body now says how many entries block it, over what range, for how many minutes (BIZ-088)
+    — see ``GET /codes/{code_id}/blocking-entries`` to resolve them.
+    """
     try:
         catalog.delete_code(session, user.id, code_id)
     except NotFoundError as exc:
@@ -197,6 +264,74 @@ def delete_code(
     except ValidationError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _blocking_read(session: Session, user_id: int, code_id: int) -> BlockingEntriesRead:
+    """Build the blocking-entries payload: Organization-wide counts + the caller's own rows."""
+    summary = catalog.blocking_entries(session, user_id, code_id)
+    return BlockingEntriesRead(
+        total=summary.total,
+        own=summary.own,
+        others=summary.others,
+        first_date=summary.first_date,
+        last_date=summary.last_date,
+        minutes=summary.minutes,
+        entries=[EntryRead.model_validate(e) for e in catalog.list_blocking_entries(session, user_id, code_id)],
+    )
+
+
+@router.get("/codes/{code_id}/blocking-entries", response_model=BlockingEntriesRead)
+def list_blocking_entries(
+    code_id: int,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> BlockingEntriesRead:
+    """The Entries preventing this code's deletion (BIZ-088).
+
+    Counts span the whole Organization so the block is explainable; ``entries`` holds only the
+    caller's own — the ones the two resolve endpoints below can act on.
+    """
+    try:
+        return _blocking_read(session, user.id, code_id)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+
+
+@router.post("/codes/{code_id}/blocking-entries/reassign", response_model=BlockingEntriesRead)
+def reassign_blocking_entries(
+    code_id: int,
+    body: ReassignBlockingEntries,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> BlockingEntriesRead:
+    """Move the caller's blocking Entries onto another code + activity (BIZ-088).
+
+    Returns the refreshed summary, so a caller left blocked by another member's entries sees why
+    without a second request.
+    """
+    try:
+        catalog.reassign_blocking_entries(
+            session, user.id, code_id, target_code_id=body.target_code_id, activity=body.activity
+        )
+        return _blocking_read(session, user.id, code_id)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+
+
+@router.delete("/codes/{code_id}/blocking-entries", response_model=BlockingEntriesRead)
+def delete_blocking_entries(
+    code_id: int,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> BlockingEntriesRead:
+    """Delete the caller's blocking Entries (BIZ-088) — destructive, captured time is lost."""
+    try:
+        catalog.delete_blocking_entries(session, user.id, code_id)
+        return _blocking_read(session, user.id, code_id)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
 
 
 @router.post("/codes/from-reference", response_model=CodeRead, status_code=status.HTTP_201_CREATED)

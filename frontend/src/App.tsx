@@ -3,7 +3,10 @@ import './styles/tokens.css'
 import './styles/walker.css'
 import { AppShell, type Route, type ShellUser } from './components/AppShell'
 import { TimerBar } from './components/TimerBar'
+import { BlockingEntriesModal } from './components/BlockingEntriesModal'
 import { CodePicker } from './components/CodePicker'
+import { CodeTotalsModal } from './components/CodeTotalsModal'
+import { RetireCodeModal } from './components/RetireCodeModal'
 import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
@@ -19,6 +22,7 @@ import { LoginScreen } from './components/LoginScreen'
 import type {
   Absence,
   ActivityName,
+  BlockingEntries,
   ChecklistState,
   DayColumn,
   Density,
@@ -46,6 +50,7 @@ import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor, soleActivity } from './lib/tasks'
 import { describeDue } from './lib/dueDate'
 import { ToastProvider } from './lib/toast'
+import type { CodeSweep } from './lib/api'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
@@ -57,7 +62,12 @@ import {
   createEntry as apiCreateEntry,
   createTask as apiCreateTask,
   createVirtualCode as apiCreateVirtualCode,
+  deleteBlockingEntries as apiDeleteBlockingEntries,
   deleteCode as apiDeleteCode,
+  fetchBlockingEntries,
+  fetchCodeTotals,
+  setCodeObsolete as apiSetCodeObsolete,
+  reassignBlockingEntries as apiReassignBlockingEntries,
   deleteEntry as apiDeleteEntry,
   deleteTask as apiDeleteTask,
   deleteTaskState as apiDeleteTaskState,
@@ -96,6 +106,12 @@ import {
 const isoDate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const TODAY = isoDate(new Date())
+
+// The one thing that genuinely blocks a code deletion client-side (TEC-016): virtual codes pointing
+// at it. Entries do not — the SPA only sees the loaded date window, so the server decides and a 409
+// opens the resolve flow (BIZ-088). The catalog states the same block in its own tooltip; this is
+// the editors' phrasing of it.
+const VIRTUAL_CHILDREN_BLOCK = 'Virtual codes point at this one — delete those first.'
 
 // The moment the code picker's likely-codes band ranks against (BIZ-083, ADR-0015). Local wall clock,
 // matching how an Entry stores its `date` + minutes-since-midnight.
@@ -255,7 +271,7 @@ export default function App() {
 }
 
 function AppInner() {
-  const { notifyError } = useToast()
+  const { notifyError, notify } = useToast()
   const [route, setRoute] = useState<Route>('tracker')
   const [user, setUser] = useState<ShellUser | undefined>(undefined)
   const [codes, setCodes] = useState<TimesheetCode[]>([])
@@ -293,6 +309,15 @@ function AppInner() {
     // (BIZ-083) rather than silently falling back to "now" for a past Entry.
     reopenAt?: string | null
   } | null>(null)
+  // BIZ-088: the code whose deletion is blocked by Entries, with what the server says is in the way.
+  const [blocking, setBlocking] = useState<{
+    code: TimesheetCode
+    blocking: BlockingEntries
+  } | null>(null)
+  // BIZ-089: the code whose time totals are being read ("how much time did you spend on X?").
+  const [totalsCode, setTotalsCode] = useState<TimesheetCode | null>(null)
+  // BIZ-090: the code being retired, while its confirm + optional sweep is on screen.
+  const [retiringCode, setRetiringCode] = useState<TimesheetCode | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
@@ -451,7 +476,11 @@ function AppInner() {
   // BIZ-075 (ADR-0014): backing-only real codes exist only to resolve a virtual code's Timesheet
   // export; they are hidden from every user-facing surface (catalog + pickers). `codesById` stays
   // built from the full set so a checklist line still resolves its number/label by id.
+  // The catalog shows every code the user owns except the hidden backings (BIZ-075, ADR-0014); it
+  // filters retired ones itself, behind its toggle. Every *picker* takes `pickableCodes`, which drops
+  // retired codes outright — a retired code you can still click is not retired (BIZ-090).
   const visibleCodes = useMemo(() => codes.filter((c) => !c.backingOnly), [codes])
+  const pickableCodes = useMemo(() => visibleCodes.filter((c) => !c.obsolete), [visibleCodes])
 
   // BIZ-085: while an Entry is running it is the **single source of truth** for its categorization.
   // Every surface can edit it — the Activity list, the cell drill-down, the full entry editor — and
@@ -717,10 +746,16 @@ function AppInner() {
       .catch((err: unknown) =>
         notifyError(errorMessage(err, 'Could not refresh your code catalog.')),
       )
-  const isCodeInUse = (id: string): boolean =>
-    entries.some((e) => e.codeId === id) ||
-    Object.keys(matrix).some((k) => k.startsWith(`${id}|`)) ||
-    codes.some((c) => c.realCodeId === id)
+  // BIZ-088: which of the two guards applies, so the catalog can treat them differently. Virtual
+  // children genuinely block (delete those codes first); entries are only *probably* in the way —
+  // this sees the loaded window alone, so the server decides and the ✕ stays clickable.
+  const deleteBlockedBy = (id: string): 'entries' | 'virtual' | null => {
+    if (codes.some((c) => c.realCodeId === id)) return 'virtual'
+    const used =
+      entries.some((e) => e.codeId === id) ||
+      Object.keys(matrix).some((k) => k.startsWith(`${id}|`))
+    return used ? 'entries' : null
+  }
   const saveCode = (code: TimesheetCode) => {
     const payload = {
       number: code.number,
@@ -754,9 +789,49 @@ function AppInner() {
       onActivated,
     })
   }
+  // BIZ-090: retiring can sweep the open period's entries first, so entries are reloaded too.
+  const retireCode = (code: TimesheetCode, sweep?: CodeSweep) =>
+    apiSetCodeObsolete(code.id, true, sweep)
+      .then(() => Promise.all([reloadCodes(), reload()]))
+      .then(() => {
+        setRetiringCode(null)
+        notify(`${code.name} retired.`)
+      })
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not retire the code.')))
+  const restoreCode = (code: TimesheetCode) =>
+    apiSetCodeObsolete(code.id, false)
+      .then(reloadCodes)
+      .then(() => notify(`${code.name} is back in your catalog.`))
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not restore the code.')))
+
   const deleteCode = (code: TimesheetCode) => {
     apiDeleteCode(code.id)
       .then(reloadCodes)
+      .catch((err: unknown) => {
+        // BIZ-088: a 409 means Entries are in the way. Rather than report a dead end, open the
+        // resolve flow on what the *server* sees — the client only knows the loaded date window.
+        if (err instanceof ApiError && err.status === 409) {
+          fetchBlockingEntries(code.id)
+            .then((blocking) => setBlocking({ code, blocking }))
+            .catch(() => notifyError(errorMessage(err, 'Could not delete the code.')))
+          return
+        }
+        notifyError(errorMessage(err, 'Could not delete the code.'))
+      })
+  }
+  // BIZ-088: after resolving, finish what the user actually asked for — deleting the code — instead
+  // of leaving them to click ✕ again. Still blocked (another member's entries) keeps the modal open
+  // on the refreshed numbers, which now explain why.
+  const afterBlockingResolved = (code: TimesheetCode, blocking: BlockingEntries) => {
+    reload()
+    if (blocking.total > 0) {
+      setBlocking({ code, blocking })
+      return
+    }
+    setBlocking(null)
+    apiDeleteCode(code.id)
+      .then(reloadCodes)
+      .then(() => notify(`${code.name} deleted.`))
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the code.')))
   }
   // Back a virtual code with a reference code that isn't active yet (BIZ-075, ADR-0014): create it as
@@ -1302,7 +1377,12 @@ function AppInner() {
           onEdit={(code) => setEditor({ code })}
           onEditVirtual={(code) => setVirtualEditor({ code })}
           onDelete={deleteCode}
-          isCodeInUse={isCodeInUse}
+          deleteBlockedBy={deleteBlockedBy}
+          onShowTotals={setTotalsCode}
+          onRetire={setRetiringCode}
+          onRestore={restoreCode}
+          showObsolete={viewPreferences.show_obsolete}
+          onShowObsoleteChange={(show_obsolete) => updateViewPreferences({ show_obsolete })}
           onImport={importCatalogFile}
           importStatus={importMessage}
           onSearchReference={searchReference}
@@ -1322,6 +1402,8 @@ function AppInner() {
           absences={absences}
           onAddAbsence={addAbsence}
           onRemoveAbsence={removeAbsence}
+          likelyCount={viewPreferences.likely_count}
+          onLikelyCountChange={(likely_count) => updateViewPreferences({ likely_count })}
         />
       )}
 
@@ -1350,10 +1432,11 @@ function AppInner() {
           codes={codes}
           onSave={saveVirtualCode}
           onDelete={
-            virtualEditor.code && !isCodeInUse(virtualEditor.code.id)
+            virtualEditor.code && deleteBlockedBy(virtualEditor.code.id) !== 'virtual'
               ? () => deleteCode(virtualEditor.code!)
               : undefined
           }
+          deleteBlockedReason={VIRTUAL_CHILDREN_BLOCK}
           onClose={() => setVirtualEditor(null)}
           onSearchReference={searchReference}
           onActivateReference={addBackingFromReference}
@@ -1401,7 +1484,7 @@ function AppInner() {
         <TaskPanel
           task={taskPanel.task}
           initialCodeId={taskPanel.initialCodeId ?? null}
-          codes={visibleCodes}
+          codes={pickableCodes}
           taskStates={taskStates}
           tagSuggestions={taskTags}
           onSave={saveTask}
@@ -1446,6 +1529,48 @@ function AppInner() {
       {/* Rendered after CellEntriesModal (and the other openers above) so the picker stacks above the
           modal it was opened from: modals share one z-index, so DOM order alone decides stacking, and
           the picker is opened from within the cell drill-down (TEC-009). */}
+      {retiringCode && (
+        <RetireCodeModal
+          code={retiringCode}
+          codes={pickableCodes}
+          periodStart={isoDate(periodBounds(periodScheme, TODAY).start)}
+          periodEnd={isoDate(periodBounds(periodScheme, TODAY).end)}
+          onRetire={(sweep) => retireCode(retiringCode, sweep)}
+          onClose={() => setRetiringCode(null)}
+        />
+      )}
+      {totalsCode && (
+        <CodeTotalsModal
+          code={totalsCode}
+          periodStart={isoDate(periodBounds(periodScheme, anchor).start)}
+          periodEnd={isoDate(periodBounds(periodScheme, anchor).end)}
+          today={TODAY}
+          onFetch={(range) => fetchCodeTotals(totalsCode.id, range)}
+          onClose={() => setTotalsCode(null)}
+        />
+      )}
+      {blocking && (
+        <BlockingEntriesModal
+          code={blocking.code}
+          codes={pickableCodes}
+          blocking={blocking.blocking}
+          onClose={() => setBlocking(null)}
+          onReassign={(targetCodeId, activity) =>
+            apiReassignBlockingEntries(blocking.code.id, targetCodeId, activity)
+              .then((refreshed) => afterBlockingResolved(blocking.code, refreshed))
+              .catch((err: unknown) =>
+                notifyError(errorMessage(err, 'Could not reassign those entries.')),
+              )
+          }
+          onDeleteEntries={() =>
+            apiDeleteBlockingEntries(blocking.code.id)
+              .then((refreshed) => afterBlockingResolved(blocking.code, refreshed))
+              .catch((err: unknown) =>
+                notifyError(errorMessage(err, 'Could not delete those entries.')),
+              )
+          }
+        />
+      )}
       {picker && (
         <CodePicker
           title={
@@ -1455,9 +1580,10 @@ function AppInner() {
                 ? 'Pick code & activity'
                 : 'Categorize entry'
           }
-          codes={visibleCodes}
+          codes={pickableCodes}
           at={picker.at}
           onFetchLikely={fetchLikelyCodes}
+          likelyCount={viewPreferences.likely_count}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
           onCreateNewVirtual={() => {
             const reopenPicker = picker.target
@@ -1519,8 +1645,11 @@ function AppInner() {
           codes={codes}
           onSave={saveCode}
           onDelete={
-            editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
+            editor.code && deleteBlockedBy(editor.code.id) !== 'virtual'
+              ? () => deleteCode(editor.code!)
+              : undefined
           }
+          deleteBlockedReason={VIRTUAL_CHILDREN_BLOCK}
           onClose={() => setEditor(null)}
         />
       )}

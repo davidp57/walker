@@ -1977,10 +1977,192 @@ html[data-theme='light'] body {
 .wk-input:focus {
   border-color: var(--wk-accent-line);
 }
+/* A short numeric field sitting in a settings row (BIZ-084) — the full-width default would swallow
+   the row. Mono, because the value *is* data. */
+.wk-input--count {
+  width: 72px;
+  font-family: var(--wk-font-mono);
+  text-align: center;
+  padding: 8px 6px;
+}
 .wk-modal-body {
   max-height: 52vh;
   overflow: auto;
   padding: 6px 12px 14px;
+}
+
+/* --- Blocked code deletion (BIZ-088) ------------------------------------------------------------
+   What is standing between a code and its ✕: the count/range/minutes, the entries themselves, and
+   the two ways out. */
+.wk-modal-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 14px;
+  border-top: 1px solid var(--wk-line);
+}
+.wk-blocking-summary {
+  margin: 8px 2px 12px;
+  font-size: var(--wk-fs-13);
+  line-height: 1.5;
+  color: var(--wk-text-hi);
+}
+/* Amber, not red: the entries are in the way, not wrong. Carries a left rule so the note reads as an
+   aside rather than as part of the sentence above it. */
+.wk-blocking-note {
+  margin: 0 2px 12px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--wk-amber-line);
+  background: var(--wk-amber-soft);
+  border-radius: var(--wk-radius-sm);
+  font-size: var(--wk-fs-12);
+  line-height: 1.5;
+  color: var(--wk-text-mid);
+}
+.wk-blocking-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--wk-line);
+}
+.wk-blocking-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 7px 2px;
+  border-bottom: 1px solid var(--wk-line);
+  font-size: var(--wk-fs-12);
+}
+.wk-blocking-date,
+.wk-blocking-dur {
+  font-family: var(--wk-font-mono);
+  color: var(--wk-text-lo);
+  white-space: nowrap;
+}
+.wk-blocking-dur {
+  min-width: 46px;
+  text-align: right;
+}
+.wk-blocking-desc {
+  color: var(--wk-text-mid);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* --- Per-code time totals (BIZ-089) -------------------------------------------------------------
+   "How much time did you spend on X?" — a range picker, one big number, and the per-activity split.
+   The number is the answer, so it carries the weight; everything else is context around it. */
+.wk-totals-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--wk-line);
+}
+.wk-totals-custom {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--wk-line);
+}
+.wk-totals-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
+}
+.wk-totals-field .wk-input {
+  padding: 7px 9px;
+  font-size: var(--wk-fs-12);
+}
+.wk-totals-headline {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px 2px 12px;
+}
+.wk-totals-value {
+  font-family: var(--wk-font-mono);
+  font-size: 30px;
+  font-weight: var(--wk-fw-semibold);
+  color: var(--wk-text-hi);
+  letter-spacing: -0.5px;
+}
+.wk-totals-meta {
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
+}
+.wk-totals-running {
+  margin: 0 0 12px;
+  padding: 7px 10px;
+  border-left: 2px solid var(--wk-amber-line);
+  background: var(--wk-amber-soft);
+  border-radius: var(--wk-radius-sm);
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-mid);
+}
+.wk-totals-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--wk-line);
+}
+.wk-totals-item,
+.wk-totals-rollup {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--wk-line);
+  font-size: var(--wk-fs-12);
+}
+.wk-totals-act {
+  flex: 0 0 34%;
+  color: var(--wk-text-mid);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A proportion bar (as BIZ-042) — it accompanies the number, never replaces it. */
+.wk-totals-bar {
+  flex: 1 1 auto;
+  height: 6px;
+  border-radius: var(--wk-radius-pill);
+  background: var(--wk-bg-0);
+  overflow: hidden;
+}
+.wk-totals-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: var(--wk-radius-pill);
+}
+.wk-totals-act-min {
+  flex: 0 0 auto;
+  min-width: 62px;
+  text-align: right;
+  font-family: var(--wk-font-mono);
+  color: var(--wk-text-hi);
+}
+/* The roll-up is a *different* number, not another row of the breakdown — no bar, own separation. */
+.wk-totals-rollup {
+  margin-top: 10px;
+  border-top: 1px solid var(--wk-line);
+  border-bottom: none;
+  justify-content: space-between;
+}
+.wk-totals-rollup .wk-totals-act {
+  flex: 1 1 auto;
+  color: var(--wk-text-lo);
+}
+.wk-totals-empty {
+  margin: 18px 2px;
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-lo);
 }
 .wk-picker-code {
   padding: 9px 8px 4px;
@@ -2182,6 +2364,93 @@ html[data-theme='light'] body {
   border: 1px solid var(--wk-line);
   border-radius: var(--wk-radius-sm);
   padding: 1px 6px;
+}
+/* --- Retired codes (BIZ-090) --------------------------------------------------------------------
+   A retired code is not an error, so the badge borrows the neutral "virtual" chip rather than a
+   danger tint; the card is dimmed instead, which reads as "set aside" without hiding anything. */
+.wk-code-obsolete-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--wk-text-lo);
+  background: var(--wk-bg-0);
+  border: 1px dashed var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  padding: 1px 6px;
+}
+.wk-catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.wk-catalog-filters .wk-input {
+  flex: 1 1 260px;
+}
+.wk-catalog-obsolete-toggle {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.wk-catalog-obsolete-toggle.is-on {
+  color: var(--wk-accent);
+  border-color: var(--wk-accent-line);
+}
+.wk-catalog-obsolete-toggle:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* The retire dialog: an opt-in sweep, its window spelled out, and the shared-code warning. */
+.wk-retire-lead {
+  margin: 8px 2px 12px;
+  font-size: var(--wk-fs-13);
+  line-height: 1.5;
+  color: var(--wk-text-hi);
+}
+.wk-retire-note {
+  margin: 0 2px 12px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--wk-amber-line);
+  background: var(--wk-amber-soft);
+  border-radius: var(--wk-radius-sm);
+  font-size: var(--wk-fs-12);
+  line-height: 1.5;
+  color: var(--wk-text-mid);
+}
+.wk-retire-sweep {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 2px;
+  border-top: 1px solid var(--wk-line);
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-mid);
+  cursor: pointer;
+}
+.wk-retire-target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 0 2px 10px;
+}
+.wk-retire-chosen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-hi);
+}
+.wk-retire-scope {
+  margin: 0 2px 8px;
+  font-size: var(--wk-fs-11);
+  line-height: 1.5;
+  color: var(--wk-text-lo);
 }
 .wk-catalog-head {
   display: flex;
@@ -2947,6 +3216,12 @@ html[data-theme='light'] body {
 .wk-delete-confirm-label {
   font-size: var(--wk-fs-13);
   color: var(--wk-text-mid);
+}
+/* Why Delete is absent (TEC-016) — the same reasoning as .wk-form-hint: a missing control with no
+   explanation leaves nothing to act on. */
+.wk-editor-blocked {
+  font-size: var(--wk-fs-11);
+  color: var(--wk-text-lo);
 }
 /* Why a disabled Save is disabled — a quiet inline hint beside it, not a dead dimmed button. */
 .wk-form-hint {

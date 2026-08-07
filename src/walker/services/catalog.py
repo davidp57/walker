@@ -9,6 +9,7 @@ from __future__ import annotations
 import csv
 import io
 from dataclasses import dataclass, field
+from datetime import date
 
 from sqlalchemy import ColumnElement, delete, func, select, update
 from sqlalchemy.orm import Session
@@ -279,6 +280,187 @@ def update_virtual_code(
     return virtual
 
 
+@dataclass(frozen=True)
+class BlockingEntries:
+    """What is standing between a code and its deletion (BIZ-088).
+
+    The counts are **Organization-wide**, mirroring ``delete_code``'s guard (BIZ-030): another
+    member's Entry blocks the deletion just as the acting user's does. ``own``/``others`` splits them
+    because only ``own`` can be reassigned or deleted from here — every Entry write path is
+    user-scoped, and acting on someone else's captured time is an authorization decision this ticket
+    deliberately does not take.
+    """
+
+    total: int
+    own: int
+    others: int
+    first_date: date | None
+    last_date: date | None
+    minutes: int
+
+    def describe(self) -> str:
+        """A one-line, human-readable account of the block — the text the API surfaces verbatim."""
+        if not self.total:
+            return "no entries reference it"
+        plural = "entries" if self.total > 1 else "entry"
+        span = f" between {self.first_date} and {self.last_date}" if self.first_date else ""
+        detail = f"{self.total} {plural}{span} ({self.minutes} min)"
+        if self.others:
+            whose = "all of them" if not self.own else f"{self.others} of them"
+            detail += f" — {whose} belong to another member, so they cannot be resolved from here"
+        return f"{detail} reference it" if not self.others else detail
+
+
+def blocking_entries(session: Session, user_id: int, code_id: int) -> BlockingEntries:
+    """Summarize the Entries preventing ``code_id``'s deletion (BIZ-088).
+
+    Counts every member's Entries so the block is explainable, but reports separately how many are
+    the acting user's — the only ones the resolve actions below can touch. A *running* Entry counts
+    towards the block (it holds the foreign key) while contributing no minutes, consistently with
+    ``aggregate_period``.
+    """
+    get_visible_code(session, user_id, code_id)
+    referencing = Entry.timesheet_code_id == code_id
+    total, first_date, last_date = session.execute(
+        select(func.count(), func.min(Entry.date), func.max(Entry.date)).where(referencing)
+    ).one()
+    own = session.scalar(select(func.count()).select_from(Entry).where(referencing, Entry.user_id == user_id))
+    minutes = session.scalar(
+        select(func.coalesce(func.sum(Entry.end_minute - Entry.start_minute), 0)).where(
+            referencing, Entry.end_minute.is_not(None)
+        )
+    )
+    return BlockingEntries(
+        total=total or 0,
+        own=own or 0,
+        others=(total or 0) - (own or 0),
+        first_date=first_date,
+        last_date=last_date,
+        minutes=minutes or 0,
+    )
+
+
+def list_blocking_entries(session: Session, user_id: int, code_id: int) -> list[Entry]:
+    """The acting user's own Entries referencing ``code_id``, newest first.
+
+    Deliberately not the whole Organization's: an Entry the user cannot act on is a number in
+    :class:`BlockingEntries`, not a row to render.
+    """
+    get_visible_code(session, user_id, code_id)
+    return list(
+        session.scalars(
+            select(Entry)
+            .where(Entry.timesheet_code_id == code_id, Entry.user_id == user_id)
+            .order_by(Entry.date.desc(), Entry.start_minute.desc())
+        )
+    )
+
+
+def _own_entries_filter(
+    user_id: int, code_id: int, start: date | None = None, end: date | None = None
+) -> ColumnElement[bool]:
+    """The user's own Entries on ``code_id``, optionally narrowed to an inclusive date window."""
+    clause = (Entry.timesheet_code_id == code_id) & (Entry.user_id == user_id)
+    if start is not None:
+        clause = clause & (Entry.date >= start)
+    if end is not None:
+        clause = clause & (Entry.date <= end)
+    return clause
+
+
+def _own_entry_count(
+    session: Session, user_id: int, code_id: int, start: date | None = None, end: date | None = None
+) -> int:
+    """How many of the user's own Entries reference ``code_id`` (optionally within a window).
+
+    Counted up-front rather than read back from the statement's ``rowcount``, which is
+    driver-dependent and untyped in SQLAlchemy 2.0's ``Result``.
+    """
+    return (
+        session.scalar(select(func.count()).select_from(Entry).where(_own_entries_filter(user_id, code_id, start, end)))
+        or 0
+    )
+
+
+def set_obsolete(session: Session, user_id: int, code_id: int, *, obsolete: bool) -> TimesheetCode:
+    """Retire a code, or bring it back (BIZ-090).
+
+    The code keeps existing and resolving — past Entries, the period grid and the checklist must go on
+    rendering its number, label and colour — it simply stops being offered. Hiding is the SPA's job:
+    ``list_codes`` still returns it, exactly as it returns ``backing_only`` codes (BIZ-075, ADR-0014).
+
+    For a **real** code this is Organization-wide, because the row is shared (BIZ-030, ADR-0010): a
+    charge line that has closed has closed for every member. The caller is responsible for saying so
+    before applying it.
+    """
+    code = get_visible_code(session, user_id, code_id)
+    code.obsolete = obsolete
+    session.commit()
+    session.refresh(code)
+    return code
+
+
+def reassign_entries_in_range(
+    session: Session,
+    user_id: int,
+    code_id: int,
+    *,
+    target_code_id: int,
+    activity: str,
+    start: date | None = None,
+    end: date | None = None,
+) -> int:
+    """Move the user's Entries off ``code_id`` onto ``target_code_id`` + ``activity`` (BIZ-088/BIZ-090).
+
+    One statement rather than a per-entry loop: a partial failure mid-loop would leave the catalog in
+    a state the user cannot reason about. ``activity`` is required — a code change without one would
+    push the entries into the period grid's uncategorized bucket, trading one problem for another.
+
+    ``start``/``end`` bound the sweep inclusively; omitting both moves every one of the user's entries,
+    which is what unblocking a deletion needs (BIZ-088). BIZ-090's retire-a-code sweep passes the open
+    Timesheet period, because earlier periods have already been keyed into the Timesheet system and
+    rewriting them would put Walker out of step with what was declared.
+
+    Returns how many were moved.
+    """
+    get_visible_code(session, user_id, code_id)
+    target = get_visible_code(session, user_id, target_code_id)
+    if target.id == code_id:
+        raise ValidationError("Entries cannot be reassigned to the code they are already on.")
+    if target.obsolete:
+        raise ValidationError(f"Code {target.number} is obsolete and cannot receive reassigned entries.")
+    if not activity.strip():
+        raise ValidationError("Reassigning entries requires an activity.")
+    moved = _own_entry_count(session, user_id, code_id, start, end)
+    session.execute(
+        update(Entry)
+        .where(_own_entries_filter(user_id, code_id, start, end))
+        .values(timesheet_code_id=target.id, activity=activity.strip())
+    )
+    session.commit()
+    return moved
+
+
+def reassign_blocking_entries(
+    session: Session, user_id: int, code_id: int, *, target_code_id: int, activity: str
+) -> int:
+    """Move **every** one of the user's Entries off ``code_id`` — the delete-unblock path (BIZ-088)."""
+    return reassign_entries_in_range(session, user_id, code_id, target_code_id=target_code_id, activity=activity)
+
+
+def delete_blocking_entries(session: Session, user_id: int, code_id: int) -> int:
+    """Delete the user's Entries referencing ``code_id`` (BIZ-088). Returns how many were removed.
+
+    Destructive and unrecoverable — captured time is gone. The caller is responsible for the
+    deliberate second step; the service does not guess.
+    """
+    get_visible_code(session, user_id, code_id)
+    removed = _own_entry_count(session, user_id, code_id)
+    session.execute(delete(Entry).where(Entry.timesheet_code_id == code_id, Entry.user_id == user_id))
+    session.commit()
+    return removed
+
+
 def delete_code(session: Session, user_id: int, code_id: int) -> None:
     """Delete a code visible to the user.
 
@@ -292,9 +474,9 @@ def delete_code(session: Session, user_id: int, code_id: int) -> None:
     otherwise crash the deletion.
     """
     code = get_visible_code(session, user_id, code_id)
-    references = session.scalar(select(func.count()).select_from(Entry).where(Entry.timesheet_code_id == code_id))
-    if references:
-        raise ValidationError(f"Code {code.number} is referenced by entries and cannot be deleted.")
+    blocking = blocking_entries(session, user_id, code_id)
+    if blocking.total:
+        raise ValidationError(f"Code {code.number} cannot be deleted: {blocking.describe()}")
     if not code.is_virtual:
         virtual_children = session.scalar(
             select(func.count()).select_from(TimesheetCode).where(TimesheetCode.real_code_id == code_id)

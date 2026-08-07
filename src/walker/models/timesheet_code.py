@@ -45,6 +45,13 @@ class TimesheetCode(TimestampMixin, Base):
     # hides it from the catalog + pickers. Always ``False`` for virtual codes. Cleared when the same
     # code is later added explicitly (it becomes a first-class tracked code).
     backing_only: Mapped[bool] = mapped_column(default=False)
+    # BIZ-090: the code is retired — a project that closed, a charge line replaced by its successor.
+    # It stays a normal code for every resolution path (past Entries, the period grid, the checklist
+    # must keep rendering its number/label/colour), but the SPA hides it from the catalog behind a
+    # toggle and from every picker, so it can no longer be booked against. Distinct from
+    # ``backing_only``, which is hidden because it was never meant to be picked in the first place.
+    # For a *real* code this is Organization-wide: the row is shared (BIZ-030, ADR-0010).
+    obsolete: Mapped[bool] = mapped_column(default=False)
 
     activities: Mapped[list[Activity]] = relationship(
         back_populates="timesheet_code",

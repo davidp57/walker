@@ -6,7 +6,7 @@ import datetime
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from walker.models.settings import PeriodScheme, Theme
 
@@ -75,6 +75,9 @@ class CodeRead(BaseModel):
     # these out of the catalog + pickers; the API still returns them so a checklist line's number/label
     # can be resolved by id.
     backing_only: bool = False
+    # BIZ-090: retired. Returned for the same reason as ``backing_only`` — past Entries and checklist
+    # lines must still resolve — but hidden from the pickers and, unless the toggle is on, the catalog.
+    obsolete: bool = False
 
 
 class LikelyCodeRead(BaseModel):
@@ -172,6 +175,96 @@ class EntryRead(BaseModel):
     description: str | None
     task_id: int | None
     source: str | None  # "timer" | "manual" | None (legacy/unknown) — BIZ-065
+
+
+class BlockingEntriesRead(BaseModel):
+    """What is standing between a code and its deletion (BIZ-088).
+
+    Counts are Organization-wide, mirroring the delete guard (BIZ-030); ``own`` is the subset the
+    caller can actually resolve, ``others`` the remainder belonging to other members.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    total: int
+    own: int
+    others: int
+    first_date: date | None
+    last_date: date | None
+    minutes: int
+    entries: list[EntryRead]
+
+
+class SweepEntries(BaseModel):
+    """Where a retiring code's open-period Entries should go (BIZ-090)."""
+
+    target_code_id: int
+    activity: str = Field(min_length=1)
+    start: date
+    end: date
+
+
+class SetObsolete(BaseModel):
+    """Retire a code, or bring it back (BIZ-090), optionally sweeping a window of Entries first.
+
+    ``sweep`` moves the caller's own Entries in ``[start, end]`` onto another code + activity before
+    the flag is applied — the SPA passes the **open** Timesheet period, since earlier ones have
+    already been keyed into the Timesheet system.
+    """
+
+    obsolete: bool
+    sweep: SweepEntries | None = None
+
+
+class ReassignBlockingEntries(BaseModel):
+    """Move the caller's blocking Entries onto another code (BIZ-088).
+
+    ``activity`` is required: a code change without one would drop the entries into the period
+    grid's uncategorized bucket.
+    """
+
+    target_code_id: int
+    activity: str = Field(min_length=1)
+
+
+class ActivityTotalRead(BaseModel):
+    """One activity's share of a code's time (BIZ-089). ``activity`` is null for code-only entries."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    activity: str | None
+    minutes: int
+    entries: int
+
+
+class TotalsRead(BaseModel):
+    """A (minutes, entries, distinct days) triple — the code's own, or its roll-up (BIZ-089)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    minutes: int
+    entries: int
+    days: int
+
+
+class CodeTotalsRead(BaseModel):
+    """Time spent on one code over an arbitrary range (BIZ-089) — null dates mean all time.
+
+    A virtual code reports its own time (ADR-0008); a real code with virtual children additionally
+    carries ``rollup``, the same totals including them. The two are never merged.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    code_id: int
+    start: date | None
+    end: date | None
+    minutes: int
+    entries: int
+    days: int
+    by_activity: list[ActivityTotalRead]
+    running: bool  # a timer is running on this code; its time is not in the totals
+    rollup: TotalsRead | None
 
 
 class PeriodRowRead(BaseModel):
@@ -316,6 +409,8 @@ class ViewPreferencesRead(BaseModel):
     done_collapsed: bool
     enter_rounding: bool
     task_hide_done: bool
+    likely_count: int
+    show_obsolete: bool
 
 
 class ViewPreferencesUpdate(BaseModel):
@@ -329,6 +424,10 @@ class ViewPreferencesUpdate(BaseModel):
     done_collapsed: bool | None = None
     enter_rounding: bool | None = None
     task_hide_done: bool | None = None
+    show_obsolete: bool | None = None
+    # Deliberately unconstrained here: the service is the single place that validates a preference,
+    # so an out-of-range value falls back to the default like every other one rather than 422-ing.
+    likely_count: int | None = None
 
 
 class TaskStateRead(BaseModel):

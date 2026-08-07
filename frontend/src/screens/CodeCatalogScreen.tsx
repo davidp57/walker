@@ -13,7 +13,18 @@ interface CodeCatalogScreenProps {
   onEdit: (code: TimesheetCode) => void
   onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
-  isCodeInUse: (id: string) => boolean
+  onShowTotals: (code: TimesheetCode) => void // BIZ-089: "how much time did you spend on X?"
+  // BIZ-090: retire a code, or bring it back. Retired codes are filtered out here unless the toggle
+  // is on, and are never in any picker.
+  onRetire: (code: TimesheetCode) => void
+  onRestore: (code: TimesheetCode) => void
+  showObsolete: boolean
+  onShowObsoleteChange: (show: boolean) => void
+  // What stands between a code and its ✕, if anything (BIZ-088). `virtual` still hard-disables the
+  // button — the fix there is to delete the virtual codes first. `entries` no longer does: the
+  // client only knows about the entries currently loaded, so the server is the authority, and
+  // clicking through opens the resolve flow instead of a dead end.
+  deleteBlockedBy: (id: string) => 'entries' | 'virtual' | null
   onImport?: () => void // import the reference catalog from a file
   importStatus?: string | null // result/error of the last import
   onSearchReference: (q: string) => Promise<ReferenceCode[]>
@@ -29,7 +40,12 @@ export function CodeCatalogScreen({
   onEdit,
   onEditVirtual,
   onDelete,
-  isCodeInUse,
+  onShowTotals,
+  onRetire,
+  onRestore,
+  showObsolete,
+  onShowObsoleteChange,
+  deleteBlockedBy,
   onImport,
   importStatus,
   onSearchReference,
@@ -42,7 +58,11 @@ export function CodeCatalogScreen({
   const suggestions = sortReferenceByName(results, activeNumbers)
   // BIZ-073: the displayed list is fuzzy-filtered by the same query and always name-sorted, so a long
   // catalog is searchable in place (an empty query returns every code).
-  const shownCodes = searchUserCodes(codes, query, { codeOnly: true }).map((m) => m.code)
+  // BIZ-090: retired codes are dropped unless the toggle is on. The count is what makes hiding safe
+  // rather than mysterious — the same reasoning as the Tasks list's Done toggle (BIZ-087).
+  const obsoleteCount = codes.filter((c) => c.obsolete).length
+  const listed = showObsolete ? codes : codes.filter((c) => !c.obsolete)
+  const shownCodes = searchUserCodes(listed, query, { codeOnly: true }).map((m) => m.code)
 
   // Debounced autocomplete over the reference catalog.
   useEffect(() => {
@@ -118,13 +138,24 @@ export function CodeCatalogScreen({
         </div>
       )}
 
-      <div style={{ marginBottom: 16 }}>
+      <div className="wk-catalog-filters">
         <input
           className="wk-input"
           value={query}
           placeholder="Search your codes — or type to add one from your reference catalog…"
           onChange={(e) => setQuery(e.target.value)}
         />
+        {/* BIZ-090: labelled with the count, and disabled when there is nothing to reveal, so a
+            hidden code is never a mystery — mirrors the Tasks list's Done toggle (BIZ-087). */}
+        <button
+          type="button"
+          className={`wk-btn-ghost wk-catalog-obsolete-toggle${showObsolete ? ' is-on' : ''}`}
+          aria-pressed={showObsolete}
+          disabled={obsoleteCount === 0}
+          onClick={() => onShowObsoleteChange(!showObsolete)}
+        >
+          Retired ({obsoleteCount})
+        </button>
       </div>
 
       {loading ? (
@@ -136,7 +167,10 @@ export function CodeCatalogScreen({
               <CatalogCard
                 key={c.id}
                 code={c}
-                inUse={isCodeInUse(c.id)}
+                blockedBy={deleteBlockedBy(c.id)}
+                onShowTotals={onShowTotals}
+                onRetire={onRetire}
+                onRestore={onRestore}
                 onEdit={onEdit}
                 onEditVirtual={onEditVirtual}
                 onDelete={onDelete}
@@ -203,13 +237,19 @@ export function CodeCatalogScreen({
  */
 function CatalogCard({
   code: c,
-  inUse,
+  blockedBy,
+  onShowTotals,
+  onRetire,
+  onRestore,
   onEdit,
   onEditVirtual,
   onDelete,
 }: {
   code: TimesheetCode
-  inUse: boolean
+  blockedBy: 'entries' | 'virtual' | null
+  onShowTotals: (code: TimesheetCode) => void
+  onRetire: (code: TimesheetCode) => void
+  onRestore: (code: TimesheetCode) => void
   onEdit: (code: TimesheetCode) => void
   onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
@@ -228,6 +268,7 @@ function CatalogCard({
           <div className="wk-catalog-name">
             {c.name}
             {c.isVirtual && <span className="wk-code-virtual-badge">virtual</span>}
+            {c.obsolete && <span className="wk-code-obsolete-badge">retired</span>}
           </div>
           <div className="wk-catalog-meta">
             {c.number} · {c.label}
@@ -255,6 +296,23 @@ function CatalogCard({
             <>
               <button
                 type="button"
+                className="wk-btn-icon"
+                title="How much time have I spent on this?"
+                data-testid={`wk-catalog-totals-${c.id}`}
+                onClick={() => onShowTotals(c)}
+              >
+                ⏱
+              </button>
+              <button
+                type="button"
+                className="wk-btn-ghost"
+                data-testid={`wk-catalog-retire-${c.id}`}
+                onClick={() => (c.obsolete ? onRestore(c) : onRetire(c))}
+              >
+                {c.obsolete ? 'Restore' : 'Retire'}
+              </button>
+              <button
+                type="button"
                 className="wk-btn-ghost"
                 onClick={() => (c.isVirtual ? onEditVirtual(c) : onEdit(c))}
               >
@@ -263,9 +321,15 @@ function CatalogCard({
               <button
                 type="button"
                 className="wk-btn-icon"
-                title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
-                disabled={inUse}
-                style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
+                title={
+                  blockedBy === 'virtual'
+                    ? 'Virtual codes point at this one — delete those first'
+                    : blockedBy === 'entries'
+                      ? 'Used by entries — see what is in the way'
+                      : 'Remove from my codes'
+                }
+                disabled={blockedBy === 'virtual'}
+                style={blockedBy === 'virtual' ? { opacity: 0.4, cursor: 'default' } : undefined}
                 data-testid={`wk-catalog-delete-${c.id}`}
                 onClick={() => setConfirmingDelete(true)}
               >

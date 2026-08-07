@@ -56,6 +56,18 @@ export function formatDuration(min: number): string {
   return `${Math.floor(min / 60)}:${String(min % 60).padStart(2, '0')}`
 }
 
+/**
+ * minutes -> "2h 30m" (real, unrounded) — for prose, where {@link formatDuration}'s "2:30" would
+ * read as a clock time rather than a length of time.
+ */
+export function formatHoursMinutes(min: number): string {
+  const total = Math.max(0, Math.round(min))
+  const hours = Math.floor(total / 60)
+  const minutes = total % 60
+  if (!hours) return `${minutes}m`
+  return minutes ? `${hours}h ${minutes}m` : `${hours}h`
+}
+
 /** seconds -> "H:MM:SS" for the running Timer. */
 export function formatStopwatch(totalSeconds: number): string {
   const s = Math.max(0, Math.floor(totalSeconds))

@@ -43,7 +43,12 @@ function renderScreen(
       onEdit={onEdit}
       onEditVirtual={onEditVirtual}
       onDelete={vi.fn()}
-      isCodeInUse={() => false}
+      deleteBlockedBy={() => null}
+      onShowTotals={vi.fn()}
+      onRetire={vi.fn()}
+      onRestore={vi.fn()}
+      showObsolete={false}
+      onShowObsoleteChange={vi.fn()}
       onSearchReference={async () => []}
       onActivateReference={vi.fn()}
     />,
@@ -96,7 +101,12 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={onDelete}
-        isCodeInUse={() => false}
+        deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
+        onRetire={vi.fn()}
+        onRestore={vi.fn()}
+        showObsolete={false}
+        onShowObsoleteChange={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -122,7 +132,12 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={onDelete}
-        isCodeInUse={() => false}
+        deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
+        onRetire={vi.fn()}
+        onRestore={vi.fn()}
+        showObsolete={false}
+        onShowObsoleteChange={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -135,7 +150,7 @@ describe('CodeCatalogScreen', () => {
     expect(screen.getByTestId('wk-catalog-delete-1')).toBeInTheDocument()
   })
 
-  it('keeps an in-use code’s remove control disabled with no confirm', () => {
+  it('keeps the remove control disabled when virtual codes point at this one', () => {
     render(
       <CodeCatalogScreen
         codes={[realCode]}
@@ -144,7 +159,12 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
-        isCodeInUse={() => true}
+        deleteBlockedBy={() => 'virtual'}
+        onShowTotals={vi.fn()}
+        onRetire={vi.fn()}
+        onRestore={vi.fn()}
+        showObsolete={false}
+        onShowObsoleteChange={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -154,6 +174,37 @@ describe('CodeCatalogScreen', () => {
     expect(remove).toBeDisabled()
     fireEvent.click(remove)
     expect(screen.queryByText('Remove?')).not.toBeInTheDocument()
+  })
+
+  // BIZ-088: entries no longer hard-disable the ✕ — the client only sees the loaded date window, so
+  // the server decides, and clicking through leads to the resolve flow instead of a dead end.
+  it('leaves the remove control usable when only entries are in the way', () => {
+    const onDelete = vi.fn()
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={onDelete}
+        deleteBlockedBy={() => 'entries'}
+        onShowTotals={vi.fn()}
+        onRetire={vi.fn()}
+        onRestore={vi.fn()}
+        showObsolete={false}
+        onShowObsoleteChange={vi.fn()}
+        onSearchReference={async () => []}
+        onActivateReference={vi.fn()}
+      />,
+    )
+
+    const remove = screen.getByTestId('wk-catalog-delete-1')
+    expect(remove).not.toBeDisabled()
+    expect(remove).toHaveAttribute('title', expect.stringContaining('what is in the way'))
+    fireEvent.click(remove)
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1-confirm'))
+    expect(onDelete).toHaveBeenCalled()
   })
 
   it('routes the Edit button to onEdit for a real code', () => {
@@ -254,7 +305,12 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
-        isCodeInUse={() => false}
+        deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
+        onRetire={vi.fn()}
+        onRestore={vi.fn()}
+        showObsolete={false}
+        onShowObsoleteChange={vi.fn()}
         onSearchReference={async () => [ref]}
         onActivateReference={onActivateReference}
       />,
@@ -283,7 +339,12 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
-        isCodeInUse={() => false}
+        deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
+        onRetire={vi.fn()}
+        onRestore={vi.fn()}
+        showObsolete={false}
+        onShowObsoleteChange={vi.fn()}
         onSearchReference={async () => [
           { id: 'r1', number: 'N9/9999/010', name: 'Team huddle', label: 'HUD', activities: [] },
         ]}
@@ -305,5 +366,103 @@ describe('CodeCatalogScreen', () => {
       'href',
       'https://davidp57.github.io/walker/catalog-import/',
     )
+  })
+})
+
+// BIZ-089: "how much time did you spend on X?" is asked *about a code*, so it lives on the code.
+it('opens the time totals for a code from its own row', () => {
+  const onShowTotals = vi.fn()
+  render(
+    <CodeCatalogScreen
+      codes={[realCode]}
+      onNew={vi.fn()}
+      onNewVirtual={vi.fn()}
+      onEdit={vi.fn()}
+      onEditVirtual={vi.fn()}
+      onDelete={vi.fn()}
+      deleteBlockedBy={() => null}
+      onShowTotals={onShowTotals}
+      onRetire={vi.fn()}
+      onRestore={vi.fn()}
+      showObsolete={false}
+      onShowObsoleteChange={vi.fn()}
+      onSearchReference={async () => []}
+      onActivateReference={vi.fn()}
+    />,
+  )
+
+  fireEvent.click(screen.getByTestId('wk-catalog-totals-1'))
+
+  expect(onShowTotals).toHaveBeenCalledWith(realCode)
+})
+
+// BIZ-090 — retired codes leave the catalog unless the toggle is on, and never reach a picker.
+describe('CodeCatalogScreen — retired codes (BIZ-090)', () => {
+  const retired: TimesheetCode = { ...realCode, id: '9', name: 'Closed project', obsolete: true }
+
+  function renderCatalog(overrides: Record<string, unknown> = {}) {
+    const props = {
+      codes: [realCode, retired],
+      onNew: vi.fn(),
+      onNewVirtual: vi.fn(),
+      onEdit: vi.fn(),
+      onEditVirtual: vi.fn(),
+      onDelete: vi.fn(),
+      deleteBlockedBy: () => null,
+      onShowTotals: vi.fn(),
+      onRetire: vi.fn(),
+      onRestore: vi.fn(),
+      showObsolete: false,
+      onShowObsoleteChange: vi.fn(),
+      onSearchReference: async () => [],
+      onActivateReference: vi.fn(),
+      ...overrides,
+    }
+    render(<CodeCatalogScreen {...(props as Parameters<typeof CodeCatalogScreen>[0])} />)
+    return props
+  }
+
+  it('hides retired codes by default', () => {
+    renderCatalog()
+
+    expect(screen.getByText('Paper V4')).toBeInTheDocument()
+    expect(screen.queryByText('Closed project')).not.toBeInTheDocument()
+  })
+
+  it('counts them on the toggle, so hiding is never a mystery', () => {
+    renderCatalog()
+
+    expect(screen.getByRole('button', { name: 'Retired (1)', pressed: false })).toBeInTheDocument()
+  })
+
+  it('reveals them, badged, when the toggle is on', () => {
+    renderCatalog({ showObsolete: true })
+
+    expect(screen.getByText('Closed project')).toBeInTheDocument()
+    expect(screen.getByText('retired')).toBeInTheDocument()
+  })
+
+  it('disables the toggle when nothing is retired', () => {
+    renderCatalog({ codes: [realCode] })
+
+    expect(screen.getByRole('button', { name: 'Retired (0)' })).toBeDisabled()
+  })
+
+  it('reports a retire request for a live code', () => {
+    const onRetire = vi.fn()
+    renderCatalog({ onRetire })
+
+    fireEvent.click(screen.getByTestId('wk-catalog-retire-1'))
+
+    expect(onRetire).toHaveBeenCalledWith(realCode)
+  })
+
+  it('offers Restore instead for a retired code', () => {
+    const onRestore = vi.fn()
+    renderCatalog({ showObsolete: true, onRestore })
+
+    fireEvent.click(screen.getByTestId('wk-catalog-retire-9'))
+
+    expect(onRestore).toHaveBeenCalledWith(retired)
   })
 })
