@@ -5,6 +5,7 @@ import { AppShell, type Route, type ShellUser } from './components/AppShell'
 import { TimerBar } from './components/TimerBar'
 import { BlockingEntriesModal } from './components/BlockingEntriesModal'
 import { CodePicker } from './components/CodePicker'
+import { CodeTotalsModal } from './components/CodeTotalsModal'
 import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
@@ -62,6 +63,7 @@ import {
   deleteBlockingEntries as apiDeleteBlockingEntries,
   deleteCode as apiDeleteCode,
   fetchBlockingEntries,
+  fetchCodeTotals,
   reassignBlockingEntries as apiReassignBlockingEntries,
   deleteEntry as apiDeleteEntry,
   deleteTask as apiDeleteTask,
@@ -303,6 +305,8 @@ function AppInner() {
     code: TimesheetCode
     blocking: BlockingEntries
   } | null>(null)
+  // BIZ-089: the code whose time totals are being read ("how much time did you spend on X?").
+  const [totalsCode, setTotalsCode] = useState<TimesheetCode | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
@@ -1348,6 +1352,7 @@ function AppInner() {
           onEditVirtual={(code) => setVirtualEditor({ code })}
           onDelete={deleteCode}
           deleteBlockedBy={deleteBlockedBy}
+          onShowTotals={setTotalsCode}
           onImport={importCatalogFile}
           importStatus={importMessage}
           onSearchReference={searchReference}
@@ -1493,6 +1498,16 @@ function AppInner() {
       {/* Rendered after CellEntriesModal (and the other openers above) so the picker stacks above the
           modal it was opened from: modals share one z-index, so DOM order alone decides stacking, and
           the picker is opened from within the cell drill-down (TEC-009). */}
+      {totalsCode && (
+        <CodeTotalsModal
+          code={totalsCode}
+          periodStart={isoDate(periodBounds(periodScheme, anchor).start)}
+          periodEnd={isoDate(periodBounds(periodScheme, anchor).end)}
+          today={TODAY}
+          onFetch={(range) => fetchCodeTotals(totalsCode.id, range)}
+          onClose={() => setTotalsCode(null)}
+        />
+      )}
       {blocking && (
         <BlockingEntriesModal
           code={blocking.code}
