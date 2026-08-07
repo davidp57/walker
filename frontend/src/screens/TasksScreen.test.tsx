@@ -531,6 +531,7 @@ describe('TasksScreen', () => {
             done_collapsed: false,
             enter_rounding: false,
             task_hide_done: true,
+            likely_count: 5,
           }}
           onPreferencesChange={onPreferencesChange}
         />,
@@ -557,6 +558,7 @@ describe('TasksScreen', () => {
             done_collapsed: false,
             enter_rounding: false,
             task_hide_done: true,
+            likely_count: 5,
           }}
           onPreferencesChange={vi.fn()}
         />,
@@ -602,6 +604,7 @@ describe('TasksScreen', () => {
       done_collapsed: false,
       enter_rounding: false,
       task_hide_done: true,
+      likely_count: 5,
     }
     const tasks = [makeTask({ id: '1', title: 'A' })]
     render(

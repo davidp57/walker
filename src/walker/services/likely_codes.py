@@ -21,8 +21,11 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from walker.models import Entry, TimesheetCode
+from walker.models.settings import DEFAULT_LIKELY_COUNT, MAX_LIKELY_COUNT
 from walker.services import catalog
 from walker.services import settings as settings_service
+
+__all__ = ["DEFAULT_LIKELY_COUNT", "MAX_LIKELY_COUNT", "LikelyCode", "likely_codes", "resolve"]
 
 # --- Model constants (ADR-0015) -------------------------------------------------------------------
 # Deliberately hardcoded rather than exposed as settings: these are model internals whose effect a
@@ -54,10 +57,9 @@ MIN_SCORE = 1.0
 # --------------------------------------------------------------------------------------------------
 
 # How many rows the band shows. Unlike the constants above this one *is* user-facing — a directly
-# observable quantity — so BIZ-084 turns it into a view preference (0 disabling the band) and reuses
-# these bounds as its clamp.
-DEFAULT_LIKELY_COUNT = 5
-MAX_LIKELY_COUNT = 10
+# observable quantity — so BIZ-084 made it the ``likely_count`` view preference (0 disabling the
+# band). Its default and ceiling therefore live with the other per-user defaults, in
+# ``models/settings.py``; re-exported here because this module is where the band's model is read.
 
 
 @dataclass(frozen=True)

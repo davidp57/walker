@@ -43,7 +43,8 @@ function renderScreen(
       onEdit={onEdit}
       onEditVirtual={onEditVirtual}
       onDelete={vi.fn()}
-      isCodeInUse={() => false}
+      deleteBlockedBy={() => null}
+      onShowTotals={vi.fn()}
       onSearchReference={async () => []}
       onActivateReference={vi.fn()}
     />,
@@ -96,7 +97,8 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={onDelete}
-        isCodeInUse={() => false}
+        deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -122,7 +124,8 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={onDelete}
-        isCodeInUse={() => false}
+        deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -135,7 +138,7 @@ describe('CodeCatalogScreen', () => {
     expect(screen.getByTestId('wk-catalog-delete-1')).toBeInTheDocument()
   })
 
-  it('keeps an in-use code’s remove control disabled with no confirm', () => {
+  it('keeps the remove control disabled when virtual codes point at this one', () => {
     render(
       <CodeCatalogScreen
         codes={[realCode]}
@@ -144,7 +147,8 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
-        isCodeInUse={() => true}
+        deleteBlockedBy={() => 'virtual'}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -154,6 +158,33 @@ describe('CodeCatalogScreen', () => {
     expect(remove).toBeDisabled()
     fireEvent.click(remove)
     expect(screen.queryByText('Remove?')).not.toBeInTheDocument()
+  })
+
+  // BIZ-088: entries no longer hard-disable the ✕ — the client only sees the loaded date window, so
+  // the server decides, and clicking through leads to the resolve flow instead of a dead end.
+  it('leaves the remove control usable when only entries are in the way', () => {
+    const onDelete = vi.fn()
+    render(
+      <CodeCatalogScreen
+        codes={[realCode]}
+        onNew={vi.fn()}
+        onNewVirtual={vi.fn()}
+        onEdit={vi.fn()}
+        onEditVirtual={vi.fn()}
+        onDelete={onDelete}
+        deleteBlockedBy={() => 'entries'}
+        onShowTotals={vi.fn()}
+        onSearchReference={async () => []}
+        onActivateReference={vi.fn()}
+      />,
+    )
+
+    const remove = screen.getByTestId('wk-catalog-delete-1')
+    expect(remove).not.toBeDisabled()
+    expect(remove).toHaveAttribute('title', expect.stringContaining('what is in the way'))
+    fireEvent.click(remove)
+    fireEvent.click(screen.getByTestId('wk-catalog-delete-1-confirm'))
+    expect(onDelete).toHaveBeenCalled()
   })
 
   it('routes the Edit button to onEdit for a real code', () => {
@@ -254,7 +285,8 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
-        isCodeInUse={() => false}
+        deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => [ref]}
         onActivateReference={onActivateReference}
       />,
@@ -283,7 +315,8 @@ describe('CodeCatalogScreen', () => {
         onEdit={vi.fn()}
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
-        isCodeInUse={() => false}
+        deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => [
           { id: 'r1', number: 'N9/9999/010', name: 'Team huddle', label: 'HUD', activities: [] },
         ]}
@@ -306,4 +339,27 @@ describe('CodeCatalogScreen', () => {
       'https://davidp57.github.io/walker/catalog-import/',
     )
   })
+})
+
+// BIZ-089: "how much time did you spend on X?" is asked *about a code*, so it lives on the code.
+it('opens the time totals for a code from its own row', () => {
+  const onShowTotals = vi.fn()
+  render(
+    <CodeCatalogScreen
+      codes={[realCode]}
+      onNew={vi.fn()}
+      onNewVirtual={vi.fn()}
+      onEdit={vi.fn()}
+      onEditVirtual={vi.fn()}
+      onDelete={vi.fn()}
+      deleteBlockedBy={() => null}
+      onShowTotals={onShowTotals}
+      onSearchReference={async () => []}
+      onActivateReference={vi.fn()}
+    />,
+  )
+
+  fireEvent.click(screen.getByTestId('wk-catalog-totals-1'))
+
+  expect(onShowTotals).toHaveBeenCalledWith(realCode)
 })

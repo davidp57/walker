@@ -19,7 +19,15 @@ from sqlalchemy.orm import Session
 
 from walker.exceptions import ValidationError
 from walker.models import Absence, Settings, Task
-from walker.models.settings import DEFAULT_PERIOD_SCHEME, DEFAULT_THEME, DEFAULT_WORKDAYS, PeriodScheme, Theme
+from walker.models.settings import (
+    DEFAULT_LIKELY_COUNT,
+    DEFAULT_PERIOD_SCHEME,
+    DEFAULT_THEME,
+    DEFAULT_WORKDAYS,
+    MAX_LIKELY_COUNT,
+    PeriodScheme,
+    Theme,
+)
 from walker.services import states
 
 # A single add-absence call may not span more than this many days (BIZ-039) — a guard against a
@@ -49,10 +57,31 @@ DEFAULT_VIEW_PREFERENCES: dict[str, object] = {
     # in the middle of what is still to do. Distinct from ``done_collapsed``, which collapses the
     # kanban's terminal column (BIZ-044); the two surfaces are configured separately on purpose.
     "task_hide_done": True,
+    # BIZ-084: how many rows the likely-codes band shows (ADR-0015). ``0`` disables the band, which is
+    # why the range starts there rather than at 1 — it doubles as the off switch, sparing a second
+    # toggle. The model's own constants stay hardcoded on purpose (see the ticket).
+    "likely_count": DEFAULT_LIKELY_COUNT,
 }
 
 # The bool view-preference keys (not enum-constrained): handled uniformly in resolve/clean.
 _BOOL_VIEW_PREFERENCES = ("done_collapsed", "enter_rounding", "task_hide_done")
+
+# The integer view-preference keys, with their inclusive ``(min, max)`` range. Out-of-range and
+# non-integer values fall back to the default rather than being clamped, matching how every other
+# preference treats an invalid value.
+_INT_VIEW_PREFERENCES: dict[str, tuple[int, int]] = {"likely_count": (0, MAX_LIKELY_COUNT)}
+
+
+def _valid_int_preference(value: object, bounds: tuple[int, int]) -> bool:
+    """True when ``value`` is a real ``int`` inside ``bounds``.
+
+    ``bool`` is an ``int`` subclass in Python, so it is excluded explicitly — otherwise ``True``
+    would silently be accepted as ``1``.
+    """
+    if not isinstance(value, int) or isinstance(value, bool):
+        return False
+    low, high = bounds
+    return low <= value <= high
 
 
 def _resolve_view_preferences(stored: dict[str, object] | None) -> dict[str, object]:
@@ -67,6 +96,10 @@ def _resolve_view_preferences(stored: dict[str, object] | None) -> dict[str, obj
         value = stored.get(key)
         if isinstance(value, bool):
             resolved[key] = value
+    for key, bounds in _INT_VIEW_PREFERENCES.items():
+        value = stored.get(key)
+        if _valid_int_preference(value, bounds):
+            resolved[key] = value
     return resolved
 
 
@@ -80,6 +113,10 @@ def _clean_view_preferences_patch(patch: dict[str, object]) -> dict[str, object]
     for key in _BOOL_VIEW_PREFERENCES:
         value = patch.get(key)
         if isinstance(value, bool):
+            cleaned[key] = value
+    for key, bounds in _INT_VIEW_PREFERENCES.items():
+        value = patch.get(key)
+        if _valid_int_preference(value, bounds):
             cleaned[key] = value
     return cleaned
 

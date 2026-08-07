@@ -27,7 +27,25 @@ def test_get_settings_includes_default_view_preferences(client: TestClient) -> N
         "done_collapsed": False,
         "enter_rounding": False,
         "task_hide_done": True,
+        "likely_count": 5,
     }
+
+
+def test_patch_likely_count_round_trips(client: TestClient) -> None:
+    """BIZ-084: the band's row cap is a preference; 0 disables it."""
+    assert (
+        client.patch("/api/view-preferences", json={"likely_count": 0}).json()["view_preferences"]["likely_count"] == 0
+    )
+
+    assert client.get("/api/settings").json()["view_preferences"]["likely_count"] == 0
+
+
+def test_patch_out_of_range_likely_count_keeps_the_default(client: TestClient) -> None:
+    """The service validates, so an out-of-range value is dropped rather than rejected with a 422."""
+    response = client.patch("/api/view-preferences", json={"likely_count": 42})
+
+    assert response.status_code == 200
+    assert response.json()["view_preferences"]["likely_count"] == 5
 
 
 def test_patch_view_preferences_merges_and_persists(client: TestClient) -> None:
