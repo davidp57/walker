@@ -13,7 +13,11 @@ interface CodeCatalogScreenProps {
   onEdit: (code: TimesheetCode) => void
   onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
-  isCodeInUse: (id: string) => boolean
+  // What stands between a code and its ✕, if anything (BIZ-088). `virtual` still hard-disables the
+  // button — the fix there is to delete the virtual codes first. `entries` no longer does: the
+  // client only knows about the entries currently loaded, so the server is the authority, and
+  // clicking through opens the resolve flow instead of a dead end.
+  deleteBlockedBy: (id: string) => 'entries' | 'virtual' | null
   onImport?: () => void // import the reference catalog from a file
   importStatus?: string | null // result/error of the last import
   onSearchReference: (q: string) => Promise<ReferenceCode[]>
@@ -29,7 +33,7 @@ export function CodeCatalogScreen({
   onEdit,
   onEditVirtual,
   onDelete,
-  isCodeInUse,
+  deleteBlockedBy,
   onImport,
   importStatus,
   onSearchReference,
@@ -136,7 +140,7 @@ export function CodeCatalogScreen({
               <CatalogCard
                 key={c.id}
                 code={c}
-                inUse={isCodeInUse(c.id)}
+                blockedBy={deleteBlockedBy(c.id)}
                 onEdit={onEdit}
                 onEditVirtual={onEditVirtual}
                 onDelete={onDelete}
@@ -203,13 +207,13 @@ export function CodeCatalogScreen({
  */
 function CatalogCard({
   code: c,
-  inUse,
+  blockedBy,
   onEdit,
   onEditVirtual,
   onDelete,
 }: {
   code: TimesheetCode
-  inUse: boolean
+  blockedBy: 'entries' | 'virtual' | null
   onEdit: (code: TimesheetCode) => void
   onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
@@ -263,9 +267,15 @@ function CatalogCard({
               <button
                 type="button"
                 className="wk-btn-icon"
-                title={inUse ? 'Used by entries — can’t delete' : 'Remove from my codes'}
-                disabled={inUse}
-                style={inUse ? { opacity: 0.4, cursor: 'default' } : undefined}
+                title={
+                  blockedBy === 'virtual'
+                    ? 'Virtual codes point at this one — delete those first'
+                    : blockedBy === 'entries'
+                      ? 'Used by entries — see what is in the way'
+                      : 'Remove from my codes'
+                }
+                disabled={blockedBy === 'virtual'}
+                style={blockedBy === 'virtual' ? { opacity: 0.4, cursor: 'default' } : undefined}
                 data-testid={`wk-catalog-delete-${c.id}`}
                 onClick={() => setConfirmingDelete(true)}
               >

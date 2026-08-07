@@ -115,6 +115,21 @@ export interface LikelyCode {
   activity: ActivityName
 }
 
+/**
+ * What is standing between a code and its deletion (BIZ-088). The counts are Organization-wide,
+ * mirroring the server's guard (BIZ-030); `own` is the subset you can resolve here and `others` the
+ * remainder belonging to another member — reported so the block is explainable, not actionable.
+ */
+export interface BlockingEntries {
+  total: number
+  own: number
+  others: number
+  firstDate: string | null // ISO date
+  lastDate: string | null
+  minutes: number
+  entries: Entry[] // your own only — an entry you cannot act on is a number above, not a row
+}
+
 export type Density = 'comfortable' | 'compact'
 
 /** A User's theme preference (ADAPTIVE lot); `"system"` follows the OS's `prefers-color-scheme`. */
