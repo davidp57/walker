@@ -1,7 +1,7 @@
 # BIZ-089 — "How much time did you spend on X?": per-code totals over a date range
 
 ID: BIZ-089
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -43,21 +43,25 @@ answering the question today means exporting and summing by hand.
 
 ## Acceptance criteria
 
-- [ ] Given a code and a date range, the API returns total minutes, a per-activity breakdown, the entry
+- [x] Given a code and a date range, the API returns total minutes, a per-activity breakdown, the entry
       count, and the number of distinct days.
-- [ ] The range is arbitrary — it may span several Timesheet periods, or none completely — and an
+- [x] The range is arbitrary — it may span several Timesheet periods, or none completely — and an
       all-time query needs no dates.
-- [ ] A virtual code reports its own time; a real code can report its own **and** a roll-up including its
+- [x] A virtual code reports its own time; a real code can report its own **and** a roll-up including its
       virtual children, and the two numbers are labelled distinctly enough not to be confused.
-- [ ] Running entries are excluded, and the UI says a timer is running on this code when one is.
-- [ ] Totals are exact to the minute — no quarter-hour rounding anywhere on this path (ADR-0005).
-- [ ] Reachable from the Code catalog in one interaction from the code, with the date filter visible
+- [x] Running entries are excluded, and the UI says a timer is running on this code when one is.
+- [x] Totals are exact to the minute — no quarter-hour rounding anywhere on this path (ADR-0005).
+- [x] Reachable from the Code catalog in one interaction from the code, with the date filter visible
       rather than buried.
-- [ ] Empty result reads as "no time recorded in this range" and distinguishes that from "no time ever".
-- [ ] Accessible: the range control is labelled and keyboard-operable; totals are text, not colour or bar
+- [x] Empty result reads as "no time recorded in this range" and distinguishes that from "no time ever".
+- [x] Accessible: the range control is labelled and keyboard-operable; totals are text, not colour or bar
       length alone (the proportion bars of BIZ-042 may accompany them, not replace them).
-- [ ] Quality gate clean both sides.
+- [x] Quality gate clean both sides.
 
 ## Blocked by
 
 None.
+
+## Delivery
+
+Shipped in [PR #151](https://github.com/davidp57/walker/pull/151) -> `develop`.

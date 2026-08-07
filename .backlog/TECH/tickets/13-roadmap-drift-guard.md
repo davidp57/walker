@@ -1,7 +1,7 @@
 # CHR-014 — ROADMAP silently drifts from the backlog and the changelog
 
 ID: CHR-014
-Status: ⬜ ready
+Status: ✅ done
 Type: chore
 Priority: P2
 
@@ -58,15 +58,19 @@ produce false failures and get ignored.
 
 ## Acceptance criteria
 
-- [ ] `ROADMAP.md` no longer asserts which version was cut or whether a release is pending; that
+- [x] `ROADMAP.md` no longer asserts which version was cut or whether a release is pending; that
       question is answered by `CHANGELOG.md`.
-- [ ] A test fails when an open `.backlog/` ticket is absent from ROADMAP's "Next" section.
-- [ ] The same test fails when ROADMAP presents a ✅ done / 🚫 wontfix ticket as open.
-- [ ] The failure message names the offending IDs and which direction is wrong — a bare assertion
+- [x] A test fails when an open `.backlog/` ticket is absent from ROADMAP's "Next" section.
+- [x] The same test fails when ROADMAP presents a ✅ done / 🚫 wontfix ticket as open.
+- [x] The failure message names the offending IDs and which direction is wrong — a bare assertion
       would leave the reader to diff two files by hand.
-- [ ] The test passes on the current tree, i.e. the drift is actually repaired, not just detectable.
-- [ ] `.claude/commands/release.md` and `CLAUDE.md` agree with the new division of responsibility.
+- [x] The test passes on the current tree, i.e. the drift is actually repaired, not just detectable.
+- [x] `.claude/commands/release.md` and `CLAUDE.md` agree with the new division of responsibility.
 
 ## Blocked by
 
 None.
+
+## Delivery
+
+Shipped in [PR #152](https://github.com/davidp57/walker/pull/152) -> `develop`.

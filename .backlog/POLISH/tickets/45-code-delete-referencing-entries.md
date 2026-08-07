@@ -1,7 +1,7 @@
 # BIZ-088 — Deleting a code blocked by its entries: identify them, then reassign or delete
 
 ID: BIZ-088
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -64,23 +64,27 @@ decision. Reassign covers the real need here: keeping the captured time while fr
 
 ## Acceptance criteria
 
-- [ ] A blocked deletion reports how many entries reference the code, over what date range, for how many
+- [x] A blocked deletion reports how many entries reference the code, over what date range, for how many
       total minutes — instead of the current bare "cannot be deleted".
-- [ ] The blocking entries can be listed from the API, filtered to one code, without needing to guess a
+- [x] The blocking entries can be listed from the API, filtered to one code, without needing to guess a
       date window.
-- [ ] Reassigning them to another code + activity succeeds as one operation, and the code is deletable
+- [x] Reassigning them to another code + activity succeeds as one operation, and the code is deletable
       immediately afterwards.
-- [ ] Deleting them requires a deliberate second step and reports what will be lost (count + minutes)
+- [x] Deleting them requires a deliberate second step and reports what will be lost (count + minutes)
       before, not after.
-- [ ] Reassignment sets an activity: no path leaves entries categorized by code only, which would move
+- [x] Reassignment sets an activity: no path leaves entries categorized by code only, which would move
       them into the uncategorized bucket of the period grid.
-- [ ] The org-wide/user-scoped asymmetry is handled explicitly per the section above — never a silent
+- [x] The org-wide/user-scoped asymmetry is handled explicitly per the section above — never a silent
       partial reassign that leaves the code still undeletable with no explanation.
-- [ ] The virtual-children guard is untouched: a real code backing virtual codes still refuses deletion
+- [x] The virtual-children guard is untouched: a real code backing virtual codes still refuses deletion
       (that has its own fix — delete the virtual codes first).
-- [ ] Tasks/ChecklistMark cleanup behaviour unchanged.
-- [ ] Quality gate clean both sides.
+- [x] Tasks/ChecklistMark cleanup behaviour unchanged.
+- [x] Quality gate clean both sides.
 
 ## Blocked by
 
 None.
+
+## Delivery
+
+Shipped in [PR #150](https://github.com/davidp57/walker/pull/150) -> `develop`.

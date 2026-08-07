@@ -1,7 +1,7 @@
 # TEC-016 — The code editors hide Delete on an unreliable guess
 
 ID: TEC-016
-Status: ⬜ ready
+Status: ✅ done
 Type: correctness
 Priority: P2
 
@@ -51,14 +51,18 @@ which is exactly what BIZ-088 had to separate for the catalog.
 
 ## Acceptance criteria
 
-- [ ] Neither editor hides Delete because of Entries; a blocked delete goes through the BIZ-088
+- [x] Neither editor hides Delete because of Entries; a blocked delete goes through the BIZ-088
       resolve flow, the same as from the catalog.
-- [ ] Both editors still hide Delete when virtual codes point at the code, and explain why.
-- [ ] `isCodeInUse` no longer exists in the codebase.
-- [ ] A test pins the regression: a code whose only entries fall **outside** the loaded window still
+- [x] Both editors still hide Delete when virtual codes point at the code, and explain why.
+- [x] `isCodeInUse` no longer exists in the codebase.
+- [x] A test pins the regression: a code whose only entries fall **outside** the loaded window still
       offers Delete, and one with virtual children does not.
-- [ ] Quality gate clean both sides.
+- [x] Quality gate clean both sides.
 
 ## Blocked by
 
 **BIZ-088** — `deleteBlockedBy` and the resolve flow come from it.
+
+## Delivery
+
+Shipped in [PR #153](https://github.com/davidp57/walker/pull/153) -> `develop`.

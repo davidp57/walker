@@ -5,6 +5,35 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- **"How much time did you spend on X?"** (BIZ-089) — per-code totals over any date range, reachable
+  from the Code catalog: total, per-activity breakdown, entry count and days worked. Presets for all
+  time (the default — the question usually needs no dates), the current period, this month, this
+  year, plus a custom range. Every other aggregation in Walker is bound to a Timesheet period; this
+  one is not. A virtual code reports its own time, and a real code also shows a roll-up including its
+  virtual codes — the two side by side, never merged.
+- **A blocked code deletion now tells you what is in the way, and how to clear it** (BIZ-088). It
+  used to refuse with a bare "referenced by entries" — and the ✕ was greyed out, so you could not even
+  reach the refusal. You now see how many entries hold the code, over what dates, for how long, and
+  can either reassign them to another code + activity or delete them deliberately. Once nothing
+  blocks, the deletion completes on its own.
+- **The number of likely codes shown in the picker is configurable** (BIZ-084) — a Settings control,
+  0 to 10, where `0` hides the band entirely.
+
+### Fixed
+
+- **The Delete button no longer disappears from the code editors for the wrong reason** (TEC-016).
+  Whether a code was "in use" was guessed from the entries currently loaded — roughly a fortnight —
+  so a code used last month looked free while one used last week silently lost its Delete button with
+  no explanation. The server decides now, and the only client-side block left (virtual codes pointing
+  at this one) says so instead of just removing the control.
+
+### Changed
+
+- `ROADMAP.md` no longer restates which version was released — that lives here — and a test now fails
+  if its open-ticket list disagrees with `.backlog/` (CHR-014).
+
 ## [1.10.0] - 2026-07-31
 
 ### Fixed

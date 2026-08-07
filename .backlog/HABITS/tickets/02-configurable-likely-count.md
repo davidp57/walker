@@ -1,7 +1,7 @@
 # BIZ-084 — Configurable number of likely codes (0 disables)
 
 ID: BIZ-084
-Status: ⬜ ready
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -37,12 +37,16 @@ which avoids adding a second toggle.
 
 ## Acceptance criteria
 
-- [ ] `likely_count` defaults to 5, survives a reload, and is persisted per user.
-- [ ] Out-of-range or non-integer stored values fall back to the default (service test).
-- [ ] `10` shows at most 10 rows; `0` renders no band **and fires no request**.
-- [ ] The Settings control is accessible (labelled, focus ring) and flashes "✓ Saved" on change.
-- [ ] Settings + picker tests updated; quality gate clean both sides.
+- [x] `likely_count` defaults to 5, survives a reload, and is persisted per user.
+- [x] Out-of-range or non-integer stored values fall back to the default (service test).
+- [x] `10` shows at most 10 rows; `0` renders no band **and fires no request**.
+- [x] The Settings control is accessible (labelled, focus ring) and flashes "✓ Saved" on change.
+- [x] Settings + picker tests updated; quality gate clean both sides.
 
 ## Blocked by
 
 BIZ-083.
+
+## Delivery
+
+Shipped in [PR #149](https://github.com/davidp57/walker/pull/149) → `develop`.

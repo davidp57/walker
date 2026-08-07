@@ -62,17 +62,21 @@ Whether a given version has been cut is **not** recorded here — that is `CHANG
   and the three that closed v1.10.0: BIZ-085 (the running entry is now the single source of truth for
   its own categorization — the bug reported by Julien), BIZ-086 (period-relative recurring Tasks were
   inert: no initial due date, the scheme hardcoded despite ADR-0009), BIZ-087 (the Tasks list hides
-  terminal-state Tasks behind a persisted `✓ Done (N)` toggle). See `.backlog/POLISH/PRD.md`.
+  terminal-state Tasks behind a persisted `✓ Done (N)` toggle), then BIZ-088 (a blocked code deletion
+  now reports what is in the way and offers reassign-or-delete) and BIZ-089 (per-code totals over an
+  arbitrary date range). See `.backlog/POLISH/PRD.md`.
 - **HABITS** (likely codes) — rank (Timesheet code, Activity) pairs by a contextual habit score over
   the user's own past Entries (time of day + day of week, 8-week window) and surface the top ones in a
   band **above** the picker's name-sorted Tier 1, which is left untouched. BIZ-083 shipped (PR #144):
   the slice end-to-end — `services/likely_codes.py`, `GET /api/codes/likely`, and the band wired to the
-  Timer, entry categorization and manual add, with the row cap hardcoded at 5. See
-  `.backlog/HABITS/PRD.md`, ADR-0015.
+  Timer, entry categorization and manual add; BIZ-084 then turned the row cap into the `likely_count`
+  view preference (0–10, `0` disabling the band). See `.backlog/HABITS/PRD.md`, ADR-0015.
 - **DOCS** (living lot, bilingual docs-site content) — CHR-011 (catalog-import page) shipped. See
   `.backlog/DOCS/PRD.md`.
 - **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped; TEC-015
-  (layout-property animations) reviewed and closed 🚫 wontfix. See `.backlog/TECH/PRD.md`.
+  (layout-property animations) reviewed and closed 🚫 wontfix; TEC-016 retired `isCodeInUse`, the
+  loaded-window guess that hid the editors' Delete button; CHR-014 stopped this file restating release
+  status and pinned its open-ticket list with a test. See `.backlog/TECH/PRD.md`.
 
 ## Next — the open tickets, in the order I'd take them
 
@@ -80,25 +84,9 @@ One `- **ID** (priority, LOT) — …` entry per open ticket. The shape is load-
 reads exactly these lines, so prose elsewhere may cite a closed ticket without being mistaken for a
 claim that it is open.
 
-- **BIZ-084** (P2, HABITS) — make the likely-codes row count a view preference (`likely_count`, 0–10,
-  `0` disabling the band). Unblocked since BIZ-083 shipped, and deliberately held back so the default
-  is chosen from living with the band rather than guessed. Smallest of the three.
-  See `.backlog/HABITS/tickets/02-configurable-likely-count.md`.
-- **BIZ-088** (P2, POLISH) — deleting a code blocked by its Entries is a dead end: identify the blocking
-  entries (count, range, minutes), then reassign them to another code+activity or delete them
-  deliberately. Amends the BIZ-030 org-wide guard, and carries an open authorization question about
-  entries owned by other Organization members.
-  See `.backlog/POLISH/tickets/45-code-delete-referencing-entries.md`.
-- **BIZ-089** (P2, POLISH) — per-code totals over an arbitrary date range, to answer "how much time did
-  you spend on X?". Every current aggregation is Timesheet-period-bound; this one is not.
-  See `.backlog/POLISH/tickets/46-time-spent-per-code-recap.md`.
-- **TEC-016** (P2, TECH) — the code editors still hide Delete on `isCodeInUse`, which answers from the
-  loaded date window alone and is wrong in both directions. Extends BIZ-088's inversion to the last two
-  call sites and deletes the guess. Blocked by BIZ-088.
-  See `.backlog/TECH/tickets/12-code-editor-delete-blind-spot.md`.
-- **CHR-014** (P2, TECH) — stop ROADMAP restating release status, and pin its open-ticket list against
-  `.backlog/` with a test, so this file cannot drift silently again.
-  See `.backlog/TECH/tickets/13-roadmap-drift-guard.md`.
+- **BIZ-090** (P2, POLISH) — mark a code obsolete: hide it from the catalog behind a "show obsolete"
+  toggle, and optionally sweep the open Timesheet period's entries onto a replacement code+activity.
+  See `.backlog/POLISH/tickets/47-obsolete-codes.md`.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 
