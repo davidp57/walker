@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-08-07
+
 ### Added
 
 - **A code can be retired instead of deleted** (BIZ-090). A closed project or a charge line replaced

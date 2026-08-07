@@ -1,91 +1,85 @@
-# Walker 1.10.0 — no more silent losses, and a picker that knows your day
+# Walker 1.11.0 — a code catalog you can keep
 
-Two of this release's four changes were **data losses that left no trace**: a Timesheet code you had just
-set could be wiped when you pressed Stop, and Tasks set to recur relative to the Timesheet period never
-came due at all. Both are fixed. Alongside them, the code picker now learns from your own history and
-offers what you usually work on at this hour, and the Tasks list stops showing finished work.
+A catalog only ever grew. A project ended, a charge line was replaced by its successor — and the dead
+code stayed, sitting in every picker, as easy to click as the live one. You could not delete it either:
+the time already booked to it is real, so Walker refused, with a greyed-out ✕ and nothing to act on.
 
-Upgrading is drop-in — no database migration, no new configuration, no change to any existing endpoint —
-but **read "Before you upgrade"**: one default changes what you see, and existing recurring Tasks need
-one manual save.
+This release makes the catalog something you can maintain. You can **retire** a code that is over,
+**find out exactly what blocks** a deletion and clear it, and **ask how much time you have spent** on
+any code over any span. One theme, three answers.
+
+Upgrading is drop-in: replace the image (or the `.exe`) and your data carries over.
 
 ## Highlights
 
-- **Nothing you categorize gets thrown away any more.** The running entry now owns its own code and
-  activity, so no surface can quietly overwrite what another one set.
-- **Period-relative recurring Tasks work at all**, for the first time — they used to be inert.
-- **The code picker proposes your habits**: the pairs you actually use at this hour, on this kind of day.
-
-## Before you upgrade
-
-- **Finished Tasks disappear from the Tasks list on first launch.** That is the new default. The
-  `✓ Done (N)` toggle on the toolbar brings them back, and the count is there so nothing ever looks as
-  though it vanished. Your choice is remembered per user.
-- **Recurring Tasks created before this version keep their missing due date.** The fix seeds a date when
-  a rule is *set*, so an old rule that never got one stays empty: open each affected Task and save it
-  once, and it takes its date. There is deliberately no data migration — it would have to invent a
-  reference date for rules created on an unknown day.
-- **The new "Likely at this time" band starts out empty.** It needs at least one well-aligned day in the
-  preceding 8 weeks before it says anything. Silence on a fresh install is the design, not a fault.
-
-## Fixed
-
-- **Setting the code of the running entry no longer gets lost.** Categorizing the running entry from the
-  Activity list left the Timer chip reading "Uncategorized", and pressing **Stop** then wiped the code
-  back to nothing — so real, tracked work silently vanished from the Timesheet period matrix. The running
-  entry is now the single source of truth for its own categorization: every surface that can set it
-  reaches the Timer chip, and closing the segment can no longer overwrite it.
-
-  The report covered the Activity list; the same loss reached **Complete**, inline edits on the running
-  row, and the full entry editor. All are fixed together. A code picked *before* Start is now applied to
-  the new entry immediately, and a failure to save it is reported instead of passing silently. The
-  description keeps its own rule — what you type on the Timer bar wins — but a comment written from
-  another surface is no longer blanked.
-
-- **Tasks that recur relative to the Timesheet period now actually come due.** The feature was inert:
-  setting such a rule never gave the Task a due date, and since a recurrence only advances when a Task is
-  completed, a Task that never came due was never completed. A rule now gets its first due date the
-  moment it is set, landing **in the current period** when that date is still ahead — including today,
-  which is precisely the case that was reported.
-
-  Two further corrections came with it: the date is computed against **your** Timesheet-period scheme
-  rather than always the semi-monthly one (weekly and monthly users were getting dates from a period they
-  don't use), and adding a rule to an existing Task seeds a date too. Offsets still snap to working days,
-  stepping over both weekends and Absences; an explicit due date is never overwritten.
+- **Retire a code instead of deleting it.** It leaves the catalog and every picker; everything already
+  booked to it goes on reading exactly as before.
+- **A blocked deletion now explains itself** — how many entries, over what dates, for how long — and
+  offers the two ways out.
+- **"How much time did I spend on this?"** answered at last, over any range, from the catalog.
 
 ## New
 
-- **Likely codes in the code picker.** A "Likely at this time" band above the picker's list offers the
-  (Timesheet code, Activity) pairs you usually work on *at this hour, on this kind of day*, scored from
-  your own past Entries over the preceding 8 weeks.
+- **A code can be retired.** A closed project or a superseded charge line is neither live nor deletable,
+  and Walker had no word for that. Retiring one takes it out of the catalog — behind a `Retired (N)`
+  toggle, so nothing ever silently vanishes — and out of **every** picker, including the "Likely at this
+  time" band. That last one matters: the band ranks your past entries, so without it a retired code would
+  keep being proposed precisely because you used to work on it a lot.
 
-  The list below keeps its alphabetical ordering — the band is a layer on top, never a re-sort — so a
-  wrong guess costs a glance instead of hiding the code you came for. It stays silent when nothing looks
-  like a habit, and disappears as soon as you type a search, since by then you have said what you want.
-  The moment it ranks against follows the context: "now" from the Timer, and the start time you just
-  typed when adding or editing an entry. The day being categorized is excluded from its own evidence, so
-  what you just finished never sits at the top.
+  Everything the code already carries reads exactly as before: past entries, the period grid and the
+  checklist still show its number, label and colour. Retiring is not deleting, and it must never make old
+  work unreadable. You can bring a code back at any time, and a retired code is still deletable through
+  the normal path if you really want it gone.
 
-  New endpoint: `GET /api/codes/likely`. Additive — nothing existing changes.
+  When you retire a code you can optionally **move the current period's entries** onto a replacement code
+  and activity, in one step. Earlier periods are deliberately left alone — see the note below.
 
-- **The Tasks list keeps finished work out of the way.** Tasks in the final state no longer sit in the
-  middle of what still has to be done. The `✓ Done (N)` toggle reveals them, and when everything is
-  finished the list says so and reports how many are hidden rather than looking empty. The kanban is
-  unchanged — there the Done column collapses instead.
+- **Time spent on a code, over any range.** From the catalog: the total, the split per activity, how many
+  entries and how many distinct days. Presets for all time (the default, since the question usually needs
+  no dates at all), the current period, this month and this year, plus a custom range.
+
+  Every other total in Walker is bound to a Timesheet period, because that is what the Timesheet system
+  wants. This one is not, which is the whole point — a range may span several periods, or none completely.
+  A virtual code reports **its own** time; a real code also shows a roll-up including its virtual codes,
+  the two side by side and never merged, because "time on this project" legitimately means both.
+
+- **A blocked code deletion tells you what is in the way.** It used to refuse with a bare "referenced by
+  entries", and the ✕ was greyed out so you could not even reach the refusal. You now see how many entries
+  hold the code, over what date range, for how many minutes — and you can either reassign them to another
+  code and activity, or delete them behind a deliberate second step that says what will be lost. Once
+  nothing blocks, the code deletion finishes on its own rather than making you click again.
+
+- **The number of likely codes in the picker is yours to set.** A Settings control, 0 to 10. `0` hides
+  the band entirely, so there is no second toggle to find. The default stays 5 — chosen after living with
+  it, which is why this was held back a release.
+
+## Fixed
+
+- **The Delete button no longer disappears from the code editors for the wrong reason.** Whether a code
+  was "in use" was decided from the entries Walker happened to have loaded — roughly a fortnight. So a
+  code you used last month looked free, while one you used last week quietly lost its Delete button with
+  nothing saying why. The server decides now. The one block that remains client-side — virtual codes
+  pointing at this one — says so instead of just removing the control.
 
 ## Notes worth keeping
 
-- **ADR-0015 draws a line that matters more than the feature it justifies.** Walker may **suggest a
-  display order**; it never fills anything in for you, and it never shows a confidence figure or a
-  percentage. The scoring is four documented constants — no model, no training, no dependency anyone
-  would have to debug. The seven rejected alternatives are recorded with their reasons, including why the
-  band is not a re-sort and why the score is a sum rather than an average. Read it before "improving"
-  this area.
-- **One ticket is deliberately left open.** BIZ-084 will make the number of band rows configurable (0
-  disabling it). It is waiting on a few days of real use, so that the default of 5 is chosen from
-  experience rather than guessed. That is not an oversight.
+- **The sweep covers the open period only, and that is deliberate.** Earlier periods have already been
+  keyed into the Timesheet system. Rewriting their entries would leave Walker permanently out of step with
+  what you actually declared, and Walker's entire contract is to mirror that, not to rewrite it. The open
+  period is the only one still being edited, so it is the only one where moving entries is a correction
+  rather than a falsification. Entries older than that keep pointing at the retired code — which is
+  exactly why a retired code stays fully readable instead of being deleted.
+
+- **Two of this release's changes came from the same blind spot.** Walker decided whether a code was "in
+  use" from the entries currently loaded in the browser — never the whole history. It was wrong in both
+  directions, and it was wrong quietly. The catalog and the code editors now both defer to the server,
+  and the guess has been removed from the codebase so it cannot come back through a third caller.
+
+- **Retiring a shared code affects everyone.** Real codes belong to your Organization, not to you, so
+  retiring one hides it for every member. The dialog says so before you confirm — and says nothing of the
+  sort for a virtual code, which is yours alone.
 
 ## Upgrading
 
-Drop-in. No database migration, no API or configuration change. Replace the image (or the `.exe`) and
-your existing data carries over unchanged — subject to the two caveats in "Before you upgrade".
+Drop-in. Replace the image (or the `.exe`) and your existing data carries over unchanged. No
+configuration change, and no existing endpoint or field changes shape.
