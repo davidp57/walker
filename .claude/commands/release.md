@@ -57,7 +57,10 @@ Iterate until approved.
      `package-lock.json`'s top-level version stays in sync too.
 4. Do **not** touch `ROADMAP.md` or `.backlog/` — lot completion is tracked independently of
    releases (a lot is archived to `.backlog/archive/<LOT-ID>.md` when its tickets ship, not when a
-   version is cut).
+   version is cut). This holds because `ROADMAP.md` records **sequencing only** and deliberately
+   says nothing about which version was cut (CHR-014): a release changes nothing it asserts. If you
+   ever find release status stated there, that is the bug — remove it rather than start maintaining
+   it here.
 
 ## Step 5 — Git operations (autonomous)
 

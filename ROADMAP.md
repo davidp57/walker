@@ -40,11 +40,12 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
   (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
-## Now — v1.10.0 released, nothing pending
+## Now — the living lots
 
-`v1.10.0` was cut on 2026-07-31 (BIZ-083, BIZ-085, BIZ-086, BIZ-087) and `[Unreleased]` in the
-CHANGELOG is empty: everything merged to `develop` is published. The four living lots stay open as
-containers for future work; three tickets are open across them (see **Next**).
+Four living lots stay open as containers for future work, each holding what has shipped in its area.
+Whether a given version has been cut is **not** recorded here — that is `CHANGELOG.md`'s job, and
+`/release` is deliberately instructed not to touch this file (CHR-014). What is open sits under
+**Next**, and a test keeps that list honest (`tests/test_roadmap_matches_backlog.py`).
 
 - **POLISH** (living lot of small UX improvements) — shipped: BIZ-038…047 (running Timer in
   Activity, absence date range, description de-noise, task priority/due pills + inline status,
@@ -73,7 +74,11 @@ containers for future work; three tickets are open across them (see **Next**).
 - **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped; TEC-015
   (layout-property animations) reviewed and closed 🚫 wontfix. See `.backlog/TECH/PRD.md`.
 
-## Next — the three open tickets, in the order I'd take them
+## Next — the open tickets, in the order I'd take them
+
+One `- **ID** (priority, LOT) — …` entry per open ticket. The shape is load-bearing: the drift guard
+reads exactly these lines, so prose elsewhere may cite a closed ticket without being mistaken for a
+claim that it is open.
 
 - **BIZ-084** (P2, HABITS) — make the likely-codes row count a view preference (`likely_count`, 0–10,
   `0` disabling the band). Unblocked since BIZ-083 shipped, and deliberately held back so the default
@@ -87,6 +92,13 @@ containers for future work; three tickets are open across them (see **Next**).
 - **BIZ-089** (P2, POLISH) — per-code totals over an arbitrary date range, to answer "how much time did
   you spend on X?". Every current aggregation is Timesheet-period-bound; this one is not.
   See `.backlog/POLISH/tickets/46-time-spent-per-code-recap.md`.
+- **TEC-016** (P2, TECH) — the code editors still hide Delete on `isCodeInUse`, which answers from the
+  loaded date window alone and is wrong in both directions. Extends BIZ-088's inversion to the last two
+  call sites and deletes the guess. Blocked by BIZ-088.
+  See `.backlog/TECH/tickets/12-code-editor-delete-blind-spot.md`.
+- **CHR-014** (P2, TECH) — stop ROADMAP restating release status, and pin its open-ticket list against
+  `.backlog/` with a test, so this file cannot drift silently again.
+  See `.backlog/TECH/tickets/13-roadmap-drift-guard.md`.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 
