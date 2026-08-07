@@ -1367,6 +1367,8 @@ function AppInner() {
           absences={absences}
           onAddAbsence={addAbsence}
           onRemoveAbsence={removeAbsence}
+          likelyCount={viewPreferences.likely_count}
+          onLikelyCountChange={(likely_count) => updateViewPreferences({ likely_count })}
         />
       )}
 
@@ -1525,6 +1527,7 @@ function AppInner() {
           codes={visibleCodes}
           at={picker.at}
           onFetchLikely={fetchLikelyCodes}
+          likelyCount={viewPreferences.likely_count}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
           onCreateNewVirtual={() => {
             const reopenPicker = picker.target
