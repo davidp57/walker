@@ -13,6 +13,7 @@ interface CodeCatalogScreenProps {
   onEdit: (code: TimesheetCode) => void
   onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
+  onShowTotals: (code: TimesheetCode) => void // BIZ-089: "how much time did you spend on X?"
   // What stands between a code and its ✕, if anything (BIZ-088). `virtual` still hard-disables the
   // button — the fix there is to delete the virtual codes first. `entries` no longer does: the
   // client only knows about the entries currently loaded, so the server is the authority, and
@@ -33,6 +34,7 @@ export function CodeCatalogScreen({
   onEdit,
   onEditVirtual,
   onDelete,
+  onShowTotals,
   deleteBlockedBy,
   onImport,
   importStatus,
@@ -141,6 +143,7 @@ export function CodeCatalogScreen({
                 key={c.id}
                 code={c}
                 blockedBy={deleteBlockedBy(c.id)}
+                onShowTotals={onShowTotals}
                 onEdit={onEdit}
                 onEditVirtual={onEditVirtual}
                 onDelete={onDelete}
@@ -208,12 +211,14 @@ export function CodeCatalogScreen({
 function CatalogCard({
   code: c,
   blockedBy,
+  onShowTotals,
   onEdit,
   onEditVirtual,
   onDelete,
 }: {
   code: TimesheetCode
   blockedBy: 'entries' | 'virtual' | null
+  onShowTotals: (code: TimesheetCode) => void
   onEdit: (code: TimesheetCode) => void
   onEditVirtual: (code: TimesheetCode) => void
   onDelete: (code: TimesheetCode) => void
@@ -257,6 +262,15 @@ function CatalogCard({
             />
           ) : (
             <>
+              <button
+                type="button"
+                className="wk-btn-icon"
+                title="How much time have I spent on this?"
+                data-testid={`wk-catalog-totals-${c.id}`}
+                onClick={() => onShowTotals(c)}
+              >
+                ⏱
+              </button>
               <button
                 type="button"
                 className="wk-btn-ghost"

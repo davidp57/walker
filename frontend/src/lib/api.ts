@@ -3,6 +3,7 @@
 // share an origin, so relative paths work in both.
 import type {
   BlockingEntries,
+  CodeTotals,
   Entry,
   LikelyCode,
   PeriodScheme,
@@ -410,6 +411,46 @@ export async function deleteBlockingEntries(codeId: string): Promise<BlockingEnt
   return mapBlockingEntries(
     await sendJson<ApiBlockingEntries>(`/api/codes/${codeId}/blocking-entries`, 'DELETE'),
   )
+}
+
+interface ApiCodeTotals {
+  code_id: number
+  start: string | null
+  end: string | null
+  minutes: number
+  entries: number
+  days: number
+  by_activity: { activity: string | null; minutes: number; entries: number }[]
+  running: boolean
+  rollup: { minutes: number; entries: number; days: number } | null
+}
+
+/**
+ * Time spent on one code (BIZ-089). Omit both bounds for all time — the most common form of the
+ * question, and the one that needs no date input at all.
+ */
+export async function fetchCodeTotals(
+  codeId: string,
+  range: { from?: string; to?: string } = {},
+): Promise<CodeTotals> {
+  const params = new URLSearchParams()
+  if (range.from) params.set('from', range.from)
+  if (range.to) params.set('to', range.to)
+  const query = params.toString()
+  const body = await getJson<ApiCodeTotals>(
+    `/api/codes/${codeId}/totals${query ? `?${query}` : ''}`,
+  )
+  return {
+    codeId: String(body.code_id),
+    start: body.start,
+    end: body.end,
+    minutes: body.minutes,
+    entries: body.entries,
+    days: body.days,
+    byActivity: body.by_activity,
+    running: body.running,
+    rollup: body.rollup,
+  }
 }
 
 interface ApiReferenceCode {

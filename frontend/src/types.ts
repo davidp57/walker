@@ -115,6 +115,41 @@ export interface LikelyCode {
   activity: ActivityName
 }
 
+/** One activity's share of a code's time (BIZ-089). `activity` is null for code-only entries. */
+export interface ActivityTotal {
+  activity: ActivityName | null
+  minutes: number
+  entries: number
+}
+
+/** A (minutes, entries, distinct days) triple — a code's own totals, or its roll-up (BIZ-089). */
+export interface Totals {
+  minutes: number
+  entries: number
+  days: number
+}
+
+/**
+ * How much time you spent on one code over an arbitrary range (BIZ-089) — null dates mean all time.
+ * Unlike everything in `PeriodRow`, this is **not** bound to a Timesheet period.
+ *
+ * A virtual code reports its own time rather than collapsing into its backing real code (ADR-0008 —
+ * `resolve_to_real_codes` serves the opposite, Timesheet-facing case). A real code with virtual
+ * children also carries `rollup`, the same totals including them; the two are shown side by side and
+ * never merged.
+ */
+export interface CodeTotals {
+  codeId: string
+  start: string | null // ISO date
+  end: string | null
+  minutes: number
+  entries: number
+  days: number
+  byActivity: ActivityTotal[]
+  running: boolean // a timer is running on this code; its time is not counted in the totals
+  rollup: Totals | null
+}
+
 /**
  * What is standing between a code and its deletion (BIZ-088). The counts are Organization-wide,
  * mirroring the server's guard (BIZ-030); `own` is the subset you can resolve here and `others` the
@@ -149,7 +184,12 @@ export interface ViewPreferences {
   done_collapsed: boolean
   enter_rounding: boolean // BIZ-063: round Enter-view durations to the quarter-hour
   task_hide_done: boolean // BIZ-087: keep terminal-state Tasks out of the Tasks *list*
+  likely_count: number // BIZ-084: rows in the likely-codes band, 0–10; 0 disables it entirely
 }
+
+/** The inclusive bounds of `likely_count` (BIZ-084), mirroring the server's (models/settings.py). */
+export const LIKELY_COUNT_MIN = 0
+export const LIKELY_COUNT_MAX = 10
 
 /** The built-in view-preference defaults, mirroring the server's (services/settings.py). */
 export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
@@ -161,6 +201,7 @@ export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
   done_collapsed: false,
   enter_rounding: false,
   task_hide_done: true,
+  likely_count: 5,
 }
 
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`

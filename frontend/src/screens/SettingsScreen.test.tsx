@@ -18,6 +18,8 @@ function renderScreen(overrides: Partial<Parameters<typeof SettingsScreen>[0]> =
     absences: [],
     onAddAbsence: vi.fn(),
     onRemoveAbsence: vi.fn(),
+    likelyCount: 5,
+    onLikelyCountChange: vi.fn(),
     ...overrides,
   }
   render(<SettingsScreen {...props} />)
@@ -210,5 +212,57 @@ describe('SettingsScreen — absence range display (BIZ-039)', () => {
     expect(onRemoveAbsence).toHaveBeenCalledTimes(2)
     expect(onRemoveAbsence).toHaveBeenCalledWith('2026-07-10')
     expect(onRemoveAbsence).toHaveBeenCalledWith('2026-07-11')
+  })
+})
+
+describe('SettingsScreen — likely-codes row count (BIZ-084)', () => {
+  const control = () => screen.getByLabelText('Likely codes shown in the picker')
+
+  it('shows the current count', () => {
+    renderScreen({ likelyCount: 8 })
+
+    expect(control()).toHaveValue(8)
+  })
+
+  it('reports the change and flashes a save acknowledgement', () => {
+    const onLikelyCountChange = vi.fn()
+    renderScreen({ onLikelyCountChange })
+
+    fireEvent.change(control(), { target: { value: '3' } })
+
+    expect(onLikelyCountChange).toHaveBeenCalledWith(3)
+    expect(screen.getByText('✓ Saved')).toBeInTheDocument()
+  })
+
+  it('says the band is off when the count is 0, so the value is not read as a mistake', () => {
+    renderScreen({ likelyCount: 0 })
+
+    expect(screen.getByText(/band hidden/i)).toBeInTheDocument()
+  })
+
+  it('reports 0 as a real value rather than swallowing it', () => {
+    const onLikelyCountChange = vi.fn()
+    renderScreen({ onLikelyCountChange })
+
+    fireEvent.change(control(), { target: { value: '0' } })
+
+    expect(onLikelyCountChange).toHaveBeenCalledWith(0)
+  })
+
+  it('ignores a value outside the 0–10 range instead of sending it', () => {
+    const onLikelyCountChange = vi.fn()
+    renderScreen({ onLikelyCountChange })
+
+    fireEvent.change(control(), { target: { value: '42' } })
+
+    expect(onLikelyCountChange).not.toHaveBeenCalled()
+  })
+
+  it('is bounded and keyboard-operable as a number field', () => {
+    renderScreen()
+
+    expect(control()).toHaveAttribute('type', 'number')
+    expect(control()).toHaveAttribute('min', '0')
+    expect(control()).toHaveAttribute('max', '10')
   })
 })

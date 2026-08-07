@@ -44,6 +44,7 @@ function renderScreen(
       onEditVirtual={onEditVirtual}
       onDelete={vi.fn()}
       deleteBlockedBy={() => null}
+      onShowTotals={vi.fn()}
       onSearchReference={async () => []}
       onActivateReference={vi.fn()}
     />,
@@ -97,6 +98,7 @@ describe('CodeCatalogScreen', () => {
         onEditVirtual={vi.fn()}
         onDelete={onDelete}
         deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -123,6 +125,7 @@ describe('CodeCatalogScreen', () => {
         onEditVirtual={vi.fn()}
         onDelete={onDelete}
         deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -145,6 +148,7 @@ describe('CodeCatalogScreen', () => {
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
         deleteBlockedBy={() => 'virtual'}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -169,6 +173,7 @@ describe('CodeCatalogScreen', () => {
         onEditVirtual={vi.fn()}
         onDelete={onDelete}
         deleteBlockedBy={() => 'entries'}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => []}
         onActivateReference={vi.fn()}
       />,
@@ -281,6 +286,7 @@ describe('CodeCatalogScreen', () => {
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
         deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => [ref]}
         onActivateReference={onActivateReference}
       />,
@@ -310,6 +316,7 @@ describe('CodeCatalogScreen', () => {
         onEditVirtual={vi.fn()}
         onDelete={vi.fn()}
         deleteBlockedBy={() => null}
+        onShowTotals={vi.fn()}
         onSearchReference={async () => [
           { id: 'r1', number: 'N9/9999/010', name: 'Team huddle', label: 'HUD', activities: [] },
         ]}
@@ -332,4 +339,27 @@ describe('CodeCatalogScreen', () => {
       'https://davidp57.github.io/walker/catalog-import/',
     )
   })
+})
+
+// BIZ-089: "how much time did you spend on X?" is asked *about a code*, so it lives on the code.
+it('opens the time totals for a code from its own row', () => {
+  const onShowTotals = vi.fn()
+  render(
+    <CodeCatalogScreen
+      codes={[realCode]}
+      onNew={vi.fn()}
+      onNewVirtual={vi.fn()}
+      onEdit={vi.fn()}
+      onEditVirtual={vi.fn()}
+      onDelete={vi.fn()}
+      deleteBlockedBy={() => null}
+      onShowTotals={onShowTotals}
+      onSearchReference={async () => []}
+      onActivateReference={vi.fn()}
+    />,
+  )
+
+  fireEvent.click(screen.getByTestId('wk-catalog-totals-1'))
+
+  expect(onShowTotals).toHaveBeenCalledWith(realCode)
 })

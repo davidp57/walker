@@ -203,6 +203,46 @@ class ReassignBlockingEntries(BaseModel):
     activity: str = Field(min_length=1)
 
 
+class ActivityTotalRead(BaseModel):
+    """One activity's share of a code's time (BIZ-089). ``activity`` is null for code-only entries."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    activity: str | None
+    minutes: int
+    entries: int
+
+
+class TotalsRead(BaseModel):
+    """A (minutes, entries, distinct days) triple — the code's own, or its roll-up (BIZ-089)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    minutes: int
+    entries: int
+    days: int
+
+
+class CodeTotalsRead(BaseModel):
+    """Time spent on one code over an arbitrary range (BIZ-089) — null dates mean all time.
+
+    A virtual code reports its own time (ADR-0008); a real code with virtual children additionally
+    carries ``rollup``, the same totals including them. The two are never merged.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    code_id: int
+    start: date | None
+    end: date | None
+    minutes: int
+    entries: int
+    days: int
+    by_activity: list[ActivityTotalRead]
+    running: bool  # a timer is running on this code; its time is not in the totals
+    rollup: TotalsRead | None
+
+
 class PeriodRowRead(BaseModel):
     """One Code × Activity row of the Timesheet period grid."""
 
@@ -345,6 +385,7 @@ class ViewPreferencesRead(BaseModel):
     done_collapsed: bool
     enter_rounding: bool
     task_hide_done: bool
+    likely_count: int
 
 
 class ViewPreferencesUpdate(BaseModel):
@@ -358,6 +399,9 @@ class ViewPreferencesUpdate(BaseModel):
     done_collapsed: bool | None = None
     enter_rounding: bool | None = None
     task_hide_done: bool | None = None
+    # Deliberately unconstrained here: the service is the single place that validates a preference,
+    # so an out-of-range value falls back to the default like every other one rather than 422-ing.
+    likely_count: int | None = None
 
 
 class TaskStateRead(BaseModel):

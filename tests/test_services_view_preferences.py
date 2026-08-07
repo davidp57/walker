@@ -86,3 +86,42 @@ def test_enter_rounding_defaults_false_and_round_trips(session: Session) -> None
 def test_non_bool_enter_rounding_is_ignored(session: Session) -> None:
     view = update_view_preferences(session, 1, {"enter_rounding": "yes"})
     assert view.view_preferences["enter_rounding"] is False
+
+
+def test_likely_count_defaults_to_five(session: Session) -> None:
+    """BIZ-084: the band's row cap, previously hardcoded at 5 in BIZ-083."""
+    assert get_settings(session, 1).view_preferences["likely_count"] == 5
+
+
+def test_likely_count_round_trips_and_persists(session: Session) -> None:
+    update_view_preferences(session, 1, {"likely_count": 8})
+
+    assert get_settings(session, 1).view_preferences["likely_count"] == 8
+
+
+def test_likely_count_zero_is_a_valid_value(session: Session) -> None:
+    """0 is the off switch, not an invalid value — it must survive rather than fall back to 5."""
+    update_view_preferences(session, 1, {"likely_count": 0})
+
+    assert get_settings(session, 1).view_preferences["likely_count"] == 0
+
+
+@pytest.mark.parametrize("value", [-1, 11, 100])
+def test_out_of_range_likely_count_falls_back_to_the_default(session: Session, value: int) -> None:
+    view = update_view_preferences(session, 1, {"likely_count": value})
+
+    assert view.view_preferences["likely_count"] == 5
+
+
+@pytest.mark.parametrize("value", ["5", 5.5, None, [5]])
+def test_non_integer_likely_count_falls_back_to_the_default(session: Session, value: object) -> None:
+    view = update_view_preferences(session, 1, {"likely_count": value})
+
+    assert view.view_preferences["likely_count"] == 5
+
+
+def test_boolean_likely_count_is_rejected(session: Session) -> None:
+    """``bool`` is an ``int`` subclass in Python — ``True`` must not slip through as 1."""
+    view = update_view_preferences(session, 1, {"likely_count": True})
+
+    assert view.view_preferences["likely_count"] == 5
