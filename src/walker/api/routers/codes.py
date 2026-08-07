@@ -21,6 +21,7 @@ from walker.api.schemas import (
     ImportSummary,
     LikelyCodeRead,
     ReassignBlockingEntries,
+    SetObsolete,
     VirtualCodeCreate,
     VirtualCodeUpdate,
 )
@@ -53,6 +54,7 @@ def _code_read(code: TimesheetCode) -> CodeRead:
         real_code_id=code.real_code_id,
         real_code_number=code.real_code.number if code.real_code is not None else None,
         backing_only=code.backing_only,
+        obsolete=code.obsolete,
     )
 
 
@@ -208,6 +210,40 @@ def update_code(
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
     return _code_read(code)
+
+
+@router.put("/codes/{code_id}/obsolete", response_model=CodeRead)
+def set_code_obsolete(
+    code_id: int,
+    body: SetObsolete,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> CodeRead:
+    """Retire a code, or bring it back (BIZ-090).
+
+    With ``sweep``, the caller's own Entries in that window move onto the replacement code + activity
+    **before** the flag is applied, so the retired code is left carrying only what predates the window.
+    The SPA passes the open Timesheet period: earlier periods have already been keyed into the
+    Timesheet system, and rewriting them would put Walker out of step with what was declared.
+
+    For a **real** code the flag is Organization-wide — the row is shared (BIZ-030, ADR-0010).
+    """
+    try:
+        if body.sweep is not None:
+            catalog.reassign_entries_in_range(
+                session,
+                user.id,
+                code_id,
+                target_code_id=body.sweep.target_code_id,
+                activity=body.sweep.activity,
+                start=body.sweep.start,
+                end=body.sweep.end,
+            )
+        return _code_read(catalog.set_obsolete(session, user.id, code_id, obsolete=body.obsolete))
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
 
 @router.delete("/codes/{code_id}", status_code=status.HTTP_204_NO_CONTENT)

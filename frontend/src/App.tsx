@@ -6,6 +6,7 @@ import { TimerBar } from './components/TimerBar'
 import { BlockingEntriesModal } from './components/BlockingEntriesModal'
 import { CodePicker } from './components/CodePicker'
 import { CodeTotalsModal } from './components/CodeTotalsModal'
+import { RetireCodeModal } from './components/RetireCodeModal'
 import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
@@ -49,6 +50,7 @@ import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor, soleActivity } from './lib/tasks'
 import { describeDue } from './lib/dueDate'
 import { ToastProvider } from './lib/toast'
+import type { CodeSweep } from './lib/api'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
@@ -64,6 +66,7 @@ import {
   deleteCode as apiDeleteCode,
   fetchBlockingEntries,
   fetchCodeTotals,
+  setCodeObsolete as apiSetCodeObsolete,
   reassignBlockingEntries as apiReassignBlockingEntries,
   deleteEntry as apiDeleteEntry,
   deleteTask as apiDeleteTask,
@@ -313,6 +316,8 @@ function AppInner() {
   } | null>(null)
   // BIZ-089: the code whose time totals are being read ("how much time did you spend on X?").
   const [totalsCode, setTotalsCode] = useState<TimesheetCode | null>(null)
+  // BIZ-090: the code being retired, while its confirm + optional sweep is on screen.
+  const [retiringCode, setRetiringCode] = useState<TimesheetCode | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
@@ -471,7 +476,11 @@ function AppInner() {
   // BIZ-075 (ADR-0014): backing-only real codes exist only to resolve a virtual code's Timesheet
   // export; they are hidden from every user-facing surface (catalog + pickers). `codesById` stays
   // built from the full set so a checklist line still resolves its number/label by id.
+  // The catalog shows every code the user owns except the hidden backings (BIZ-075, ADR-0014); it
+  // filters retired ones itself, behind its toggle. Every *picker* takes `pickableCodes`, which drops
+  // retired codes outright — a retired code you can still click is not retired (BIZ-090).
   const visibleCodes = useMemo(() => codes.filter((c) => !c.backingOnly), [codes])
+  const pickableCodes = useMemo(() => visibleCodes.filter((c) => !c.obsolete), [visibleCodes])
 
   // BIZ-085: while an Entry is running it is the **single source of truth** for its categorization.
   // Every surface can edit it — the Activity list, the cell drill-down, the full entry editor — and
@@ -780,6 +789,21 @@ function AppInner() {
       onActivated,
     })
   }
+  // BIZ-090: retiring can sweep the open period's entries first, so entries are reloaded too.
+  const retireCode = (code: TimesheetCode, sweep?: CodeSweep) =>
+    apiSetCodeObsolete(code.id, true, sweep)
+      .then(() => Promise.all([reloadCodes(), reload()]))
+      .then(() => {
+        setRetiringCode(null)
+        notify(`${code.name} retired.`)
+      })
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not retire the code.')))
+  const restoreCode = (code: TimesheetCode) =>
+    apiSetCodeObsolete(code.id, false)
+      .then(reloadCodes)
+      .then(() => notify(`${code.name} is back in your catalog.`))
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not restore the code.')))
+
   const deleteCode = (code: TimesheetCode) => {
     apiDeleteCode(code.id)
       .then(reloadCodes)
@@ -1355,6 +1379,10 @@ function AppInner() {
           onDelete={deleteCode}
           deleteBlockedBy={deleteBlockedBy}
           onShowTotals={setTotalsCode}
+          onRetire={setRetiringCode}
+          onRestore={restoreCode}
+          showObsolete={viewPreferences.show_obsolete}
+          onShowObsoleteChange={(show_obsolete) => updateViewPreferences({ show_obsolete })}
           onImport={importCatalogFile}
           importStatus={importMessage}
           onSearchReference={searchReference}
@@ -1456,7 +1484,7 @@ function AppInner() {
         <TaskPanel
           task={taskPanel.task}
           initialCodeId={taskPanel.initialCodeId ?? null}
-          codes={visibleCodes}
+          codes={pickableCodes}
           taskStates={taskStates}
           tagSuggestions={taskTags}
           onSave={saveTask}
@@ -1501,6 +1529,16 @@ function AppInner() {
       {/* Rendered after CellEntriesModal (and the other openers above) so the picker stacks above the
           modal it was opened from: modals share one z-index, so DOM order alone decides stacking, and
           the picker is opened from within the cell drill-down (TEC-009). */}
+      {retiringCode && (
+        <RetireCodeModal
+          code={retiringCode}
+          codes={pickableCodes}
+          periodStart={isoDate(periodBounds(periodScheme, TODAY).start)}
+          periodEnd={isoDate(periodBounds(periodScheme, TODAY).end)}
+          onRetire={(sweep) => retireCode(retiringCode, sweep)}
+          onClose={() => setRetiringCode(null)}
+        />
+      )}
       {totalsCode && (
         <CodeTotalsModal
           code={totalsCode}
@@ -1514,7 +1552,7 @@ function AppInner() {
       {blocking && (
         <BlockingEntriesModal
           code={blocking.code}
-          codes={visibleCodes}
+          codes={pickableCodes}
           blocking={blocking.blocking}
           onClose={() => setBlocking(null)}
           onReassign={(targetCodeId, activity) =>
@@ -1542,7 +1580,7 @@ function AppInner() {
                 ? 'Pick code & activity'
                 : 'Categorize entry'
           }
-          codes={visibleCodes}
+          codes={pickableCodes}
           at={picker.at}
           onFetchLikely={fetchLikelyCodes}
           likelyCount={viewPreferences.likely_count}

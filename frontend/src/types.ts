@@ -28,6 +28,9 @@ export interface TimesheetCode {
   // BIZ-075 (ADR-0014): a hidden real code that exists only to back a virtual code — filtered out of
   // the catalog + pickers, but kept in the list so a checklist line's number/label resolves by id.
   backingOnly?: boolean
+  // BIZ-090: retired. Still resolves everywhere past work references it, but hidden from every
+  // picker and, unless the catalog toggle is on, from the catalog.
+  obsolete?: boolean
   // T&E grid-ordering keys (BIZ-068), resolved virtual→real; null/absent before the enriched catalog
   // import. Optional so the many test fixtures predating the field stay valid.
   customer?: string | null // the client name
@@ -185,6 +188,7 @@ export interface ViewPreferences {
   enter_rounding: boolean // BIZ-063: round Enter-view durations to the quarter-hour
   task_hide_done: boolean // BIZ-087: keep terminal-state Tasks out of the Tasks *list*
   likely_count: number // BIZ-084: rows in the likely-codes band, 0–10; 0 disables it entirely
+  show_obsolete: boolean // BIZ-090: reveal retired codes in the Code catalog
 }
 
 /** The inclusive bounds of `likely_count` (BIZ-084), mirroring the server's (models/settings.py). */
@@ -202,6 +206,7 @@ export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
   enter_rounding: false,
   task_hide_done: true,
   likely_count: 5,
+  show_obsolete: false,
 }
 
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`

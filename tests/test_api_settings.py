@@ -28,6 +28,7 @@ def test_get_settings_includes_default_view_preferences(client: TestClient) -> N
         "enter_rounding": False,
         "task_hide_done": True,
         "likely_count": 5,
+        "show_obsolete": False,
     }
 
 

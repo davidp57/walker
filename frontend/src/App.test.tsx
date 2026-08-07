@@ -1110,6 +1110,24 @@ describe('App — code picker stacks above the Timesheet-period cell modal (TEC-
     expect(screen.getByTestId('wk-catalog-delete-1-confirm')).toBeInTheDocument()
   })
 
+  // BIZ-090 — the whole point of retiring a code is that it stops being offered. It must still reach
+  // the catalog (behind its toggle), so this is exactly the invariant a shared `visibleCodes` breaks.
+  it('keeps a retired code out of the code picker while leaving it in the catalog', async () => {
+    const retired: TimesheetCode = { ...realCode, id: '9', name: 'Closed project', obsolete: true }
+    mockBaseApi([realCode, retired], [uncategorizedEntry])
+    render(<App />)
+
+    await clickNav('Code catalog')
+    fireEvent.click(await screen.findByRole('button', { name: 'Retired (1)' }))
+    expect(await screen.findByText('Closed project')).toBeInTheDocument()
+
+    await clickNav('Activity')
+    fireEvent.click(await screen.findByText('pick a code'))
+
+    await screen.findByText('Paper V4')
+    expect(screen.queryByText('Closed project')).not.toBeInTheDocument()
+  })
+
   it('keeps Delete out of reach — and says why — when virtual codes point at the code', async () => {
     mockBaseApi([realCode, virtualCode], [])
     render(<App />)

@@ -2365,6 +2365,93 @@ html[data-theme='light'] body {
   border-radius: var(--wk-radius-sm);
   padding: 1px 6px;
 }
+/* --- Retired codes (BIZ-090) --------------------------------------------------------------------
+   A retired code is not an error, so the badge borrows the neutral "virtual" chip rather than a
+   danger tint; the card is dimmed instead, which reads as "set aside" without hiding anything. */
+.wk-code-obsolete-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  vertical-align: middle;
+  font-family: var(--wk-font-mono);
+  font-size: var(--wk-fs-9);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--wk-text-lo);
+  background: var(--wk-bg-0);
+  border: 1px dashed var(--wk-line);
+  border-radius: var(--wk-radius-sm);
+  padding: 1px 6px;
+}
+.wk-catalog-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.wk-catalog-filters .wk-input {
+  flex: 1 1 260px;
+}
+.wk-catalog-obsolete-toggle {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.wk-catalog-obsolete-toggle.is-on {
+  color: var(--wk-accent);
+  border-color: var(--wk-accent-line);
+}
+.wk-catalog-obsolete-toggle:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+/* The retire dialog: an opt-in sweep, its window spelled out, and the shared-code warning. */
+.wk-retire-lead {
+  margin: 8px 2px 12px;
+  font-size: var(--wk-fs-13);
+  line-height: 1.5;
+  color: var(--wk-text-hi);
+}
+.wk-retire-note {
+  margin: 0 2px 12px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--wk-amber-line);
+  background: var(--wk-amber-soft);
+  border-radius: var(--wk-radius-sm);
+  font-size: var(--wk-fs-12);
+  line-height: 1.5;
+  color: var(--wk-text-mid);
+}
+.wk-retire-sweep {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 10px 2px;
+  border-top: 1px solid var(--wk-line);
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-mid);
+  cursor: pointer;
+}
+.wk-retire-target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 0 2px 10px;
+}
+.wk-retire-chosen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--wk-fs-12);
+  color: var(--wk-text-hi);
+}
+.wk-retire-scope {
+  margin: 0 2px 8px;
+  font-size: var(--wk-fs-11);
+  line-height: 1.5;
+  color: var(--wk-text-lo);
+}
 .wk-catalog-head {
   display: flex;
   align-items: center;

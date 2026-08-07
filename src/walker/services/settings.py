@@ -61,10 +61,13 @@ DEFAULT_VIEW_PREFERENCES: dict[str, object] = {
     # why the range starts there rather than at 1 — it doubles as the off switch, sparing a second
     # toggle. The model's own constants stay hardcoded on purpose (see the ticket).
     "likely_count": DEFAULT_LIKELY_COUNT,
+    # BIZ-090: the Code catalog hides retired codes by default. Off rather than on because the point
+    # of retiring one is to stop seeing it; the toggle is for the rare look-back.
+    "show_obsolete": False,
 }
 
 # The bool view-preference keys (not enum-constrained): handled uniformly in resolve/clean.
-_BOOL_VIEW_PREFERENCES = ("done_collapsed", "enter_rounding", "task_hide_done")
+_BOOL_VIEW_PREFERENCES = ("done_collapsed", "enter_rounding", "task_hide_done", "show_obsolete")
 
 # The integer view-preference keys, with their inclusive ``(min, max)`` range. Out-of-range and
 # non-integer values fall back to the default rather than being clamped, matching how every other
