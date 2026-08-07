@@ -75,6 +75,9 @@ class CodeRead(BaseModel):
     # these out of the catalog + pickers; the API still returns them so a checklist line's number/label
     # can be resolved by id.
     backing_only: bool = False
+    # BIZ-090: retired. Returned for the same reason as ``backing_only`` — past Entries and checklist
+    # lines must still resolve — but hidden from the pickers and, unless the toggle is on, the catalog.
+    obsolete: bool = False
 
 
 class LikelyCodeRead(BaseModel):
@@ -190,6 +193,27 @@ class BlockingEntriesRead(BaseModel):
     last_date: date | None
     minutes: int
     entries: list[EntryRead]
+
+
+class SweepEntries(BaseModel):
+    """Where a retiring code's open-period Entries should go (BIZ-090)."""
+
+    target_code_id: int
+    activity: str = Field(min_length=1)
+    start: date
+    end: date
+
+
+class SetObsolete(BaseModel):
+    """Retire a code, or bring it back (BIZ-090), optionally sweeping a window of Entries first.
+
+    ``sweep`` moves the caller's own Entries in ``[start, end]`` onto another code + activity before
+    the flag is applied — the SPA passes the **open** Timesheet period, since earlier ones have
+    already been keyed into the Timesheet system.
+    """
+
+    obsolete: bool
+    sweep: SweepEntries | None = None
 
 
 class ReassignBlockingEntries(BaseModel):
@@ -386,6 +410,7 @@ class ViewPreferencesRead(BaseModel):
     enter_rounding: bool
     task_hide_done: bool
     likely_count: int
+    show_obsolete: bool
 
 
 class ViewPreferencesUpdate(BaseModel):
@@ -399,6 +424,7 @@ class ViewPreferencesUpdate(BaseModel):
     done_collapsed: bool | None = None
     enter_rounding: bool | None = None
     task_hide_done: bool | None = None
+    show_obsolete: bool | None = None
     # Deliberately unconstrained here: the service is the single place that validates a preference,
     # so an out-of-range value falls back to the default like every other one rather than 422-ing.
     likely_count: int | None = None

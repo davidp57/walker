@@ -34,6 +34,7 @@ interface ApiCode {
   real_code_id: number | null
   real_code_number: string | null
   backing_only?: boolean
+  obsolete?: boolean
   customer?: string | null
   type?: string | null
 }
@@ -68,6 +69,7 @@ function mapCode(code: ApiCode): TimesheetCode {
     realCodeId: code.real_code_id == null ? null : String(code.real_code_id),
     realCodeNumber: code.real_code_number,
     backingOnly: code.backing_only ?? false,
+    obsolete: code.obsolete ?? false,
     customer: code.customer ?? null,
     type: code.type ?? null,
   }
@@ -383,6 +385,36 @@ function mapBlockingEntries(body: ApiBlockingEntries): BlockingEntries {
     minutes: body.minutes,
     entries: body.entries.map(mapEntry),
   }
+}
+
+/** Where a retiring code's open-period entries should go (BIZ-090). */
+export interface CodeSweep {
+  targetCodeId: string
+  activity: string
+  start: string // ISO date
+  end: string
+}
+
+/**
+ * Retire a code, or bring it back (BIZ-090). With `sweep`, your own entries in that window move onto
+ * the replacement first — the SPA passes the open Timesheet period, since earlier ones have already
+ * been keyed into the Timesheet system.
+ */
+export async function setCodeObsolete(
+  codeId: string,
+  obsolete: boolean,
+  sweep?: CodeSweep,
+): Promise<TimesheetCode> {
+  const body: Record<string, unknown> = { obsolete }
+  if (sweep) {
+    body.sweep = {
+      target_code_id: Number(sweep.targetCodeId),
+      activity: sweep.activity,
+      start: sweep.start,
+      end: sweep.end,
+    }
+  }
+  return mapCode(await sendJson<ApiCode>(`/api/codes/${codeId}/obsolete`, 'PUT', body))
 }
 
 /** The Entries preventing a code's deletion (BIZ-088) — counts org-wide, rows your own. */

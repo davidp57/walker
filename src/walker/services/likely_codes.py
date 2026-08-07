@@ -95,12 +95,14 @@ def _proposable_pairs(session: Session, user_id: int) -> tuple[set[tuple[int, st
     Intersecting candidates with the live catalog matters: history holds pairs whose code has since
     left the user's codes and activities that vanished on a re-import. Proposing something the picker
     can't select is worse than proposing nothing. ``backing_only`` codes are excluded — the SPA hides
-    them from every picker (BIZ-075, ADR-0014).
+    them from every picker (BIZ-075, ADR-0014) — and so are ``obsolete`` ones (BIZ-090): the band
+    ranks *past* entries, so a retired code would otherwise keep being proposed precisely because it
+    used to be worked on.
     """
     pairs: set[tuple[int, str]] = set()
     names: dict[int, str] = {}
     for code in catalog.list_codes(session, user_id):
-        if code.backing_only:
+        if code.backing_only or code.obsolete:
             continue
         names[code.id] = code.name
         pairs.update((code.id, activity.label) for activity in code.resolved_activities)

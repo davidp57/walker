@@ -356,44 +356,96 @@ def list_blocking_entries(session: Session, user_id: int, code_id: int) -> list[
     )
 
 
-def _own_entry_count(session: Session, user_id: int, code_id: int) -> int:
-    """How many of the user's own Entries reference ``code_id``.
+def _own_entries_filter(
+    user_id: int, code_id: int, start: date | None = None, end: date | None = None
+) -> ColumnElement[bool]:
+    """The user's own Entries on ``code_id``, optionally narrowed to an inclusive date window."""
+    clause = (Entry.timesheet_code_id == code_id) & (Entry.user_id == user_id)
+    if start is not None:
+        clause = clause & (Entry.date >= start)
+    if end is not None:
+        clause = clause & (Entry.date <= end)
+    return clause
+
+
+def _own_entry_count(
+    session: Session, user_id: int, code_id: int, start: date | None = None, end: date | None = None
+) -> int:
+    """How many of the user's own Entries reference ``code_id`` (optionally within a window).
 
     Counted up-front rather than read back from the statement's ``rowcount``, which is
     driver-dependent and untyped in SQLAlchemy 2.0's ``Result``.
     """
     return (
-        session.scalar(
-            select(func.count()).select_from(Entry).where(Entry.timesheet_code_id == code_id, Entry.user_id == user_id)
-        )
+        session.scalar(select(func.count()).select_from(Entry).where(_own_entries_filter(user_id, code_id, start, end)))
         or 0
     )
 
 
-def reassign_blocking_entries(
-    session: Session, user_id: int, code_id: int, *, target_code_id: int, activity: str
+def set_obsolete(session: Session, user_id: int, code_id: int, *, obsolete: bool) -> TimesheetCode:
+    """Retire a code, or bring it back (BIZ-090).
+
+    The code keeps existing and resolving — past Entries, the period grid and the checklist must go on
+    rendering its number, label and colour — it simply stops being offered. Hiding is the SPA's job:
+    ``list_codes`` still returns it, exactly as it returns ``backing_only`` codes (BIZ-075, ADR-0014).
+
+    For a **real** code this is Organization-wide, because the row is shared (BIZ-030, ADR-0010): a
+    charge line that has closed has closed for every member. The caller is responsible for saying so
+    before applying it.
+    """
+    code = get_visible_code(session, user_id, code_id)
+    code.obsolete = obsolete
+    session.commit()
+    session.refresh(code)
+    return code
+
+
+def reassign_entries_in_range(
+    session: Session,
+    user_id: int,
+    code_id: int,
+    *,
+    target_code_id: int,
+    activity: str,
+    start: date | None = None,
+    end: date | None = None,
 ) -> int:
-    """Move the user's Entries off ``code_id`` onto ``target_code_id`` + ``activity`` (BIZ-088).
+    """Move the user's Entries off ``code_id`` onto ``target_code_id`` + ``activity`` (BIZ-088/BIZ-090).
 
     One statement rather than a per-entry loop: a partial failure mid-loop would leave the catalog in
     a state the user cannot reason about. ``activity`` is required — a code change without one would
     push the entries into the period grid's uncategorized bucket, trading one problem for another.
+
+    ``start``/``end`` bound the sweep inclusively; omitting both moves every one of the user's entries,
+    which is what unblocking a deletion needs (BIZ-088). BIZ-090's retire-a-code sweep passes the open
+    Timesheet period, because earlier periods have already been keyed into the Timesheet system and
+    rewriting them would put Walker out of step with what was declared.
+
     Returns how many were moved.
     """
     get_visible_code(session, user_id, code_id)
     target = get_visible_code(session, user_id, target_code_id)
     if target.id == code_id:
-        raise ValidationError("Entries cannot be reassigned to the code being deleted.")
+        raise ValidationError("Entries cannot be reassigned to the code they are already on.")
+    if target.obsolete:
+        raise ValidationError(f"Code {target.number} is obsolete and cannot receive reassigned entries.")
     if not activity.strip():
         raise ValidationError("Reassigning entries requires an activity.")
-    moved = _own_entry_count(session, user_id, code_id)
+    moved = _own_entry_count(session, user_id, code_id, start, end)
     session.execute(
         update(Entry)
-        .where(Entry.timesheet_code_id == code_id, Entry.user_id == user_id)
+        .where(_own_entries_filter(user_id, code_id, start, end))
         .values(timesheet_code_id=target.id, activity=activity.strip())
     )
     session.commit()
     return moved
+
+
+def reassign_blocking_entries(
+    session: Session, user_id: int, code_id: int, *, target_code_id: int, activity: str
+) -> int:
+    """Move **every** one of the user's Entries off ``code_id`` — the delete-unblock path (BIZ-088)."""
+    return reassign_entries_in_range(session, user_id, code_id, target_code_id=target_code_id, activity=activity)
 
 
 def delete_blocking_entries(session: Session, user_id: int, code_id: int) -> int:
