@@ -24,6 +24,13 @@ DEFAULT_PERIOD_SCHEME: PeriodScheme = "semi_monthly"
 Theme = Literal["dark", "light", "system"]
 DEFAULT_THEME: Theme = "system"
 
+# How many rows the likely-codes band shows (BIZ-083/BIZ-084, ADR-0015), and its ceiling. They live
+# here rather than with the ranking model in ``services/likely_codes.py`` because ``likely_count`` is
+# a user preference and ``services/settings.py`` must bound it — and ``likely_codes`` already imports
+# ``settings``, so the other direction would be a cycle.
+DEFAULT_LIKELY_COUNT = 5
+MAX_LIKELY_COUNT = 10
+
 
 class Settings(TimestampMixin, Base):
     """A user's settings: which weekdays are workdays, the grid density, the period scheme, and the

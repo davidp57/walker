@@ -2,6 +2,7 @@
 // The dev server proxies /api to the FastAPI backend; in production the SPA and API
 // share an origin, so relative paths work in both.
 import type {
+  BlockingEntries,
   CodeTotals,
   Entry,
   LikelyCode,
@@ -349,8 +350,67 @@ export async function addBackingFromReference(number: string): Promise<Timesheet
 export async function deleteCode(id: string): Promise<void> {
   const response = await fetch(`/api/codes/${id}`, { method: 'DELETE' })
   if (!response.ok) {
-    throw new Error(`${response.status} ${response.statusText} for /api/codes/${id}`)
+    // The 409 body explains the block (count, range, minutes — BIZ-088); surface it rather than the
+    // bare status, which is what made the old dead end so opaque.
+    const detail = await response
+      .json()
+      .then((body: { detail?: string }) => body.detail)
+      .catch(() => undefined)
+    throw new ApiError(
+      detail ?? `${response.status} ${response.statusText} for /api/codes/${id}`,
+      response.status,
+    )
   }
+}
+
+interface ApiBlockingEntries {
+  total: number
+  own: number
+  others: number
+  first_date: string | null
+  last_date: string | null
+  minutes: number
+  entries: ApiEntry[]
+}
+
+function mapBlockingEntries(body: ApiBlockingEntries): BlockingEntries {
+  return {
+    total: body.total,
+    own: body.own,
+    others: body.others,
+    firstDate: body.first_date,
+    lastDate: body.last_date,
+    minutes: body.minutes,
+    entries: body.entries.map(mapEntry),
+  }
+}
+
+/** The Entries preventing a code's deletion (BIZ-088) — counts org-wide, rows your own. */
+export async function fetchBlockingEntries(codeId: string): Promise<BlockingEntries> {
+  return mapBlockingEntries(
+    await getJson<ApiBlockingEntries>(`/api/codes/${codeId}/blocking-entries`),
+  )
+}
+
+/** Move your blocking Entries onto another code + activity; returns the refreshed summary (BIZ-088). */
+export async function reassignBlockingEntries(
+  codeId: string,
+  targetCodeId: string,
+  activity: string,
+): Promise<BlockingEntries> {
+  return mapBlockingEntries(
+    await sendJson<ApiBlockingEntries>(`/api/codes/${codeId}/blocking-entries/reassign`, 'POST', {
+      target_code_id: Number(targetCodeId),
+      activity,
+    }),
+  )
+}
+
+/** Delete your blocking Entries — the captured time is lost (BIZ-088). */
+export async function deleteBlockingEntries(codeId: string): Promise<BlockingEntries> {
+  return mapBlockingEntries(
+    await sendJson<ApiBlockingEntries>(`/api/codes/${codeId}/blocking-entries`, 'DELETE'),
+  )
 }
 
 interface ApiCodeTotals {

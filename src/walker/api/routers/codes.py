@@ -12,12 +12,15 @@ from walker.api.schemas import (
     ActivityRead,
     ActivityWrite,
     AddFromReference,
+    BlockingEntriesRead,
     CodeCreate,
     CodeRead,
     CodeTotalsRead,
     CodeUpdate,
+    EntryRead,
     ImportSummary,
     LikelyCodeRead,
+    ReassignBlockingEntries,
     VirtualCodeCreate,
     VirtualCodeUpdate,
 )
@@ -213,7 +216,11 @@ def delete_code(
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> Response:
-    """Delete a code, unless an Entry references it."""
+    """Delete a code, unless an Entry references it.
+
+    The 409 body now says how many entries block it, over what range, for how many minutes (BIZ-088)
+    — see ``GET /codes/{code_id}/blocking-entries`` to resolve them.
+    """
     try:
         catalog.delete_code(session, user.id, code_id)
     except NotFoundError as exc:
@@ -221,6 +228,74 @@ def delete_code(
     except ValidationError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def _blocking_read(session: Session, user_id: int, code_id: int) -> BlockingEntriesRead:
+    """Build the blocking-entries payload: Organization-wide counts + the caller's own rows."""
+    summary = catalog.blocking_entries(session, user_id, code_id)
+    return BlockingEntriesRead(
+        total=summary.total,
+        own=summary.own,
+        others=summary.others,
+        first_date=summary.first_date,
+        last_date=summary.last_date,
+        minutes=summary.minutes,
+        entries=[EntryRead.model_validate(e) for e in catalog.list_blocking_entries(session, user_id, code_id)],
+    )
+
+
+@router.get("/codes/{code_id}/blocking-entries", response_model=BlockingEntriesRead)
+def list_blocking_entries(
+    code_id: int,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> BlockingEntriesRead:
+    """The Entries preventing this code's deletion (BIZ-088).
+
+    Counts span the whole Organization so the block is explainable; ``entries`` holds only the
+    caller's own — the ones the two resolve endpoints below can act on.
+    """
+    try:
+        return _blocking_read(session, user.id, code_id)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+
+
+@router.post("/codes/{code_id}/blocking-entries/reassign", response_model=BlockingEntriesRead)
+def reassign_blocking_entries(
+    code_id: int,
+    body: ReassignBlockingEntries,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> BlockingEntriesRead:
+    """Move the caller's blocking Entries onto another code + activity (BIZ-088).
+
+    Returns the refreshed summary, so a caller left blocked by another member's entries sees why
+    without a second request.
+    """
+    try:
+        catalog.reassign_blocking_entries(
+            session, user.id, code_id, target_code_id=body.target_code_id, activity=body.activity
+        )
+        return _blocking_read(session, user.id, code_id)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+
+
+@router.delete("/codes/{code_id}/blocking-entries", response_model=BlockingEntriesRead)
+def delete_blocking_entries(
+    code_id: int,
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> BlockingEntriesRead:
+    """Delete the caller's blocking Entries (BIZ-088) — destructive, captured time is lost."""
+    try:
+        catalog.delete_blocking_entries(session, user.id, code_id)
+        return _blocking_read(session, user.id, code_id)
+    except NotFoundError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
 
 
 @router.post("/codes/from-reference", response_model=CodeRead, status_code=status.HTTP_201_CREATED)

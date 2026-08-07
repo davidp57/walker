@@ -3,6 +3,7 @@ import './styles/tokens.css'
 import './styles/walker.css'
 import { AppShell, type Route, type ShellUser } from './components/AppShell'
 import { TimerBar } from './components/TimerBar'
+import { BlockingEntriesModal } from './components/BlockingEntriesModal'
 import { CodePicker } from './components/CodePicker'
 import { CodeTotalsModal } from './components/CodeTotalsModal'
 import { CodeEditor, type CodePrefill } from './components/CodeEditor'
@@ -20,6 +21,7 @@ import { LoginScreen } from './components/LoginScreen'
 import type {
   Absence,
   ActivityName,
+  BlockingEntries,
   ChecklistState,
   DayColumn,
   Density,
@@ -58,8 +60,11 @@ import {
   createEntry as apiCreateEntry,
   createTask as apiCreateTask,
   createVirtualCode as apiCreateVirtualCode,
+  deleteBlockingEntries as apiDeleteBlockingEntries,
   deleteCode as apiDeleteCode,
+  fetchBlockingEntries,
   fetchCodeTotals,
+  reassignBlockingEntries as apiReassignBlockingEntries,
   deleteEntry as apiDeleteEntry,
   deleteTask as apiDeleteTask,
   deleteTaskState as apiDeleteTaskState,
@@ -257,7 +262,7 @@ export default function App() {
 }
 
 function AppInner() {
-  const { notifyError } = useToast()
+  const { notifyError, notify } = useToast()
   const [route, setRoute] = useState<Route>('tracker')
   const [user, setUser] = useState<ShellUser | undefined>(undefined)
   const [codes, setCodes] = useState<TimesheetCode[]>([])
@@ -294,6 +299,11 @@ function AppInner() {
     // The reopened picker's likely-codes context, carried through so the band survives the detour
     // (BIZ-083) rather than silently falling back to "now" for a past Entry.
     reopenAt?: string | null
+  } | null>(null)
+  // BIZ-088: the code whose deletion is blocked by Entries, with what the server says is in the way.
+  const [blocking, setBlocking] = useState<{
+    code: TimesheetCode
+    blocking: BlockingEntries
   } | null>(null)
   // BIZ-089: the code whose time totals are being read ("how much time did you spend on X?").
   const [totalsCode, setTotalsCode] = useState<TimesheetCode | null>(null)
@@ -725,6 +735,16 @@ function AppInner() {
     entries.some((e) => e.codeId === id) ||
     Object.keys(matrix).some((k) => k.startsWith(`${id}|`)) ||
     codes.some((c) => c.realCodeId === id)
+  // BIZ-088: which of the two guards applies, so the catalog can treat them differently. Virtual
+  // children genuinely block (delete those codes first); entries are only *probably* in the way —
+  // this sees the loaded window alone, so the server decides and the ✕ stays clickable.
+  const deleteBlockedBy = (id: string): 'entries' | 'virtual' | null => {
+    if (codes.some((c) => c.realCodeId === id)) return 'virtual'
+    const used =
+      entries.some((e) => e.codeId === id) ||
+      Object.keys(matrix).some((k) => k.startsWith(`${id}|`))
+    return used ? 'entries' : null
+  }
   const saveCode = (code: TimesheetCode) => {
     const payload = {
       number: code.number,
@@ -761,6 +781,31 @@ function AppInner() {
   const deleteCode = (code: TimesheetCode) => {
     apiDeleteCode(code.id)
       .then(reloadCodes)
+      .catch((err: unknown) => {
+        // BIZ-088: a 409 means Entries are in the way. Rather than report a dead end, open the
+        // resolve flow on what the *server* sees — the client only knows the loaded date window.
+        if (err instanceof ApiError && err.status === 409) {
+          fetchBlockingEntries(code.id)
+            .then((blocking) => setBlocking({ code, blocking }))
+            .catch(() => notifyError(errorMessage(err, 'Could not delete the code.')))
+          return
+        }
+        notifyError(errorMessage(err, 'Could not delete the code.'))
+      })
+  }
+  // BIZ-088: after resolving, finish what the user actually asked for — deleting the code — instead
+  // of leaving them to click ✕ again. Still blocked (another member's entries) keeps the modal open
+  // on the refreshed numbers, which now explain why.
+  const afterBlockingResolved = (code: TimesheetCode, blocking: BlockingEntries) => {
+    reload()
+    if (blocking.total > 0) {
+      setBlocking({ code, blocking })
+      return
+    }
+    setBlocking(null)
+    apiDeleteCode(code.id)
+      .then(reloadCodes)
+      .then(() => notify(`${code.name} deleted.`))
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not delete the code.')))
   }
   // Back a virtual code with a reference code that isn't active yet (BIZ-075, ADR-0014): create it as
@@ -1306,7 +1351,7 @@ function AppInner() {
           onEdit={(code) => setEditor({ code })}
           onEditVirtual={(code) => setVirtualEditor({ code })}
           onDelete={deleteCode}
-          isCodeInUse={isCodeInUse}
+          deleteBlockedBy={deleteBlockedBy}
           onShowTotals={setTotalsCode}
           onImport={importCatalogFile}
           importStatus={importMessage}
@@ -1327,6 +1372,8 @@ function AppInner() {
           absences={absences}
           onAddAbsence={addAbsence}
           onRemoveAbsence={removeAbsence}
+          likelyCount={viewPreferences.likely_count}
+          onLikelyCountChange={(likely_count) => updateViewPreferences({ likely_count })}
         />
       )}
 
@@ -1461,6 +1508,28 @@ function AppInner() {
           onClose={() => setTotalsCode(null)}
         />
       )}
+      {blocking && (
+        <BlockingEntriesModal
+          code={blocking.code}
+          codes={visibleCodes}
+          blocking={blocking.blocking}
+          onClose={() => setBlocking(null)}
+          onReassign={(targetCodeId, activity) =>
+            apiReassignBlockingEntries(blocking.code.id, targetCodeId, activity)
+              .then((refreshed) => afterBlockingResolved(blocking.code, refreshed))
+              .catch((err: unknown) =>
+                notifyError(errorMessage(err, 'Could not reassign those entries.')),
+              )
+          }
+          onDeleteEntries={() =>
+            apiDeleteBlockingEntries(blocking.code.id)
+              .then((refreshed) => afterBlockingResolved(blocking.code, refreshed))
+              .catch((err: unknown) =>
+                notifyError(errorMessage(err, 'Could not delete those entries.')),
+              )
+          }
+        />
+      )}
       {picker && (
         <CodePicker
           title={
@@ -1473,6 +1542,7 @@ function AppInner() {
           codes={visibleCodes}
           at={picker.at}
           onFetchLikely={fetchLikelyCodes}
+          likelyCount={viewPreferences.likely_count}
           onCreateNew={(q) => setEditor({ code: null, initialName: q })}
           onCreateNewVirtual={() => {
             const reopenPicker = picker.target

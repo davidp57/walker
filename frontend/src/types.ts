@@ -150,6 +150,21 @@ export interface CodeTotals {
   rollup: Totals | null
 }
 
+/**
+ * What is standing between a code and its deletion (BIZ-088). The counts are Organization-wide,
+ * mirroring the server's guard (BIZ-030); `own` is the subset you can resolve here and `others` the
+ * remainder belonging to another member — reported so the block is explainable, not actionable.
+ */
+export interface BlockingEntries {
+  total: number
+  own: number
+  others: number
+  firstDate: string | null // ISO date
+  lastDate: string | null
+  minutes: number
+  entries: Entry[] // your own only — an entry you cannot act on is a number above, not a row
+}
+
 export type Density = 'comfortable' | 'compact'
 
 /** A User's theme preference (ADAPTIVE lot); `"system"` follows the OS's `prefers-color-scheme`. */
@@ -169,7 +184,12 @@ export interface ViewPreferences {
   done_collapsed: boolean
   enter_rounding: boolean // BIZ-063: round Enter-view durations to the quarter-hour
   task_hide_done: boolean // BIZ-087: keep terminal-state Tasks out of the Tasks *list*
+  likely_count: number // BIZ-084: rows in the likely-codes band, 0–10; 0 disables it entirely
 }
+
+/** The inclusive bounds of `likely_count` (BIZ-084), mirroring the server's (models/settings.py). */
+export const LIKELY_COUNT_MIN = 0
+export const LIKELY_COUNT_MAX = 10
 
 /** The built-in view-preference defaults, mirroring the server's (services/settings.py). */
 export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
@@ -181,6 +201,7 @@ export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
   done_collapsed: false,
   enter_rounding: false,
   task_hide_done: true,
+  likely_count: 5,
 }
 
 export const checklistKey = (rowKey: PeriodRowKey, day: number): string => `${rowKey}#${day}`

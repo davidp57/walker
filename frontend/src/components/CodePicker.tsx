@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ActivityName, LikelyCode, ReferenceCode, TimesheetCode } from '../types'
+import { DEFAULT_VIEW_PREFERENCES } from '../types'
 import { searchUserCodes, sortReferenceByName } from '../lib/codeSearch'
 
 interface CodePickerProps {
@@ -21,7 +22,10 @@ interface CodePickerProps {
   // from the Timer, the start time currently typed from the entry editor. Omitted (or null) when
   // there is no usable context, in which case no likely-codes band is shown.
   at?: string | null
-  onFetchLikely?: (at: string) => Promise<LikelyCode[]>
+  onFetchLikely?: (at: string, limit: number) => Promise<LikelyCode[]>
+  // BIZ-084: how many rows the band may show, from the user's `likely_count` preference. `0` disables
+  // the band outright — no request, no rendering.
+  likelyCount?: number
 }
 
 /** Modal chooser for a Timesheet code (+ Activity). Tiered search: your codes, then the reference catalog. */
@@ -36,6 +40,7 @@ export function CodePicker({
   onActivateReference,
   at,
   onFetchLikely,
+  likelyCount = DEFAULT_VIEW_PREFERENCES.likely_count,
   codeOnly = false,
   realOnly = false,
 }: CodePickerProps) {
@@ -78,20 +83,20 @@ export function CodePicker({
   // nothing to debounce. Not cached across opens — reopening after correcting a start time must
   // reflect the new hour.
   const [likely, setLikely] = useState<LikelyCode[]>([])
-  const wantsLikely = !!at && !!onFetchLikely && !codeOnly && !realOnly
+  const wantsLikely = !!at && !!onFetchLikely && !codeOnly && !realOnly && likelyCount > 0
   useEffect(() => {
-    if (!at || !onFetchLikely || codeOnly || realOnly) {
+    if (!at || !onFetchLikely || codeOnly || realOnly || likelyCount <= 0) {
       setLikely([])
       return
     }
     let cancelled = false
-    onFetchLikely(at)
+    onFetchLikely(at, likelyCount)
       .then((rows) => !cancelled && setLikely(rows))
       .catch(() => !cancelled && setLikely([]))
     return () => {
       cancelled = true
     }
-  }, [at, onFetchLikely, codeOnly, realOnly])
+  }, [at, onFetchLikely, likelyCount, codeOnly, realOnly])
 
   // Hidden as soon as a query is typed — you've said what you want, so an hourly guess adds nothing —
   // and never a skeleton while loading, which would make the list below it jump.
