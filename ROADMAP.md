@@ -40,13 +40,13 @@ Sequencing source of truth: **what order, with which hard dependencies**. Scope 
   add/rename/move/delete edited in the kanban, `Task.status` migrated enum → string. Backend
   (BIZ-056) + the in-kanban editing UI (BIZ-057). See `.backlog/archive/STATES.md`, ADR-0011.
 
-## Now — batch shipped to develop, release pending
+## Now — v1.10.0 released, nothing pending
 
-The queued batch (BIZ-063 … BIZ-066) is merged to `develop`; the next version has not been cut yet.
-The three living lots stay open as containers for future work; POLISH holds two open tickets
-(BIZ-088, BIZ-089 — see below), DOCS and TECH none:
+`v1.10.0` was cut on 2026-07-31 (BIZ-083, BIZ-085, BIZ-086, BIZ-087) and `[Unreleased]` in the
+CHANGELOG is empty: everything merged to `develop` is published. The four living lots stay open as
+containers for future work; three tickets are open across them (see **Next**).
 
-- **POLISH** (living lot of small UX improvements) — fully shipped: BIZ-038…047 (running Timer in
+- **POLISH** (living lot of small UX improvements) — shipped: BIZ-038…047 (running Timer in
   Activity, absence date range, description de-noise, task priority/due pills + inline status,
   time-proportion bars, kanban collapsible Done, catalog activity collapse, guided empty states,
   Review/Enter explainer), then BIZ-050…055 (one-click start-timer arrow, grouped task list as a
@@ -57,40 +57,28 @@ The three living lots stay open as containers for future work; POLISH holds two 
   sidebar + phone tab bar), BIZ-062 (task due dates: relative labels in the list, a due pill on
   the kanban card, an overdue/due-today nav badge, and a once-per-load startup toast), BIZ-063
   (optional quarter-hour rounding in the Enter view — ADR-0013), BIZ-064 + BIZ-066 (per-day Add
-  buttons in the Activity list and the period-grid columns), and BIZ-065 (mark manual vs timer
-  entries). See `.backlog/POLISH/PRD.md`.
-- **DOCS** (living lot, bilingual docs-site content) — CHR-011 (catalog-import page) shipped. See
-  `.backlog/DOCS/PRD.md`.
-- **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped. See
-  `.backlog/TECH/PRD.md`.
-
-## Next — HABITS
-
+  buttons in the Activity list and the period-grid columns), BIZ-065 (mark manual vs timer entries),
+  and the three that closed v1.10.0: BIZ-085 (the running entry is now the single source of truth for
+  its own categorization — the bug reported by Julien), BIZ-086 (period-relative recurring Tasks were
+  inert: no initial due date, the scheme hardcoded despite ADR-0009), BIZ-087 (the Tasks list hides
+  terminal-state Tasks behind a persisted `✓ Done (N)` toggle). See `.backlog/POLISH/PRD.md`.
 - **HABITS** (likely codes) — rank (Timesheet code, Activity) pairs by a contextual habit score over
   the user's own past Entries (time of day + day of week, 8-week window) and surface the top ones in a
-  band **above** the picker's name-sorted Tier 1, which is left untouched. See
+  band **above** the picker's name-sorted Tier 1, which is left untouched. BIZ-083 shipped (PR #144):
+  the slice end-to-end — `services/likely_codes.py`, `GET /api/codes/likely`, and the band wired to the
+  Timer, entry categorization and manual add, with the row cap hardcoded at 5. See
   `.backlog/HABITS/PRD.md`, ADR-0015.
-  - **BIZ-083 shipped** (PR #144, merged to `develop`): the slice end-to-end — `services/likely_codes.py`,
-    `GET /api/codes/likely`, and the band wired to the Timer, entry categorization and manual add. Row
-    cap hardcoded at 5.
-  - **BIZ-084 open**: make the row count a view preference (`likely_count`, 0–10, 0 disabling the
-    band). Deliberately left until the band has been lived with, so the default is chosen from use
-    rather than guessed.
-- **BIZ-085 shipped** (P1, POLISH — PR #145, merged to `develop`): the bug reported by Julien —
-  categorizing the **running** entry from the Activity list never reached the Timer chip, and Stop
-  overwrote it back to Uncategorized. The running Entry is now the single source of truth for its
-  categorization. See `.backlog/POLISH/tickets/42-running-entry-categorization-desync.md`.
+- **DOCS** (living lot, bilingual docs-site content) — CHR-011 (catalog-import page) shipped. See
+  `.backlog/DOCS/PRD.md`.
+- **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped; TEC-015
+  (layout-property animations) reviewed and closed 🚫 wontfix. See `.backlog/TECH/PRD.md`.
 
-Open tickets, in the order I'd take them:
+## Next — the three open tickets, in the order I'd take them
 
-- **BIZ-086 shipped** (P1, POLISH — PR #146, merged to `develop`): period-relative recurring Tasks were
-  inert — no initial due date was ever computed, the period scheme was hardcoded despite ADR-0009, and
-  an occurrence could never land in the current period.
-  See `.backlog/POLISH/tickets/43-period-relative-recurrence-never-fires.md`.
-- **BIZ-087 shipped** (P2, POLISH — PR #147, merged to `develop`): the Tasks list hides terminal-state
-  Tasks behind a persisted `✓ Done (N)` toggle. See `.backlog/POLISH/tickets/44-tasks-list-hide-done.md`.
-- **BIZ-084** (P2, HABITS) — the `likely_count` view preference; still deliberately waiting on a few
-  days of living with the band.
+- **BIZ-084** (P2, HABITS) — make the likely-codes row count a view preference (`likely_count`, 0–10,
+  `0` disabling the band). Unblocked since BIZ-083 shipped, and deliberately held back so the default
+  is chosen from living with the band rather than guessed. Smallest of the three.
+  See `.backlog/HABITS/tickets/02-configurable-likely-count.md`.
 - **BIZ-088** (P2, POLISH) — deleting a code blocked by its Entries is a dead end: identify the blocking
   entries (count, range, minutes), then reassign them to another code+activity or delete them
   deliberately. Amends the BIZ-030 org-wide guard, and carries an open authorization question about
