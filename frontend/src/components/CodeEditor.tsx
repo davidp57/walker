@@ -20,7 +20,11 @@ interface CodeEditorProps {
   prefill?: CodePrefill // prefill number/label/name/activities (activating a reference code, BIZ-049)
   codes: TimesheetCode[] // all visible codes — for the colour picker's avoidance + used markers
   onSave: (code: TimesheetCode) => void
-  onDelete?: () => void // omitted when the code can't be deleted (new, or in use)
+  onDelete?: () => void // omitted when the code cannot be deleted (new, or genuinely blocked)
+  // TEC-016: why Delete is absent, when it is. Omitting the control with no explanation left the
+  // user with nothing to act on; entries no longer land here at all (the server decides, and a
+  // blocked delete opens the BIZ-088 resolve flow), so this only ever names a real block.
+  deleteBlockedReason?: string
   onClose: () => void
 }
 
@@ -32,6 +36,7 @@ export function CodeEditor({
   codes,
   onSave,
   onDelete,
+  deleteBlockedReason,
   onClose,
 }: CodeEditorProps) {
   // The other codes whose colours to avoid/mark — this code excluded so its own colour reads as
@@ -194,6 +199,11 @@ export function CodeEditor({
             }}
           >
             <div>
+              {!onDelete && deleteBlockedReason && (
+                <span className="wk-editor-blocked" role="note">
+                  {deleteBlockedReason}
+                </span>
+              )}
               {onDelete &&
                 (confirmingDelete ? (
                   <InlineDeleteConfirm

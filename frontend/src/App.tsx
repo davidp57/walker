@@ -104,6 +104,12 @@ const isoDate = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 const TODAY = isoDate(new Date())
 
+// The one thing that genuinely blocks a code deletion client-side (TEC-016): virtual codes pointing
+// at it. Entries do not — the SPA only sees the loaded date window, so the server decides and a 409
+// opens the resolve flow (BIZ-088). The catalog states the same block in its own tooltip; this is
+// the editors' phrasing of it.
+const VIRTUAL_CHILDREN_BLOCK = 'Virtual codes point at this one — delete those first.'
+
 // The moment the code picker's likely-codes band ranks against (BIZ-083, ADR-0015). Local wall clock,
 // matching how an Entry stores its `date` + minutes-since-midnight.
 const momentNow = (): string => {
@@ -731,10 +737,6 @@ function AppInner() {
       .catch((err: unknown) =>
         notifyError(errorMessage(err, 'Could not refresh your code catalog.')),
       )
-  const isCodeInUse = (id: string): boolean =>
-    entries.some((e) => e.codeId === id) ||
-    Object.keys(matrix).some((k) => k.startsWith(`${id}|`)) ||
-    codes.some((c) => c.realCodeId === id)
   // BIZ-088: which of the two guards applies, so the catalog can treat them differently. Virtual
   // children genuinely block (delete those codes first); entries are only *probably* in the way —
   // this sees the loaded window alone, so the server decides and the ✕ stays clickable.
@@ -1402,10 +1404,11 @@ function AppInner() {
           codes={codes}
           onSave={saveVirtualCode}
           onDelete={
-            virtualEditor.code && !isCodeInUse(virtualEditor.code.id)
+            virtualEditor.code && deleteBlockedBy(virtualEditor.code.id) !== 'virtual'
               ? () => deleteCode(virtualEditor.code!)
               : undefined
           }
+          deleteBlockedReason={VIRTUAL_CHILDREN_BLOCK}
           onClose={() => setVirtualEditor(null)}
           onSearchReference={searchReference}
           onActivateReference={addBackingFromReference}
@@ -1604,8 +1607,11 @@ function AppInner() {
           codes={codes}
           onSave={saveCode}
           onDelete={
-            editor.code && !isCodeInUse(editor.code.id) ? () => deleteCode(editor.code!) : undefined
+            editor.code && deleteBlockedBy(editor.code.id) !== 'virtual'
+              ? () => deleteCode(editor.code!)
+              : undefined
           }
+          deleteBlockedReason={VIRTUAL_CHILDREN_BLOCK}
           onClose={() => setEditor(null)}
         />
       )}
