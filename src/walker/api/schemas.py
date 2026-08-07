@@ -6,7 +6,7 @@ import datetime
 from datetime import date
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from walker.models.settings import PeriodScheme, Theme
 
@@ -172,6 +172,35 @@ class EntryRead(BaseModel):
     description: str | None
     task_id: int | None
     source: str | None  # "timer" | "manual" | None (legacy/unknown) — BIZ-065
+
+
+class BlockingEntriesRead(BaseModel):
+    """What is standing between a code and its deletion (BIZ-088).
+
+    Counts are Organization-wide, mirroring the delete guard (BIZ-030); ``own`` is the subset the
+    caller can actually resolve, ``others`` the remainder belonging to other members.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    total: int
+    own: int
+    others: int
+    first_date: date | None
+    last_date: date | None
+    minutes: int
+    entries: list[EntryRead]
+
+
+class ReassignBlockingEntries(BaseModel):
+    """Move the caller's blocking Entries onto another code (BIZ-088).
+
+    ``activity`` is required: a code change without one would drop the entries into the period
+    grid's uncategorized bucket.
+    """
+
+    target_code_id: int
+    activity: str = Field(min_length=1)
 
 
 class PeriodRowRead(BaseModel):
