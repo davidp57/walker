@@ -203,7 +203,7 @@ describe('CodePicker', () => {
       const onFetchLikely = vi.fn(async () => [])
       renderPicker({ at: '2026-07-29T09:30', onFetchLikely })
 
-      await vi.waitFor(() => expect(onFetchLikely).toHaveBeenCalledWith('2026-07-29T09:30'))
+      await vi.waitFor(() => expect(onFetchLikely).toHaveBeenCalledWith('2026-07-29T09:30', 5))
       expect(screen.queryByText('Likely at this time')).not.toBeInTheDocument()
     })
 
@@ -223,6 +223,23 @@ describe('CodePicker', () => {
       })
 
       await screen.findByText('Paper V4')
+      expect(screen.queryByText('Likely at this time')).not.toBeInTheDocument()
+    })
+
+    // BIZ-084 — the row cap is a view preference, and 0 is its off switch.
+    it('asks for as many rows as the preference allows', async () => {
+      const onFetchLikely = vi.fn(async () => likely)
+      renderPicker({ at: '2026-07-29T09:30', onFetchLikely, likelyCount: 8 })
+
+      await vi.waitFor(() => expect(onFetchLikely).toHaveBeenCalledWith('2026-07-29T09:30', 8))
+    })
+
+    it('fires no request at all when the band is disabled', async () => {
+      const onFetchLikely = vi.fn(async () => likely)
+      renderPicker({ at: '2026-07-29T09:30', onFetchLikely, likelyCount: 0 })
+
+      await screen.findByText('Paper V4')
+      expect(onFetchLikely).not.toHaveBeenCalled()
       expect(screen.queryByText('Likely at this time')).not.toBeInTheDocument()
     })
   })

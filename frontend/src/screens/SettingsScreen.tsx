@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Absence, Density, PeriodScheme, Theme } from '../types'
+import { LIKELY_COUNT_MAX, LIKELY_COUNT_MIN } from '../types'
 
 interface SettingsScreenProps {
   workdays: boolean[] // index by JS getDay(): 0=Sun … 6=Sat
@@ -13,6 +14,8 @@ interface SettingsScreenProps {
   absences: Absence[] // manually managed in the POC
   onAddAbsence: (date: string, reason: string, end?: string | null) => void
   onRemoveAbsence: (date: string) => void
+  likelyCount: number // BIZ-084: rows in the likely-codes band; 0 hides it
+  onLikelyCountChange: (count: number) => void
 }
 
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mon … Sun
@@ -141,6 +144,8 @@ export function SettingsScreen({
   absences,
   onAddAbsence,
   onRemoveAbsence,
+  likelyCount,
+  onLikelyCountChange,
 }: SettingsScreenProps) {
   const [newDate, setNewDate] = useState('')
   const [newEndDate, setNewEndDate] = useState('')
@@ -250,6 +255,38 @@ export function SettingsScreen({
               onChange={(v) => {
                 onPeriodSchemeChange(v)
                 markSaved('period')
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="wk-set-card is-row">
+          <div>
+            <h2 className="wk-set-title">Likely codes</h2>
+            <div className="wk-set-desc">
+              How many suggestions the code picker shows above your codes, based on when you usually
+              work on them.{' '}
+              {likelyCount === 0 ? 'Currently off — band hidden.' : 'Set to 0 to hide the band.'}
+            </div>
+          </div>
+          <div className="wk-set-control">
+            {savedTick('likely')}
+            <input
+              className="wk-input wk-input--count"
+              type="number"
+              min={LIKELY_COUNT_MIN}
+              max={LIKELY_COUNT_MAX}
+              step={1}
+              value={likelyCount}
+              aria-label="Likely codes shown in the picker"
+              onChange={(e) => {
+                // Out-of-range input is ignored rather than clamped: silently rewriting what was
+                // typed is the more confusing of the two, and the field simply keeps its old value.
+                const next = Number(e.target.value)
+                if (!Number.isInteger(next) || next < LIKELY_COUNT_MIN || next > LIKELY_COUNT_MAX)
+                  return
+                onLikelyCountChange(next)
+                markSaved('likely')
               }}
             />
           </div>

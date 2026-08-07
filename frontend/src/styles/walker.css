@@ -1977,6 +1977,14 @@ html[data-theme='light'] body {
 .wk-input:focus {
   border-color: var(--wk-accent-line);
 }
+/* A short numeric field sitting in a settings row (BIZ-084) — the full-width default would swallow
+   the row. Mono, because the value *is* data. */
+.wk-input--count {
+  width: 72px;
+  font-family: var(--wk-font-mono);
+  text-align: center;
+  padding: 8px 6px;
+}
 .wk-modal-body {
   max-height: 52vh;
   overflow: auto;

@@ -316,6 +316,7 @@ class ViewPreferencesRead(BaseModel):
     done_collapsed: bool
     enter_rounding: bool
     task_hide_done: bool
+    likely_count: int
 
 
 class ViewPreferencesUpdate(BaseModel):
@@ -329,6 +330,9 @@ class ViewPreferencesUpdate(BaseModel):
     done_collapsed: bool | None = None
     enter_rounding: bool | None = None
     task_hide_done: bool | None = None
+    # Deliberately unconstrained here: the service is the single place that validates a preference,
+    # so an out-of-range value falls back to the default like every other one rather than 422-ing.
+    likely_count: int | None = None
 
 
 class TaskStateRead(BaseModel):
