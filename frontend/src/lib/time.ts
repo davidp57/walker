@@ -1,5 +1,13 @@
 import type { FocusEvent } from 'react'
 
+/**
+ * A `Date` -> local ISO day `"YYYY-MM-DD"`. Local on purpose: it must match how an Entry stores its
+ * `date` (wall clock, timezone-free), which `toISOString()` would shift across the UTC boundary.
+ */
+export function isoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 /** Parse a military-time string into minutes-since-midnight. "1345" -> 825, "930" -> 570, "9" -> 540. */
 export function parseMilitaryClock(input: string): number | null {
   const d = (input || '').replace(/[^0-9]/g, '')

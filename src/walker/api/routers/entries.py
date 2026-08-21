@@ -18,7 +18,11 @@ router = APIRouter(tags=["entries"])
 
 
 def _now_minute() -> int:
-    """Minutes since midnight, from the server clock (real time, no rounding)."""
+    """Minutes since midnight, from the server clock (real time, no rounding).
+
+    Only meaningful together with today's date: a Timer left running across midnight must not be
+    closed with a minute belonging to another day (BIZ-091).
+    """
     now = datetime.now()
     return now.hour * 60 + now.minute
 
@@ -68,7 +72,7 @@ def stop_timer(
 ) -> Entry:
     """Close the running Entry. Leaves a linked Task's status unchanged (see ``/timer/complete``)."""
     try:
-        return entry_service.stop_timer(session, user.id, _now_minute())
+        return entry_service.stop_timer(session, user.id, date.today(), _now_minute())
     except ValidationError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
 
@@ -80,7 +84,7 @@ def complete_timer(
 ) -> Entry:
     """Close the running Entry and mark its linked Task Done, in one call (BIZ-023)."""
     try:
-        return entry_service.complete_timer(session, user.id, _now_minute())
+        return entry_service.complete_timer(session, user.id, date.today(), _now_minute())
     except ValidationError as exc:
         raise HTTPException(status.HTTP_409_CONFLICT, str(exc)) from exc
 
@@ -95,17 +99,20 @@ def create_entry(
     on_date = body.date or date.today()
     start = body.start_minute if body.start_minute is not None else 9 * 60
     end = body.end_minute if body.end_minute is not None else start + 60
-    return entry_service.create_entry(
-        session,
-        user.id,
-        on_date=on_date,
-        start_minute=start,
-        end_minute=end,
-        timesheet_code_id=body.timesheet_code_id,
-        activity=body.activity,
-        description=body.description,
-        task_id=body.task_id,
-    )
+    try:
+        return entry_service.create_entry(
+            session,
+            user.id,
+            on_date=on_date,
+            start_minute=start,
+            end_minute=end,
+            timesheet_code_id=body.timesheet_code_id,
+            activity=body.activity,
+            description=body.description,
+            task_id=body.task_id,
+        )
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
 
 @router.get("/entries", response_model=list[EntryRead])
@@ -136,6 +143,8 @@ def patch_entry(
         return entry_service.patch_entry(session, user.id, entry_id, body.model_dump(exclude_unset=True))
     except NotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
 
 
 @router.post("/entries/{entry_id}/break", response_model=list[EntryRead])

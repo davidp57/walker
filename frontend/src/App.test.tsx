@@ -1139,3 +1139,47 @@ describe('App — code picker stacks above the Timesheet-period cell modal (TEC-
     expect(remove).toHaveAttribute('title', expect.stringContaining('delete those first'))
   })
 })
+
+describe('App — a Timer still running from an earlier day (BIZ-091)', () => {
+  const staleRunning: Entry = {
+    id: '168',
+    date: YESTERDAY_ISO,
+    start: 600,
+    end: null,
+    codeId: realCode.id,
+    activity: 'Bug fixing',
+    description: '',
+    source: 'timer',
+  }
+
+  it('asks for the real end time instead of closing it with today’s minute', async () => {
+    mockBaseApi([realCode], [staleRunning])
+    const patchEntry = vi.spyOn(api, 'patchEntry').mockResolvedValue({ ...staleRunning, end: 1050 })
+
+    render(<App />)
+
+    fireEvent.change(await screen.findByPlaceholderText('1730'), { target: { value: '1730' } })
+    fireEvent.click(screen.getByRole('button', { name: /set the end time/i }))
+
+    await waitFor(() => expect(patchEntry).toHaveBeenCalledWith('168', { end: 1050 }))
+  })
+
+  it('leaves a Timer started today alone', async () => {
+    mockBaseApi([realCode], [{ ...staleRunning, date: TODAY_ISO }])
+
+    render(<App />)
+
+    await screen.findByText(/most recent first/i)
+    expect(screen.queryByPlaceholderText('1730')).toBeNull()
+  })
+
+  it('can be postponed, and then stays out of the way', async () => {
+    mockBaseApi([realCode], [staleRunning])
+
+    render(<App />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /^later$/i }))
+
+    await waitFor(() => expect(screen.queryByPlaceholderText('1730')).toBeNull())
+  })
+})

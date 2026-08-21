@@ -26,6 +26,14 @@ Chaque durée est enregistrée à la minute — Walker n'arrondit jamais. L'arro
 par votre système de feuille de temps (généralement le quart d'heure) est quelque chose que vous
 faites au moment de recopier les chiffres là-bas, pas quelque chose que Walker décide pour vous.
 
+**Si vous oubliez d'arrêter le minuteur** et revenez le lendemain matin, Walker ne devine pas à votre
+place : il vous demande à quelle heure vous vous êtes arrêté, sous forme d'une heure de la journée que
+le minuteur suivait. C'est la seule réponse qui puisse être vraie — Walker enregistre des minutes
+réelles et n'en invente aucune, il préfère donc demander plutôt que de vous créditer d'une nuit de
+travail ou de réduire l'entrée à néant en silence. Vous pouvez aussi supprimer l'entrée si le minuteur
+ne suivait rien de réel, ou remettre la question à plus tard. Tant que ce n'est pas réglé, l'entrée
+porte la mention « no duration » dans la vue Activity au lieu d'afficher `0:00` sans rien dire.
+
 ## Les entrées et la catégorisation
 
 Tout ce que vous suivez — qu'il soit démarré depuis le minuteur ou ajouté à la main — s'appelle une

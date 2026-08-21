@@ -87,7 +87,9 @@ One `- **ID** (priority, LOT) — …` entry per open ticket. The shape is load-
 reads exactly these lines, so prose elsewhere may cite a closed ticket without being mistaken for a
 claim that it is open.
 
-_Nothing open._
+- **BIZ-091** (P1, POLISH) — a Timer left running overnight writes tomorrow's minute onto yesterday's
+  entry, silently destroying the tracked day. Enforce `end >= start` as a real invariant, keep the
+  frontend's civil day alive past midnight, and ask the user for the real end time instead of guessing.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 
