@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-08-21
+
 ### Added
 
 - **The standalone `.exe` can be told not to open a browser** (CHR-015) — `--no-browser` (or `-B`).

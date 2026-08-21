@@ -1,66 +1,43 @@
-# Walker 1.12.0 — a forgotten Timer no longer costs you the day
+# Walker 1.13.0 — the standalone `.exe` grows up
 
-You forget to press Stop. The Timer runs all night. Next morning you stop it — and the day it had been
-tracking is gone. Not corrupted-looking, not flagged: the entry reads `10:00 – 09:02`, its duration
-reads `0:00`, and the day total counts it as nothing.
+A small release, entirely about the standalone Windows build. Two things that had been quietly
+annoying: the executable looked like nothing in particular, and it always took over your screen.
 
-That is what happened, in real data, on 20 August. The cause is small and entirely mechanical: stopping
-a Timer wrote *the current* time-of-day onto the entry, without ever asking which day the entry belonged
-to. On an entry dated yesterday, this morning's 09:02 lands *before* yesterday's 10:00 start — a negative
-duration, which every total in the app quietly clamped to zero.
-
-This release closes that hole three times over: such a value can no longer be stored, the Timer knows
-which day it belongs to, and when Walker cannot know something it now asks instead of guessing.
+If you run Walker under Docker or hosted, this release changes nothing for you — skip it without
+regret.
 
 ## Fixed
 
-- **A Timer left running overnight no longer destroys the day it tracked.** Stopping, switching or
-  completing a Timer can no longer stamp a minute from a different day onto its entry. And because
-  Walker records real minutes and invents none, it does not paper over the gap with a plausible number:
-  an entry closed this way is left at zero minutes and **flagged**, and Walker **asks you** when you
-  actually stopped — as a time on the day the Timer was tracking, which is the only answer that can be
-  true. You can also discard the entry outright, if the Timer was tracking nothing real, or answer
-  later.
+- **It no longer insists on opening a browser.** Doing so is exactly right for a double-click, and a
+  nuisance everywhere else: started from a terminal, from a scheduled task, or restarted while Walker
+  is already open in a tab, it grabbed the foreground and left you with a duplicate tab to close.
+  Pass `--no-browser` (or `-B`) and it just serves:
 
-  Two things it deliberately does *not* do: split the session across midnight (that would invent a
-  night of work) and auto-close it at some end-of-day hour (a fabricated 18:00 is the same lie as a
-  fabricated 23:59).
+  ```
+  walker.exe --no-browser
+  ```
 
-- **An entry that ends before it starts is now impossible to store.** Every duration in Walker is
-  `end - start`; that this is positive was assumed everywhere and guaranteed nowhere. It is now a
-  database constraint, and the API rejects such a span outright rather than writing a row no view can
-  render honestly. That includes the subtler case: moving only an entry's *start* past its fixed end is
-  refused just like moving the end back.
+  The address it is serving on is still printed on startup, so there is something to click when you
+  do want it. Double-clicking is unchanged — the browser still opens, because that is the whole point
+  of a double-click.
 
-- **Walker left open across midnight now notices the new day.** "Today" was read once, when the page
-  loaded. So a Walker left open overnight went on believing it was yesterday — it kept loading
-  yesterday's window of entries, labelled `Today` / `Yesterday` one day off, and a day group's `+ Add`
-  filed new entries under the wrong date. The day rolls over on its own now, with no reload. This is
-  also what makes the fix above reachable: the case that loses a day is precisely the case where the
-  interface's idea of "today" was stale.
-
-- **A zero-duration Timer entry says so.** It used to read `0:00`, indistinguishable from a rounding
-  artefact. It is now flagged as unfinished business until you give it a real end time. Hand-entered
-  entries are left alone — a manual zero is a deliberate placeholder.
+- **It carries Walker's own icon.** In Explorer, on the taskbar, and above all as a pinned shortcut,
+  the executable used to be indistinguishable from any other unbranded single-file `.exe`. It now
+  wears the ranger star — the *same* mark as the browser tab and the sidebar badge, not a second one
+  drawn for the occasion — at every size Windows asks for, from the 16-pixel title bar to Explorer's
+  largest tile.
 
 ## Notes worth keeping
 
-- **The migration repairs before it constrains, and it will touch one of your rows.** Adding the
-  constraint first would fail on exactly the databases that need it, so any entry ending before it
-  starts is first brought back to a zero duration. Concretely: the 20 August row (`10:00 → 09:02`)
-  becomes `10:00 → 10:00`, flagged "no duration". If you have already re-entered that day by hand, the
-  row is a partial duplicate and can be deleted from the Activity view.
+- **Windows may show you the old icon for a while.** It caches icons aggressively, so a shortcut you
+  pinned before upgrading can keep displaying the generic one. Unpinning and re-pinning it settles the
+  matter; nothing is wrong with the executable.
 
-- **Why ask rather than guess.** Walker's contract is to record what actually happened to the minute and
-  leave the rounding to you (ADR-0005). A Timer that ran for 23 hours holds no information about when
-  you stopped working — so any automatic answer is a fabrication, and the honest options are "ask" or
-  "leave it visibly empty". Walker now does both, in that order.
+- **Nothing to migrate.** No schema change, no API change, no configuration change. Replace the
+  `.exe` and carry on — your database in `%APPDATA%\Walker` is untouched.
 
 ## Upgrading
 
-Replace the image (or the `.exe`); your data carries over. The schema migration runs on startup and is
-the one behaviour change to be aware of — see the note above about the row it repairs.
-
-One API contract change, for anyone driving `/api` directly: `POST /api/entries` and
-`PATCH /api/entries/{id}` now answer **422** when the resulting span would end before it starts, where
-such a write was previously accepted. Nothing in the interface ever sent one.
+Download the new `walker.exe` from the release and run it. If you are still on 1.11.x, note that
+**1.12.0** carried a real data fix — a Timer left running overnight used to destroy the day it had
+been tracking — so it is worth reading that release's notes as you pass through.
