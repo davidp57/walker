@@ -10,6 +10,10 @@
 # Console mode is intentional (no --windowed/--noconsole): a visible window that stays
 # open while the server runs, closing it stops the server — same mental model as today's
 # start-walker.bat (see the ticket's acceptance criteria).
+#
+# The executable carries the app's own ranger star (CHR-015), so it is recognisable in Explorer,
+# the taskbar and a pinned shortcut rather than wearing PyInstaller's generic icon. The .ico is a
+# committed source asset — regenerate it with scripts/make-icon.py when the favicon changes.
 
 from __future__ import annotations
 
@@ -27,6 +31,8 @@ datas = [
 frontend_dist = repo_root / "frontend" / "dist"
 if frontend_dist.is_dir():
     datas.append((str(frontend_dist), "frontend/dist"))
+
+icon = repo_root / "assets" / "walker.ico"
 
 a = Analysis(
     [str(repo_root / "src" / "walker" / "standalone.py")],
@@ -76,6 +82,7 @@ exe = EXE(
     upx_exclude=[],
     runtime_tmpdir=None,
     console=True,
+    icon=str(icon),
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

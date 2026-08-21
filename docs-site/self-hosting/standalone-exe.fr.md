@@ -18,6 +18,18 @@ séparée. Au premier lancement, Walker démarre son propre serveur web local et
 votre navigateur par défaut pointé sur l'application en marche (`http://localhost:8000`). Une fenêtre
 de console reste ouverte en arrière-plan pendant que Walker tourne ; la fermer arrête l'application.
 
+## Le démarrer sans ouvrir de navigateur
+
+Ouvrir un navigateur est ce qu'on attend d'un double-clic, et rarement ce qu'on veut ailleurs —
+depuis un terminal, depuis une tâche planifiée, ou quand vous relancez Walker alors qu'il est déjà
+ouvert dans un onglet. Passez `--no-browser` (ou `-B`) pour l'éviter :
+
+```
+walker.exe --no-browser
+```
+
+Walker affiche toujours l'adresse sur laquelle il sert, libre à vous de l'ouvrir quand vous voulez.
+
 ## Où vivent vos données
 
 La version autonome conserve sa base de données SQLite dans votre profil utilisateur Windows

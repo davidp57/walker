@@ -5,6 +5,19 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- **The standalone `.exe` can be told not to open a browser** (CHR-015) — `--no-browser` (or `-B`).
+  Opening one is what you want from a double-click and a nuisance everywhere else: from a shell, from
+  a scheduled task, or when restarting Walker while it is already open in a tab. The address it
+  serves on is still printed, so there is something to click when you want it.
+
+### Changed
+
+- **The standalone `.exe` now carries Walker's own ranger star** (CHR-015) instead of PyInstaller's
+  generic icon — the same mark as the browser tab and the sidebar badge, at every size Windows asks
+  for, so a pinned shortcut is recognisable at a glance.
+
 ## [1.12.0] - 2026-08-21
 
 ### Fixed

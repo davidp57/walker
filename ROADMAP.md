@@ -87,7 +87,8 @@ One `- **ID** (priority, LOT) — …` entry per open ticket. The shape is load-
 reads exactly these lines, so prose elsewhere may cite a closed ticket without being mistaken for a
 claim that it is open.
 
-_Nothing open._
+- **CHR-015** (P3, POLISH) — the standalone `.exe` always opens a browser and wears PyInstaller's
+  generic icon: add `--no-browser`, and stamp the app's own ranger star onto the executable.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 
