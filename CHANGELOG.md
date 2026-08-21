@@ -5,6 +5,25 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-08-21
+
+### Fixed
+
+- **A Timer left running overnight no longer destroys the day it was tracking** (BIZ-091). Forget to
+  stop the Timer, press Stop the next morning, and the entry was closed with *that morning's* time
+  written onto *yesterday's* row — an end before its start, which every duration read as `0:00`. The
+  work simply vanished, without a warning, and the day total counted it as nothing. Walker now knows
+  which day the Timer belongs to: it can no longer stamp a minute from another day onto it, an entry
+  that ends before it starts has become unrepresentable (database constraint, plus a clear rejection
+  on the API instead of a silently corrupted row), and — since Walker records real minutes and
+  invents none — it **asks** when you stopped, as a time on the day the Timer was tracking, rather
+  than guessing. You can also discard the entry outright, or answer later; until it is settled the
+  entry is flagged "no duration" in the Activity view instead of quietly reading `0:00`.
+- **The app left open across midnight now notices the new day** (BIZ-091). "Today" was read once, when
+  the page loaded, so a Walker left open overnight went on believing it was yesterday: it kept loading
+  yesterday's window of entries, labelled `Today` / `Yesterday` one day off, and a day's `+ Add` filed
+  new entries under the wrong date. The day now rolls over on its own, without a reload.
+
 ## [1.11.0] - 2026-08-07
 
 ### Added
