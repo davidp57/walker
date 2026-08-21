@@ -27,4 +27,7 @@ get closed as wontfix) and are removed from this file. See `CLAUDE.md`.
 - 2026-08-06 — The activities collapse toggle ("N activities ▸") is very quiet `text-lo` mono — easy
   to miss on a fast scan.
 
- 
+ - 2026-08-21 — The CI quality gate runs `ruff check`/`ruff format --check` on `src tests` only, so
+  `alembic/` is unchecked — and `alembic/versions/d7a1b2c3e4f5_backing_only_codes.py` is already
+  unformatted on `develop` without anything failing. Migrations are production code; either widen the
+  gate (and reformat the offender) or say explicitly why they're out.

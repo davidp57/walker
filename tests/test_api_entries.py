@@ -407,3 +407,20 @@ def test_stop_leaves_the_linked_task_s_status_unchanged(client: TestClient, sess
     assert response.status_code == 200
     task_body = client.get("/api/tasks").json()[0]
     assert task_body["status"] == "in_progress"
+
+
+def test_creating_an_entry_ending_before_it_starts_is_rejected(client: TestClient) -> None:
+    """BIZ-091: the invariant behind every duration, enforced at the edge."""
+    response = client.post("/api/entries", json={"date": TODAY, "start_minute": 600, "end_minute": 542})
+
+    assert response.status_code == 422
+
+
+def test_patching_an_entry_to_end_before_it_starts_is_rejected(client: TestClient) -> None:
+    entry = client.post("/api/entries", json={"date": TODAY, "start_minute": 600, "end_minute": 660}).json()
+
+    response = client.patch(f"/api/entries/{entry['id']}", json={"end_minute": 542})
+
+    assert response.status_code == 422
+    unchanged = client.get("/api/entries", params={"date": TODAY}).json()[0]
+    assert unchanged["end_minute"] == 660
