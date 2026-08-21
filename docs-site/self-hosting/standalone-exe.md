@@ -18,6 +18,18 @@ its own local web server and automatically opens your default browser pointed at
 (`http://localhost:8000`). A console window stays open in the background while Walker is running;
 closing it stops the app.
 
+## Starting it without opening a browser
+
+Opening a browser is what you want from a double-click, and rarely what you want anywhere else — from
+a shell, from a scheduled task, or when you restart Walker while it is already open in a tab. Pass
+`--no-browser` (or `-B`) to skip it:
+
+```
+walker.exe --no-browser
+```
+
+Walker still prints the address it is serving on, so you can open it yourself whenever you like.
+
 ## Where your data lives
 
 The standalone build keeps its SQLite database in your Windows user profile

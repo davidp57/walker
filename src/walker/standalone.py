@@ -17,7 +17,9 @@ On start this module:
    against that database, using the bundled ``alembic.ini`` and ``alembic/`` directory
    (no ``alembic`` CLI is available inside a frozen PyInstaller bundle).
 4. Starts the FastAPI app in-process via ``uvicorn.run(...)``.
-5. Opens the default browser at the app's URL.
+5. Opens the default browser at the app's URL — unless ``--no-browser`` says otherwise
+   (CHR-015): right for a double-click, wrong when Walker is started from a shell, a
+   scheduled task, or a session that already has the app open in a tab.
 
 Run directly with plain Python during development (``python -m walker.standalone``)
 against a real ``%APPDATA%\\Walker`` folder — no PyInstaller rebuild needed to iterate on
@@ -26,6 +28,7 @@ this logic. The frozen ``.exe`` calls the same :func:`main`.
 
 from __future__ import annotations
 
+import argparse
 import os
 import sys
 import threading
@@ -34,6 +37,29 @@ from pathlib import Path
 
 HOST = "127.0.0.1"
 PORT = 8000
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse the standalone build's command line (CHR-015).
+
+    ``argv`` defaults to the real process arguments; tests pass an explicit list. Opening a browser
+    stays the default, since double-clicking the ``.exe`` is the reference way to run it.
+    """
+    parser = argparse.ArgumentParser(
+        prog="walker",
+        description="Run Walker locally: applies any pending database migrations, then serves the app.",
+    )
+    parser.add_argument(
+        "-B",
+        "--no-browser",
+        dest="open_browser",
+        action="store_false",
+        help=(
+            "don't open the default browser on startup — for a shell, a scheduled task, "
+            "or when the app is already open in a tab"
+        ),
+    )
+    return parser.parse_args(argv)
 
 
 def _app_data_dir() -> Path:
@@ -109,8 +135,9 @@ def _open_browser(url: str) -> None:
     webbrowser.open(url)
 
 
-def main() -> None:
-    """Migrate the standalone database, then serve the app and open a browser."""
+def main(argv: list[str] | None = None) -> None:
+    """Migrate the standalone database, then serve the app, opening a browser unless told not to."""
+    args = parse_args(argv)
     db_path = _configure_environment()
 
     # Import walker modules only after WALKER_* env vars are set (see _configure_environment).
@@ -125,7 +152,8 @@ def main() -> None:
     print("Close this window (or Ctrl-C) to stop it.")
     print()
 
-    threading.Timer(1.5, _open_browser, args=(url,)).start()
+    if args.open_browser:
+        threading.Timer(1.5, _open_browser, args=(url,)).start()
 
     uvicorn.run("walker.api.app:app", host=HOST, port=PORT)
 
