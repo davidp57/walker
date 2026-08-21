@@ -1,7 +1,7 @@
 # BIZ-091 — A Timer left running overnight must not silently destroy the day it was tracking
 
 ID: BIZ-091
-Status: 🔄
+Status: ✅ done
 Type: fix
 Priority: P1
 
@@ -79,21 +79,29 @@ duration nor destroy the evidence.
 
 ## Acceptance criteria
 
-- [ ] Stopping, switching or completing a Timer whose entry is dated an earlier day never writes a
+- [x] Stopping, switching or completing a Timer whose entry is dated an earlier day never writes a
       minute from today onto it, and never produces a duration below zero.
-- [ ] `entries` carries a `CHECK` constraint making `end_minute < start_minute` unrepresentable, and
+- [x] `entries` carries a `CHECK` constraint making `end_minute < start_minute` unrepresentable, and
       the migration repairs offending rows (there is one in production) before adding it.
-- [ ] `POST /api/entries` and `PATCH /api/entries/{id}` reject an end before the start with 422 —
+- [x] `POST /api/entries` and `PATCH /api/entries/{id}` reject an end before the start with 422 —
       including a patch that moves only the start, or only the end.
-- [ ] The frontend's notion of "today" survives midnight without a reload: entries window, day-group
+- [x] The frontend's notion of "today" survives midnight without a reload: entries window, day-group
       labels and per-day `+ Add` all follow the real civil day.
-- [ ] A running entry dated before today raises a prompt asking for its real end time, framed on the
+- [x] A running entry dated before today raises a prompt asking for its real end time, framed on the
       entry's own day; it can also be discarded outright.
-- [ ] A timer-sourced entry with a zero duration is visibly flagged in the Activity view.
-- [ ] The docs site's day-to-day guide documents what happens to a Timer left running overnight
+- [x] A timer-sourced entry with a zero duration is visibly flagged in the Activity view.
+- [x] The docs site's day-to-day guide documents what happens to a Timer left running overnight
       (EN + FR, per CHR-010).
-- [ ] Quality gate clean both sides.
+- [x] Quality gate clean both sides.
 
 ## Blocked by
 
 None.
+
+## Delivery
+
+Shipped in [PR #156](https://github.com/davidp57/walker/pull/156) -> `develop`.
+
+On upgrade, the migration flattens the production row that triggered this ticket (2026-08-20,
+`600 -> 542`) to `600 -> 600` and flags it "no duration". That day was already re-entered by hand, so
+the row is a partial duplicate and can be deleted from the Activity view.
