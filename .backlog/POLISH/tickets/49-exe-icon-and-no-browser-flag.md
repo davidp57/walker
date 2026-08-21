@@ -1,7 +1,7 @@
 # CHR-015 — The standalone `.exe` wears the app's own icon, and can be told not to open a browser
 
 ID: CHR-015
-Status: 🔄
+Status: ✅ done
 Type: chore
 Priority: P3
 
@@ -41,14 +41,23 @@ reviewable in a GitHub diff, which renders PNGs but not `.ico` files.
 
 ## Acceptance criteria
 
-- [ ] `walker.exe --no-browser` (and `-B`) serves the app without opening a browser; with no flag,
+- [x] `walker.exe --no-browser` (and `-B`) serves the app without opening a browser; with no flag,
       the browser opens exactly as before.
-- [ ] An unknown flag is rejected rather than silently ignored.
-- [ ] The built `.exe` carries the ranger star, at every size Windows asks for.
-- [ ] Regenerating the icon is documented and reproducible from the favicon.
-- [ ] The docs site's standalone-`.exe` page mentions the flag (EN + FR, per CHR-010).
-- [ ] Quality gate clean.
+- [x] An unknown flag is rejected rather than silently ignored.
+- [x] The built `.exe` carries the ranger star, at every size Windows asks for.
+- [x] Regenerating the icon is documented and reproducible from the favicon.
+- [x] The docs site's standalone-`.exe` page mentions the flag (EN + FR, per CHR-010).
+- [x] Quality gate clean.
 
 ## Blocked by
 
 None.
+
+## Delivery
+
+Shipped in [PR #158](https://github.com/davidp57/walker/pull/158) -> `develop`, with the review
+follow-up in [PR #159](https://github.com/davidp57/walker/pull/159) (the CLI tests stubbed the server
+out without ever asserting it started, so they could not have caught `main` dropping `uvicorn.run`).
+
+Reaches a user only through the next tagged release, since the `.exe` is built by `cd-exe.yml` on a
+version tag.
