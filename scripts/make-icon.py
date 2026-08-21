@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw
 
 # One SVG user unit == one unit here; everything scales from SUPERSAMPLE / 48.
 VIEWBOX = 48
-SUPERSAMPLE = 1024  # draw large, downsample with LANCZOS — the 16x16 entry has to survive
+SUPERSAMPLE = 1024  # draw large, reduce with LANCZOS per size — the 16x16 entry has to survive
 SCALE = SUPERSAMPLE / VIEWBOX
 
 PLATE = (0x15, 0x17, 0x1D, 0xFF)  # #15171d
@@ -83,8 +83,17 @@ def main() -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
 
     master = render()
+    # Every size is reduced straight from the 1024px master. Passing them as ``append_images`` is what
+    # makes Pillow *use* them: for a requested size it looks for an exactly-matching provided image and
+    # only falls back to resampling one itself (from the 256px entry, not the master) when it finds
+    # none. Without this the smaller entries would be reductions of a reduction.
     frames = [master.resize((size, size), Image.LANCZOS) for size in ICO_SIZES]
-    frames[-1].save(target, format="ICO", sizes=[(size, size) for size in ICO_SIZES])
+    frames[-1].save(
+        target,
+        format="ICO",
+        sizes=[(size, size) for size in ICO_SIZES],
+        append_images=frames[:-1],
+    )
 
     # A PNG next to it makes the result reviewable at a glance without an icon viewer.
     master.resize((256, 256), Image.LANCZOS).save(target.with_suffix(".png"))
