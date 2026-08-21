@@ -25,6 +25,13 @@ Every duration is recorded to the minute — Walker never rounds. Rounding to wh
 timesheet system expects (typically the quarter hour) is something you do when you copy the numbers
 over there, not something Walker decides for you.
 
+**If you forget to stop the Timer** and come back the next morning, Walker won't guess for you: it
+asks when you stopped, as a time on the day the Timer was tracking. That's the only answer that can
+be true — Walker records real minutes and invents none, so it would rather ask than credit you with
+a night's work or quietly reduce the entry to nothing. You can also discard the entry outright if the
+Timer was tracking nothing real, or postpone the question. Until you settle it, the entry is marked
+"no duration" in the Activity view rather than sitting there reading `0:00`.
+
 ## Entries and categorizing
 
 Everything you track — whether started from the Timer or added by hand — is called an **entry**: a

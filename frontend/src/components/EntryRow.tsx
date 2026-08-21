@@ -57,6 +57,10 @@ export function EntryRow({
   const duration = running
     ? Math.max(0, liveMinutes ?? 0)
     : Math.max(0, (entry.end ?? entry.start) - entry.start)
+  // BIZ-091: a Timer closed with no duration at all — what a stale overnight Timer now becomes,
+  // since Walker won't invent an end time. A bare "0:00" read as a rounding artefact; say it needs
+  // finishing instead. Manual entries are excluded: a hand-entered zero is a deliberate placeholder.
+  const zeroDuration = !running && entry.source === 'timer' && entry.end !== null && duration === 0
   const barColor = flagged ? 'var(--wk-amber)' : (code?.color ?? 'var(--wk-text-lo)')
   // BIZ-042: proportion of the day group's longest entry (only when a scale is provided).
   const barPct =
@@ -179,6 +183,14 @@ export function EntryRow({
             onKeyDown={onKey}
             onBlur={commit}
           />
+        )}
+        {zeroDuration && (
+          <span
+            className="wk-zero-mark"
+            title="This Timer was closed without a duration — click the time or duration to set when you stopped."
+          >
+            ⚑ no duration
+          </span>
         )}
         {bar}
       </div>

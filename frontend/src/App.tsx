@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import './styles/tokens.css'
 import './styles/walker.css'
 import { AppShell, type Route, type ShellUser } from './components/AppShell'
+import { StaleTimerModal } from './components/StaleTimerModal'
 import { TimerBar } from './components/TimerBar'
 import { BlockingEntriesModal } from './components/BlockingEntriesModal'
 import { CodePicker } from './components/CodePicker'
@@ -39,7 +40,8 @@ import type {
 } from './types'
 import { DEFAULT_TASK_STATES, DEFAULT_VIEW_PREFERENCES } from './types'
 import { resolveChecklistRows } from './lib/checklist'
-import { elapsedSecondsSince, formatDuration, formatLocalMoment } from './lib/time'
+import { elapsedSecondsSince, formatDuration, formatLocalMoment, isoDate } from './lib/time'
+import { useToday } from './lib/useToday'
 import {
   applyResolvedTheme,
   readCachedThemePreference,
@@ -102,11 +104,6 @@ import {
   type SsoProvider,
 } from './lib/api'
 
-// ---- Today (real local date, matches the server-recorded entries) ----
-const isoDate = (d: Date) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-const TODAY = isoDate(new Date())
-
 // The one thing that genuinely blocks a code deletion client-side (TEC-016): virtual codes pointing
 // at it. Entries do not — the SPA only sees the loaded date window, so the server decides and a 409
 // opens the resolve flow (BIZ-088). The catalog states the same block in its own tooltip; this is
@@ -128,9 +125,9 @@ const addDays = (iso: string, delta: number): string => {
   const [y, m, d] = iso.split('-').map(Number)
   return isoDate(new Date(y, m - 1, d + delta))
 }
-const dayLabel = (iso: string): string => {
-  if (iso === TODAY) return 'Today'
-  if (iso === addDays(TODAY, -1)) return 'Yesterday'
+const dayLabel = (iso: string, today: string): string => {
+  if (iso === today) return 'Today'
+  if (iso === addDays(today, -1)) return 'Yesterday'
   const [y, m, d] = iso.split('-').map(Number)
   return new Date(y, m - 1, d).toLocaleDateString('en-US', {
     weekday: 'short',
@@ -272,6 +269,10 @@ export default function App() {
 
 function AppInner() {
   const { notifyError, notify } = useToast()
+  // BIZ-091: the civil day, alive. Left as a module constant it froze at page load, so an app open
+  // across midnight kept loading yesterday's window and labelling days one off — and could never
+  // notice that the running Timer had drifted into a past day.
+  const today = useToday()
   const [route, setRoute] = useState<Route>('tracker')
   const [user, setUser] = useState<ShellUser | undefined>(undefined)
   const [codes, setCodes] = useState<TimesheetCode[]>([])
@@ -280,7 +281,7 @@ function AppInner() {
   const [entriesLoading, setEntriesLoading] = useState(true)
   const [draft, setDraft] = useState<TimerDraft>(EMPTY_DRAFT)
   const [now, setNow] = useState(Date.now())
-  const [anchor, setAnchor] = useState<string>(TODAY)
+  const [anchor, setAnchor] = useState<string>(() => isoDate(new Date()))
   const [matrix, setMatrix] = useState<Record<string, Record<number, number>>>({})
   // BIZ-065: parallel per-cell "has a manual entry" matrix, same `${codeId}|${activity}` keys.
   const [manualMatrix, setManualMatrix] = useState<Record<string, Record<number, boolean>>>({})
@@ -319,10 +320,12 @@ function AppInner() {
   // BIZ-090: the code being retired, while its confirm + optional sweep is on screen.
   const [retiringCode, setRetiringCode] = useState<TimesheetCode | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
-  const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(TODAY, -13))
+  const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(isoDate(new Date()), -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
   // BIZ-076: the entry a break is being punched into, or null when the break modal is closed.
   const [breakTarget, setBreakTarget] = useState<Entry | null>(null)
+  // BIZ-091: the stale-Timer entry whose prompt was postponed this session (see `staleTimer`).
+  const [staleDismissed, setStaleDismissed] = useState<string | null>(null)
   // A not-yet-persisted entry being composed in the Timesheet period view; persisted only on Save.
   const [addDraft, setAddDraft] = useState<Entry | null>(null)
   const [cellDrill, setCellDrill] = useState<{
@@ -412,11 +415,11 @@ function AppInner() {
 
   // Load entries for the tracker window (BIZ-003); widening `trackerFrom` loads earlier days.
   useEffect(() => {
-    fetchEntriesRange(trackerFrom, TODAY)
+    fetchEntriesRange(trackerFrom, today)
       .then(setEntries)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not load your entries.')))
       .finally(() => setEntriesLoading(false))
-  }, [trackerFrom, notifyError])
+  }, [trackerFrom, today, notifyError])
 
   // Load the Timesheet period grid + checklist whenever the anchored period, scheme, or entries
   // change — a scheme change reshapes the view immediately (BIZ-027): no stale cached period.
@@ -437,12 +440,18 @@ function AppInner() {
   }, [anchor, periodScheme, entries, notifyError])
 
   const reload = () =>
-    fetchEntriesRange(trackerFrom, TODAY)
+    fetchEntriesRange(trackerFrom, today)
       .then(setEntries)
       .catch((err: unknown) => notifyError(errorMessage(err, 'Could not refresh your entries.')))
 
   const running = entries.find((e) => e.end === null) ?? null
   const runningId = running?.id ?? null
+  // BIZ-091: a Timer still running from an earlier day. Walker cannot know when the user stopped and
+  // never invents a duration (ADR-0005), so it asks — the old behaviour closed such an entry with
+  // *today's* minute, writing an end before its start and reducing a tracked day to 0:00. Dismissible
+  // ("Later"), per entry, so the prompt is not a trap; it returns on the next load.
+  const staleTimer = running && running.date !== today ? running : null
+  const staleTimerPrompt = staleTimer && staleTimer.id !== staleDismissed ? staleTimer : null
 
   // Entries not fully categorized (BIZ-010, BIZ-070) — missing a code *or* an activity, so they
   // won't reach the Timesheet-system matrix. Surfaced as a live count in the shell so nothing is left
@@ -660,7 +669,7 @@ function AppInner() {
 
   // Compose a manual entry (no timer): default to today 9:00–10:00. Nothing is written until Save
   // (BIZ-011) — cancelling the editor leaves no phantom entry, matching the Timesheet period add path.
-  const addEntry = (date: string = TODAY) => {
+  const addEntry = (date: string = today) => {
     setAddDraft({
       id: 'new',
       date,
@@ -1010,11 +1019,11 @@ function AppInner() {
         isWeekend: !workdays[dt.getDay()],
         isAbsence: !!absence,
         absenceReason: absence?.reason,
-        isToday: iso === TODAY,
+        isToday: iso === today,
       }
     })
     return { days: columns, dayIsoByDayOfMonth: isoByDay }
-  }, [periodScheme, anchor, workdays, absences])
+  }, [periodScheme, anchor, workdays, absences, today])
 
   const rows: PeriodRow[] = useMemo(
     () =>
@@ -1104,7 +1113,7 @@ function AppInner() {
     const activity = rowKey.slice(bar + 1)
     const date = cellDayIso(day)
     const code = codesById[codeId]
-    const title = `${code?.name ?? code?.number ?? ''} · ${activity} · ${dayLabel(date)}`
+    const title = `${code?.name ?? code?.number ?? ''} · ${activity} · ${dayLabel(date, today)}`
     setCellDrill({ date, codeId, activity, title })
     void loadCell(date, codeId, activity)
   }
@@ -1232,7 +1241,7 @@ function AppInner() {
         const total = dayEntries.reduce((s, e) => s + durationOf(e), 0)
         return {
           date,
-          label: dayLabel(date),
+          label: dayLabel(date, today),
           totalLabel: formatDuration(total),
           entries: dayEntries,
         }
@@ -1325,7 +1334,7 @@ function AppInner() {
           onMergeEntries={mergeEntries}
           onLoadEarlier={() => setTrackerFrom((f) => addDays(f, -14))}
           onAddEntry={addEntry}
-          today={TODAY}
+          today={today}
         />
       )}
       {route === 'period' && (
@@ -1344,7 +1353,7 @@ function AppInner() {
           checked={checked}
           onPrev={() => setAnchor((a) => shiftPeriod(periodScheme, a, -1))}
           onNext={() => setAnchor((a) => shiftPeriod(periodScheme, a, 1))}
-          onThis={() => setAnchor(TODAY)}
+          onThis={() => setAnchor(today)}
           onOpenCell={openCell}
           onAddCell={openAddInCell}
           onAddDay={openAddEntryOnDay}
@@ -1468,6 +1477,23 @@ function AppInner() {
         />
       )}
 
+      {staleTimerPrompt && (
+        <StaleTimerModal
+          entry={staleTimerPrompt}
+          dayLabel={dayLabel(staleTimerPrompt.date, today)}
+          elapsedMinutes={runningMinutes}
+          onSetEnd={(minute) =>
+            apiPatchEntry(staleTimerPrompt.id, { end: minute })
+              .then(reload)
+              .catch((err: unknown) =>
+                notifyError(errorMessage(err, 'Could not set the end time.')),
+              )
+          }
+          onDiscard={() => deleteEntryWithUndo(staleTimerPrompt)}
+          onClose={() => setStaleDismissed(staleTimerPrompt.id)}
+        />
+      )}
+
       {breakTarget && (
         <BreakModal
           entry={breakTarget}
@@ -1533,8 +1559,8 @@ function AppInner() {
         <RetireCodeModal
           code={retiringCode}
           codes={pickableCodes}
-          periodStart={isoDate(periodBounds(periodScheme, TODAY).start)}
-          periodEnd={isoDate(periodBounds(periodScheme, TODAY).end)}
+          periodStart={isoDate(periodBounds(periodScheme, today).start)}
+          periodEnd={isoDate(periodBounds(periodScheme, today).end)}
           onRetire={(sweep) => retireCode(retiringCode, sweep)}
           onClose={() => setRetiringCode(null)}
         />
@@ -1544,7 +1570,7 @@ function AppInner() {
           code={totalsCode}
           periodStart={isoDate(periodBounds(periodScheme, anchor).start)}
           periodEnd={isoDate(periodBounds(periodScheme, anchor).end)}
-          today={TODAY}
+          today={today}
           onFetch={(range) => fetchCodeTotals(totalsCode.id, range)}
           onClose={() => setTotalsCode(null)}
         />

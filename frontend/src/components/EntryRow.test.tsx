@@ -280,3 +280,33 @@ describe('EntryRow — duration bar (BIZ-042)', () => {
     expect(document.querySelector('.wk-dur-bar')).not.toBeInTheDocument()
   })
 })
+
+describe('EntryRow — a Timer closed with no duration (BIZ-091)', () => {
+  it('flags a zero-duration timer entry instead of quietly showing 0:00', () => {
+    renderRow({ entry: { ...ENTRY, start: 600, end: 600, source: 'timer' } })
+
+    expect(screen.getByText(/no duration/i)).toBeInTheDocument()
+  })
+
+  it('leaves a normal timer entry unflagged', () => {
+    renderRow({ entry: { ...ENTRY, source: 'timer' } })
+
+    expect(screen.queryByText(/no duration/i)).toBeNull()
+  })
+
+  it('leaves a hand-entered zero alone — a manual placeholder is deliberate', () => {
+    renderRow({ entry: { ...ENTRY, start: 600, end: 600, source: 'manual' } })
+
+    expect(screen.queryByText(/no duration/i)).toBeNull()
+  })
+
+  it('does not flag the live running timer, which has no end yet', () => {
+    renderRow({
+      entry: { ...ENTRY, start: 600, end: null, source: 'timer' },
+      running: true,
+      liveMinutes: 0,
+    })
+
+    expect(screen.queryByText(/no duration/i)).toBeNull()
+  })
+})

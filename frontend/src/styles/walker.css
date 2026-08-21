@@ -1823,6 +1823,16 @@ html[data-theme='light'] body {
   color: var(--wk-text-lo);
   cursor: help;
 }
+/* BIZ-091: a Timer entry closed with no duration at all — unfinished business, not a rounded 0:00.
+   Amber, like the uncategorized flag: both mean "this entry still needs you". */
+.wk-zero-mark {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--wk-fs-10);
+  color: var(--wk-amber);
+  white-space: nowrap;
+  cursor: help;
+}
 /* BIZ-064: per-day "+ Add" on each Activity day group. Today's is primary/always-on; other days'
    stay quiet until the group is hovered or the button is focused (always shown on touch). */
 .wk-daygroup-add {

@@ -10,16 +10,25 @@ from __future__ import annotations
 
 from datetime import date as date_type
 
-from sqlalchemy import Date, ForeignKey, String
+from sqlalchemy import CheckConstraint, Date, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from walker.models.base import Base, TimestampMixin
+
+# BIZ-091: every duration in the app is ``end_minute - start_minute``, so an end before the start is
+# not a small inconsistency — it is a negative duration that silently reads as 0:00 everywhere. A
+# timer closed with the *next* day's minute produced exactly that, so the invariant is enforced here
+# rather than merely assumed. A running Entry (end NULL) is unconstrained by design.
+_END_AFTER_START = CheckConstraint(
+    "end_minute IS NULL OR end_minute >= start_minute", name="ck_entries_end_after_start"
+)
 
 
 class Entry(TimestampMixin, Base):
     """A tracked period of work for a user on a given day, in minutes since midnight."""
 
     __tablename__ = "entries"
+    __table_args__ = (_END_AFTER_START,)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)

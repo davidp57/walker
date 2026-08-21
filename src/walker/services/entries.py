@@ -42,6 +42,30 @@ def list_entries_range(session: Session, user_id: int, start: date, end: date) -
     )
 
 
+def _close_minute(entry: Entry, on_date: date, at_minute: int) -> int:
+    """The minute a running ``entry`` must be closed at, given the current day and minute (BIZ-091).
+
+    ``at_minute`` is minutes since **today's** midnight, so it only means anything for an Entry dated
+    today. A timer left running across midnight belongs to an earlier day: stamping today's minute on
+    it wrote an end *before* its start (a negative duration, silently rendered as 0:00), which is how
+    a tracked day was lost in production. Walker cannot know when the user actually stopped working
+    and never invents a duration (ADR-0005), so such a stale timer is closed at **zero minutes** and
+    left for the user to correct — the frontend prompts for its real end time.
+
+    Same-day closes are clamped to the start as a last defence against a backwards wall clock (DST, a
+    corrected system time).
+    """
+    if entry.date != on_date:
+        return entry.start_minute
+    return max(entry.start_minute, at_minute)
+
+
+def _validate_span(start_minute: int, end_minute: int | None) -> None:
+    """Reject an end before its start — the invariant behind every duration (BIZ-091)."""
+    if end_minute is not None and end_minute < start_minute:
+        raise ValidationError("An entry cannot end before it starts.")
+
+
 def _start_task_if_initial(session: Session, user_id: int, task_id: int | None) -> None:
     """Nudge a Task from its initial state to the next one when a Timer starts tracking it (BIZ-023).
 
@@ -71,7 +95,11 @@ def create_entry(
     description: str | None = None,
     task_id: int | None = None,
 ) -> Entry:
-    """Create an Entry directly (no timer) — e.g. a past or future manual entry."""
+    """Create an Entry directly (no timer) — e.g. a past or future manual entry.
+
+    Raises ``ValidationError`` when ``end_minute`` precedes ``start_minute`` (BIZ-091).
+    """
+    _validate_span(start_minute, end_minute)
     entry = Entry(
         user_id=user_id,
         date=on_date,
@@ -119,7 +147,7 @@ def switch_timer(
     _start_task_if_initial(session, user_id, task_id)
     current = running_entry(session, user_id)
     if current is not None:
-        current.end_minute = at_minute
+        current.end_minute = _close_minute(current, on_date, at_minute)
     entry = Entry(
         user_id=user_id,
         date=on_date,
@@ -136,19 +164,23 @@ def switch_timer(
     return entry
 
 
-def stop_timer(session: Session, user_id: int, at_minute: int) -> Entry:
-    """Close the running Entry. Rejects when nothing is running. The linked Task's status, if any,
-    is left unchanged (see ``complete_timer`` for the Stop | Complete split — BIZ-023)."""
+def stop_timer(session: Session, user_id: int, on_date: date, at_minute: int) -> Entry:
+    """Close the running Entry at ``at_minute`` of ``on_date``. Rejects when nothing is running.
+
+    The linked Task's status, if any, is left unchanged (see ``complete_timer`` for the
+    Stop | Complete split — BIZ-023). A timer running since an earlier day closes at zero minutes
+    (see ``_close_minute`` — BIZ-091).
+    """
     current = running_entry(session, user_id)
     if current is None:
         raise ValidationError("No timer is running.")
-    current.end_minute = at_minute
+    current.end_minute = _close_minute(current, on_date, at_minute)
     session.commit()
     session.refresh(current)
     return current
 
 
-def complete_timer(session: Session, user_id: int, at_minute: int) -> Entry:
+def complete_timer(session: Session, user_id: int, on_date: date, at_minute: int) -> Entry:
     """Close the running Entry and, when it is linked to a Task, mark that Task Done (BIZ-023).
 
     One call, one commit: stopping the Timer and completing its Task happen atomically, so there is
@@ -158,7 +190,7 @@ def complete_timer(session: Session, user_id: int, at_minute: int) -> Entry:
     current = running_entry(session, user_id)
     if current is None:
         raise ValidationError("No timer is running.")
-    current.end_minute = at_minute
+    current.end_minute = _close_minute(current, on_date, at_minute)
     if current.task_id is not None:
         task = session.get(Task, current.task_id)
         if task is not None and task.user_id == user_id:
@@ -168,11 +200,15 @@ def complete_timer(session: Session, user_id: int, at_minute: int) -> Entry:
     return current
 
 
-def stop_all_running(session: Session, at_minute: int) -> int:
-    """Close every running Entry (e.g. on server shutdown). Returns how many were closed."""
+def stop_all_running(session: Session, on_date: date, at_minute: int) -> int:
+    """Close every running Entry (e.g. on server shutdown). Returns how many were closed.
+
+    Best-effort, and only honest for timers opened on ``on_date``: one started an earlier day closes
+    at zero minutes rather than being credited with the hours since (BIZ-091).
+    """
     running = session.scalars(select(Entry).where(Entry.end_minute.is_(None))).all()
     for entry in running:
-        entry.end_minute = max(entry.start_minute, at_minute)
+        entry.end_minute = _close_minute(entry, on_date, at_minute)
     session.commit()
     return len(running)
 
@@ -186,10 +222,19 @@ def get_entry(session: Session, user_id: int, entry_id: int) -> Entry:
 
 
 def patch_entry(session: Session, user_id: int, entry_id: int, fields: dict[str, object]) -> Entry:
-    """Update the given Entry fields (durations preserved to the minute)."""
+    """Update the given Entry fields (durations preserved to the minute).
+
+    Validates the **resulting** span, not the patch: moving only the start past a fixed end is just as
+    invalid as moving the end before the start (BIZ-091).
+    """
     entry = get_entry(session, user_id, entry_id)
     for key, value in fields.items():
         setattr(entry, key, value)
+    try:
+        _validate_span(entry.start_minute, entry.end_minute)
+    except ValidationError:
+        session.rollback()  # drop the half-applied patch: the row must not stay dirty in the session
+        raise
     session.commit()
     session.refresh(entry)
     return entry

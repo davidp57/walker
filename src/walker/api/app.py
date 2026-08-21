@@ -34,7 +34,7 @@ async def _lifespan(_app: FastAPI) -> AsyncIterator[None]:
     now = datetime.now()
     session = SessionFactory()
     try:
-        stop_all_running(session, now.hour * 60 + now.minute)
+        stop_all_running(session, now.date(), now.hour * 60 + now.minute)
     finally:
         session.close()
 

@@ -48,14 +48,14 @@ def test_stop_without_running_raises(session: Session) -> None:
     uid = _user_id(session)
 
     with pytest.raises(ValidationError):
-        svc.stop_timer(session, uid, 600)
+        svc.stop_timer(session, uid, DAY, 600)
 
 
 def test_stop_all_running_closes_every_running_timer(session: Session) -> None:
     uid = _user_id(session)
     svc.start_timer(session, uid, DAY, 540)
 
-    closed = svc.stop_all_running(session, 600)
+    closed = svc.stop_all_running(session, DAY, 600)
 
     assert closed == 1
     assert svc.running_entry(session, uid) is None
