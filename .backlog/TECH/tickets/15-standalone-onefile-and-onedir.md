@@ -1,7 +1,7 @@
 # TEC-021 — Ship the standalone build as both onefile and onedir, and document the Defender risk
 
 ID: TEC-021
-Status: ⬜ ready
+Status: 🧑 waiting-human
 Type: operability
 Priority: P2
 
@@ -79,24 +79,44 @@ leaving them with a broken download and no recourse.
    on a managed machine, that the decision to restore from quarantine belongs to whoever administers
    it.
 
+## Outcome
+
+Built. `walker.spec` now produces either packaging from one Analysis, selected by
+`WALKER_BUILD_MODE` (`onefile` by default, `onedir` otherwise) — one spec rather than two, so the
+two artifacts cannot drift apart in hidden imports or bundled data. `scripts/build-exe.ps1` gained
+`-Mode onefile|onedir|both` (default `both`) and `-SkipFrontend`, and zips `dist/walker` itself so
+the archive carries a single top-level folder. `cd-exe.yml` runs both builds, zips, and attaches
+both to the Release; `develop` pushes upload both as workflow artifacts.
+
+Verified locally: both binaries start, run the Alembic chain, serve the SPA, honour `--no-browser`,
+and resolve their database through `standalone.py` (smoke-tested against a throwaway `APPDATA` so
+the real one was never touched). The zip holds one `walker/` root, 324 entries, 30.3 MB.
+
+Neither locally built binary was flagged by Defender — which proves **nothing** and was not counted
+as evidence. A locally produced file carries no Mark-of-the-Web and no cloud reputation lookup of a
+freshly downloaded artifact. The claim in this ticket can only be tested on a binary **downloaded
+from a GitHub Release**, which is what the remaining unticked box is for.
+
 ## Open questions
 
-- Which one does the docs page **recommend** by default? Convenience argues for onefile, the failure
-  mode argues for onedir. Pick one and say why, rather than leaving the reader to guess.
-- Naming and layout of the zip's contents (a top-level folder, presumably, so unzipping doesn't
-  scatter files).
+- Which one does the docs page **recommend** by default? — Settled: `walker.exe` first, the zip as
+  the fallback when it is blocked. Convenience wins until it doesn't, and the page says exactly
+  when to switch rather than making the reader choose blind.
+- Naming and layout of the zip's contents — Settled: `walker-<version>-windows.zip`, one `walker/`
+  folder inside.
 - Both builds resolve their database to `%APPDATA%\Walker\walker.db` via `standalone.py`, so a user
-  can switch between artifacts without touching their data — worth stating explicitly on the page,
-  and worth an acceptance test.
-- Is code signing reachable at all? It is the only real fix, and everything above is mitigation.
-  Record the answer here even if it is "no", so it stops being re-litigated.
+  can switch between artifacts without touching their data — stated on both docs pages, in both
+  languages.
+- Is code signing reachable at all? **Still open.** It is the only real fix; everything above is
+  mitigation. Record the answer here even if it is "no", so it stops being re-litigated.
 
 ## Acceptance
 
-- [ ] A version tag publishes both `walker.exe` and the onedir zip to the GitHub Release.
-- [ ] The onedir build starts, migrates, serves the SPA, and honours `--no-browser`, reading the
+- [x] A version tag publishes both `walker.exe` and the onedir zip to the GitHub Release.
+- [x] The onedir build starts, migrates, serves the SPA, and honours `--no-browser`, reading the
       **same** `%APPDATA%\Walker\walker.db` as the onefile build.
-- [ ] The onedir build has been run on the maintainer's managed machine and **observed** not to be
-      quarantined — the claim is verified, not assumed. If it is flagged too, that outcome is
-      recorded here and the ticket's premise revisited.
-- [ ] Both docs-site pages carry the top-of-page admonition, in English and French.
+- [ ] The onedir build has been **downloaded from a Release** onto the maintainer's managed machine
+      and observed not to be quarantined — the claim is verified, not assumed. If it is flagged too,
+      that outcome is recorded here and the ticket's premise revisited. *This is what the ticket is
+      waiting on.*
+- [x] Both docs-site pages carry the top-of-page admonition, in English and French.
