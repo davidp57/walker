@@ -73,7 +73,11 @@ same two builds and attaches both to a tagged release.
 Both are shipped because a onefile executable unpacks its own appended archive at startup, which no
 antivirus heuristic can tell apart from a packer — Defender quarantined the v1.14.0 `walker.exe` on
 that behavior alone. The zip does no self-extraction and gives the user a second thing to try; it is
-not immune either. Users are told all of this on the
+not immune either. The zip holds a single `walker` folder: `walker.exe` and the `_internal` folder
+beside it are one unit, so the whole folder is what gets extracted, moved, and replaced on upgrade.
+
+Users are told all of this — which asset to take, how to unblock and extract the zip, and what to do
+when an antivirus objects — on the
 [standalone download page](https://davidp57.github.io/walker/self-hosting/standalone-exe/).
 
 ## License

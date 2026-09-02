@@ -27,13 +27,43 @@ self-contained program, in two packagings.
 1. Go to the project's [Releases page](https://github.com/davidp57/Walker/releases) on GitHub.
 2. Download one of the two assets attached to the latest release:
     - `walker.exe` — one file, nothing to unpack.
-    - `walker-<version>-windows.zip` — unzip it anywhere, then open the `walker` folder.
+    - `walker-<version>-windows.zip` — the folder version, described below.
 3. Double-click `walker.exe`.
 
 That's it — no installer, no admin rights, no separate database setup. On first launch Walker starts
 its own local web server and automatically opens your default browser pointed at the running app
 (`http://localhost:8000`). A console window stays open in the background while Walker is running;
 closing it stops the app.
+
+### Using the `.zip` version
+
+The zip contains a single `walker` folder holding `walker.exe` and an `_internal` folder beside it.
+**They belong together**: `walker.exe` alone, moved out of that folder, will not start.
+
+1. **Unblock the zip before extracting it.** Windows marks anything downloaded from the internet, and
+   that mark is copied onto every file you extract — which is what makes Windows warn you (or your
+   antivirus intervene) on each one. Right-click the `.zip` → **Properties** → tick **Unblock** at
+   the bottom → **OK**. Doing it once on the zip saves doing it on the contents.
+
+    From PowerShell, the same thing:
+
+    ```powershell
+    Unblock-File "$env:USERPROFILE\Downloads\walker-<version>-windows.zip"
+    ```
+
+2. **Extract it** somewhere permanent — not your Downloads folder, which you will eventually empty.
+   Something like `C:\Users\<you>\Programs\` is fine; no admin rights are needed.
+3. **Open the `walker` folder and double-click `walker.exe`.** Same behaviour as the single-file
+   version: it serves on `http://localhost:8000` and opens your browser.
+4. **Optional — pin it.** Right-click `walker.exe` → *Pin to taskbar*, or right-click → *Send to* →
+   *Desktop (create shortcut)*. Shortcuts point at the file where it is, so keep the folder put.
+
+**To upgrade**, download the new zip, extract it, and replace the whole `walker` folder — not just
+`walker.exe`, since `_internal` changes with it. Close Walker first: Windows will not overwrite a
+running program. Your data is untouched by any of this (see below).
+
+If Windows shows *"Windows protected your PC"* when you start it, that is SmartScreen reacting to a
+program it has not seen before, not a verdict about the file: click **More info** → **Run anyway**.
 
 !!! tip "If your antivirus removes it"
 
