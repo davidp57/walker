@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.14.0] - 2026-09-02
+
 ### Added
 
 - **A catalog import can now be declared complete, and clears out what the file no longer contains**
