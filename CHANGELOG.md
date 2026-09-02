@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.15.0] - 2026-09-02
+
 ### Added
 
 - **A complete-catalog import now tells you which of your own codes it just orphaned** (BIZ-092).
