@@ -1,7 +1,7 @@
 # BIZ-092 — A complete-catalog import says nothing about the active codes it just orphaned
 
 ID: BIZ-092
-Status: ⬜ ready
+Status: ✅ done
 Type: correctness
 Priority: P1
 
@@ -62,22 +62,34 @@ retiring a code the user still books to would be a worse failure than staying qu
 
 ## Open questions
 
-- Is "not in the imported catalog" **state** (a column, set at import) or a **derived** fact
-  (computed by joining `timesheet_codes` to `reference_codes`)? Derived is cheaper and cannot go
-  stale, but it silently changes meaning if the reference catalog is ever empty or partial. State
-  survives that, at the cost of a migration and of deciding when it gets cleared.
-- Does a *partial* import (the default) report anything? It has no basis to: absence from a scoped
-  file means nothing. Probably strictly a complete-catalog concern — say so explicitly.
-- Where does the alert live so it isn't lost? The current import feedback is a one-line message that
-  the next action wipes.
-- Repointing a backing affects every virtual code that shares it. Show them, and confirm once for
-  all of them rather than one at a time.
+- Is "not in the imported catalog" **state** or a **derived** fact? — Settled: **state**, a nullable
+  `timesheet_codes.missing_from_catalog_at`. Deriving it from the absence of a matching
+  `ReferenceCode` is cheaper but changes meaning the moment the reference catalog is empty or
+  scoped — every code would look orphaned. Absence from a *complete* file is a claim someone made
+  deliberately, so it is that claim which is recorded, with its date. Migration `b2c3d4e5f6a7`;
+  existing rows stay NULL rather than being backfilled with an invented fact.
+- Does a *partial* import report anything? — No, and it is asserted by a test. It has no basis to.
+- Where does the alert live? — Its own modal after the import, plus a quiet permanent marker in the
+  Code catalog (`missing_from_catalog` on `CodeRead`, shown in the card's meta line) so a postponed
+  decision survives the message.
+- Repointing a backing affects every virtual code sharing it. — Repointing is per *backing*: the
+  modal names the dependents, and one pick updates them all.
+
+## Outcome
+
+Built and verified against a copy of the real database, reproducing the exact case that prompted the
+ticket: the import reports three orphans, and the hidden backing `N9/6183466/040` is flagged with
+`PRJ - Workday Interview Planner` named as the code charging through it.
+
+The date is set on first absence only — re-importing the same narrow file must not make an old
+problem look new — and cleared the moment any import carries the number again, so the too-narrow-scope
+false alarm is undoable.
 
 ## Acceptance
 
-- [ ] After a complete-catalog import, active real codes absent from the file are listed, each with
+- [x] After a complete-catalog import, active real codes absent from the file are listed, each with
       the virtual codes it backs when it is a hidden backing.
-- [ ] Retiring and repointing are both reachable from that list; neither happens on its own.
-- [ ] The state is visible in the Code catalog after the message is gone.
-- [ ] A partial (non-complete) import reports nothing of the sort.
-- [ ] Entries booked to an affected code are untouched in every path.
+- [x] Retiring and repointing are both reachable from that list; neither happens on its own.
+- [x] The state is visible in the Code catalog after the message is gone.
+- [x] A partial (non-complete) import reports nothing of the sort.
+- [x] Entries booked to an affected code are untouched in every path.

@@ -35,6 +35,7 @@ interface ApiCode {
   real_code_number: string | null
   backing_only?: boolean
   obsolete?: boolean
+  missing_from_catalog?: boolean
   customer?: string | null
   type?: string | null
 }
@@ -70,6 +71,7 @@ function mapCode(code: ApiCode): TimesheetCode {
     realCodeNumber: code.real_code_number,
     backingOnly: code.backing_only ?? false,
     obsolete: code.obsolete ?? false,
+    missingFromCatalog: code.missing_from_catalog ?? false,
     customer: code.customer ?? null,
     type: code.type ?? null,
   }
@@ -500,10 +502,39 @@ export async function searchReference(q: string, limit = 20): Promise<ReferenceC
   return refs.map((r) => ({ ...r, id: String(r.id) }))
 }
 
+/** A virtual code depending on a backing that went missing from the catalog (BIZ-092). */
+export interface VirtualCodeRef {
+  id: string
+  name: string
+}
+
+/**
+ * An active code a complete-catalog import no longer found in the file (BIZ-092).
+ *
+ * `virtualCodes` is the part the user cannot see for themselves: when the missing code is a hidden
+ * backing, these are the codes visibly charging through it.
+ */
+export interface OrphanedCode {
+  id: string
+  number: string
+  name: string
+  backingOnly: boolean
+  virtualCodes: VirtualCodeRef[]
+}
+
 export interface ImportSummary {
   created: number
   updated: number
   removed: number
+  orphaned: OrphanedCode[]
+}
+
+interface ApiOrphanedCode {
+  id: number
+  number: string
+  name: string
+  backing_only: boolean
+  virtual_codes: { id: number; name: string }[]
 }
 
 /**
@@ -511,7 +542,8 @@ export interface ImportSummary {
  *
  * `completeCatalog` declares the file exhaustive, so reference codes it omits are pruned — how a
  * charge code closed since the last export stops being suggested. Off by default: a scoped extract
- * would otherwise empty the catalog.
+ * would otherwise empty the catalog. Only a complete import reports orphaned active codes, since a
+ * scoped file says nothing about what it leaves out.
  */
 export async function importCatalog(file: File, completeCatalog = false): Promise<ImportSummary> {
   const form = new FormData()
@@ -528,11 +560,20 @@ export async function importCatalog(file: File, completeCatalog = false): Promis
     }
     throw new Error(detail)
   }
-  const summary = (await response.json()) as Partial<ImportSummary>
+  const summary = (await response.json()) as Partial<Omit<ImportSummary, 'orphaned'>> & {
+    orphaned?: ApiOrphanedCode[]
+  }
   return {
     created: summary.created ?? 0,
     updated: summary.updated ?? 0,
     removed: summary.removed ?? 0,
+    orphaned: (summary.orphaned ?? []).map((o) => ({
+      id: String(o.id),
+      number: o.number,
+      name: o.name,
+      backingOnly: o.backing_only,
+      virtualCodes: o.virtual_codes.map((v) => ({ id: String(v.id), name: v.name })),
+    })),
   }
 }
 

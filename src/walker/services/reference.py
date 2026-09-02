@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import unicodedata
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -38,12 +39,64 @@ def _search_blob(entry: ParsedCode) -> str:
 
 
 @dataclass(frozen=True)
+class OrphanedCode:
+    """An active real code whose number a complete-catalog import no longer contained (BIZ-092).
+
+    ``virtual_codes`` is what the user cannot work out for themselves: when the missing code is a
+    hidden ``backing_only`` row, the codes that visibly depend on it are the ones actually charging
+    to a closed line.
+    """
+
+    id: int
+    number: str
+    name: str
+    backing_only: bool
+    virtual_codes: list[tuple[int, str]]
+
+
+@dataclass(frozen=True)
 class ImportOutcome:
-    """What an import did to the reference catalog: rows added, refreshed, and pruned."""
+    """What an import did to the reference catalog: rows added, refreshed, pruned, and orphaned."""
 
     created: int
     updated: int
     removed: int
+    orphaned: list[OrphanedCode]
+
+
+def _reconcile_active_codes(session: Session, user_id: int, imported_numbers: set[str]) -> list[OrphanedCode]:
+    """Flag active real codes the complete catalog omits, clear the flag on those it carries (BIZ-092).
+
+    Only meaningful for a complete-catalog import: absence from a scoped file says nothing at all.
+    Nothing is retired or repointed here — a code can be missing because the export was scoped too
+    narrowly, so this records a prompt and leaves the decision to the user.
+    """
+    real_codes = [c for c in catalog.list_codes(session, user_id) if not c.is_virtual]
+    virtual_by_backing: dict[int, list[tuple[int, str]]] = {}
+    for code in catalog.list_codes(session, user_id):
+        if code.is_virtual and code.real_code_id is not None:
+            virtual_by_backing.setdefault(code.real_code_id, []).append((code.id, code.name))
+
+    now = datetime.now(UTC).replace(tzinfo=None)
+    orphaned: list[OrphanedCode] = []
+    for code in real_codes:
+        if code.number in imported_numbers:
+            code.missing_from_catalog_at = None
+            continue
+        # Keep the original date on a code already flagged: it records when the absence was first
+        # claimed, and re-importing the same narrow file shouldn't make an old problem look new.
+        if code.missing_from_catalog_at is None:
+            code.missing_from_catalog_at = now
+        orphaned.append(
+            OrphanedCode(
+                id=code.id,
+                number=code.number,
+                name=code.name,
+                backing_only=code.backing_only,
+                virtual_codes=virtual_by_backing.get(code.id, []),
+            )
+        )
+    return orphaned
 
 
 def import_reference(
@@ -106,12 +159,14 @@ def import_reference(
             updated += 1
 
     removed = 0
+    orphaned: list[OrphanedCode] = []
     if complete_catalog:
         imported_numbers = {entry.number for entry in parsed}
         for number, ref in existing.items():
             if number not in imported_numbers:
                 session.delete(ref)
                 removed += 1
+        orphaned = _reconcile_active_codes(session, user_id, imported_numbers)
 
     # Backfill the ordering keys onto already-active real codes sharing the number (BIZ-068), again
     # only for the keys the import provides (never clobber existing values with None).
@@ -129,7 +184,7 @@ def import_reference(
                 code.code_type = entry.code_type
 
     session.commit()
-    return ImportOutcome(created=created, updated=updated, removed=removed)
+    return ImportOutcome(created=created, updated=updated, removed=removed, orphaned=orphaned)
 
 
 def search_reference(session: Session, user_id: int, query: str, limit: int = 20) -> list[ReferenceCode]:

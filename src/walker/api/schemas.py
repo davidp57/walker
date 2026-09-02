@@ -78,6 +78,9 @@ class CodeRead(BaseModel):
     # BIZ-090: retired. Returned for the same reason as ``backing_only`` — past Entries and checklist
     # lines must still resolve — but hidden from the pickers and, unless the toggle is on, the catalog.
     obsolete: bool = False
+    # BIZ-092: a complete-catalog import last reported this code's number absent from the file — a
+    # prompt to retire or repoint it, not a verdict that its charge line closed.
+    missing_from_catalog: bool = False
 
 
 class LikelyCodeRead(BaseModel):
@@ -132,6 +135,29 @@ class VirtualCodeUpdate(BaseModel):
     color: str | None = None
 
 
+class VirtualCodeRef(BaseModel):
+    """A virtual code that depends on a backing real code, named so the user can recognise it."""
+
+    id: int
+    name: str
+
+
+class OrphanedCodeRead(BaseModel):
+    """An active code a complete-catalog import no longer found in the file (BIZ-092).
+
+    Reported, never acted on: a code can be missing because the export was scoped too narrowly
+    rather than because its charge line closed, so retiring or repointing stays the user's call.
+    """
+
+    id: int
+    number: str
+    name: str
+    backing_only: bool
+    # The visible codes charging through this one when it is a hidden backing — the part of the
+    # damage the user has no way to see for themselves.
+    virtual_codes: list[VirtualCodeRef]
+
+
 class ImportSummary(BaseModel):
     """Result of a catalog import: how many codes were created, updated, and pruned."""
 
@@ -139,6 +165,8 @@ class ImportSummary(BaseModel):
     updated: int
     # Non-zero only for a complete-catalog import, which drops reference codes the file omits.
     removed: int = 0
+    # Active codes the file didn't contain — empty for a partial import, which cannot make that claim.
+    orphaned: list[OrphanedCodeRead] = []
 
 
 class ReferenceCodeRead(BaseModel):
