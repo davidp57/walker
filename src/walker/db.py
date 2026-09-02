@@ -16,14 +16,20 @@ from walker.config import settings
 
 _connect_args = {"check_same_thread": False} if settings.database_url.startswith("sqlite") else {}
 
+# How long a SQLite connection waits for a write lock before giving up with "database is locked".
+# SQLite serialises writers even under WAL, and a bulk catalog import holds the write lock for far
+# longer than the 5 s the ``sqlite3`` driver defaults to — a concurrent request then failed outright
+# instead of simply waiting its turn.
+_BUSY_TIMEOUT_MS = 30_000
+
 
 def _configure_sqlite_engine(sqlite_engine: Engine) -> None:
-    """Enable WAL journaling and foreign-key enforcement on every new SQLite connection.
+    """Set WAL journaling, foreign-key enforcement, and a write-lock timeout on new SQLite connections.
 
     WAL (Write-Ahead Logging) lets concurrent readers proceed without blocking on a writer —
-    SQLite still allows only one writer at a time (see TEC-005). Both PRAGMAs are per-connection
-    state in SQLite, so they must be reapplied on every new DBAPI connection rather than once at
-    engine-creation time.
+    SQLite still allows only one writer at a time (see TEC-005), hence ``busy_timeout``, which makes
+    a second writer wait rather than fail. All three PRAGMAs are per-connection state in SQLite, so
+    they must be reapplied on every new DBAPI connection rather than once at engine-creation time.
     """
 
     @event.listens_for(sqlite_engine, "connect")
@@ -31,6 +37,7 @@ def _configure_sqlite_engine(sqlite_engine: Engine) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute(f"PRAGMA busy_timeout={_BUSY_TIMEOUT_MS}")
         cursor.close()
 
 

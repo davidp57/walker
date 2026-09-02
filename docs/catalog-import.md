@@ -9,11 +9,22 @@ The catalog is two-tiered:
   (with all its activities) to your active codes. Entries, the Timesheet period view, and checklist
   use active codes.
 
-The importer (`walker.services.catalog.parse_catalog_csv`) accepts two CSV layouts:
+The importer (`walker.services.catalog.parse_catalog_csv`) accepts three CSV layouts:
 
-- **Headered** — first row is `code_number,code_label,code_name,activity_code,activity_label`.
+- **Enriched headered** (BIZ-068) — first row is
+  `code_number,code_label,code_name,customer,code_type,activity_code,activity_label`, carrying the
+  T&E grid-ordering keys (`customer` client name, `code_type` a single char C/N/A).
+- **Headered** — first row is `code_number,code_label,code_name,activity_code,activity_label`
+  (`customer`/`code_type` stay unset).
 - **Headerless export** — four columns `code_number,code_label,activity_code,activity_label`
   (`code_name` defaults to `code_label`). Quoted fields may contain commas; a UTF-8 BOM is tolerated.
+
+Only the four-column layout may omit its header. A file whose rows are *uniformly* five or seven
+fields wide but whose first row isn't a recognised header is **rejected** rather than parsed: it is a
+headered export whose header line was dropped (a SQL client with column names turned off), and read
+as headerless every field shifts left — `code_name` becomes `activity_code` and the trailing columns
+collapse into one activity label, silently corrupting the catalog. A *ragged* file is still accepted:
+that is the genuine headerless layout with unquoted commas in its labels.
 
 Import upserts by `code_number` (re-importing is idempotent); colors are auto-assigned from a palette.
 

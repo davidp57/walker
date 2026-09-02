@@ -32,6 +32,13 @@ rows). Two layouts are accepted:
 
   Here `code_name` defaults to `code_label`.
 
+!!! warning "Only the four-column layout may omit its header"
+
+    If your export has five columns, it needs the header row. Walker refuses a headerless file that
+    wide instead of misreading it — without the header every field shifts left, `code_name` is taken
+    for `activity_code`, and the catalog is quietly filled with nonsense. Most SQL clients omit
+    column names unless asked: in SSMS that is *Include column headers* in the results options.
+
 | Column | Meaning |
 | --- | --- |
 | `code_number` | The charge code as your timesheet system knows it (e.g. `N9/1042`) |

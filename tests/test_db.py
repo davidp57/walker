@@ -15,7 +15,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from walker.db import _configure_sqlite_engine
+from walker.db import _BUSY_TIMEOUT_MS, _configure_sqlite_engine
 from walker.models import Task
 
 
@@ -49,6 +49,25 @@ def test_configure_sqlite_engine_enables_foreign_keys(tmp_path: Path) -> None:
     assert foreign_keys == 1
 
 
+def test_configure_sqlite_engine_sets_a_write_lock_timeout(tmp_path: Path) -> None:
+    """A connection waits for a busy write lock instead of failing after the driver's 5 s default.
+
+    SQLite serialises writers even under WAL, and a bulk catalog import holds the write lock for
+    much longer than 5 s, so a concurrent request used to fail with "database is locked".
+    """
+    db_path = tmp_path / "busy.db"
+    engine = create_engine(f"sqlite:///{db_path}", future=True)
+    _configure_sqlite_engine(engine)
+
+    try:
+        with engine.connect() as connection:
+            busy_timeout = connection.execute(text("PRAGMA busy_timeout")).scalar_one()
+    finally:
+        engine.dispose()
+
+    assert busy_timeout == _BUSY_TIMEOUT_MS
+
+
 def test_configure_sqlite_engine_applies_pragmas_to_new_connections(tmp_path: Path) -> None:
     """Each new connection from the pool gets the PRAGMAs, not just the first one."""
     db_path = tmp_path / "multi.db"
@@ -61,11 +80,13 @@ def test_configure_sqlite_engine_applies_pragmas_to_new_connections(tmp_path: Pa
         with engine.connect() as second:
             journal_mode = second.execute(text("PRAGMA journal_mode")).scalar_one()
             foreign_keys = second.execute(text("PRAGMA foreign_keys")).scalar_one()
+            busy_timeout = second.execute(text("PRAGMA busy_timeout")).scalar_one()
     finally:
         engine.dispose()
 
     assert journal_mode.lower() == "wal"
     assert foreign_keys == 1
+    assert busy_timeout == _BUSY_TIMEOUT_MS
 
 
 def test_in_memory_test_session_enforces_foreign_keys(session: Session) -> None:

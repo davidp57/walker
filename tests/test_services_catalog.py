@@ -88,6 +88,47 @@ def test_parse_missing_columns_raises() -> None:
         parse_catalog_csv("wrong,header\n1,2")
 
 
+ENRICHED_HEADERLESS = (
+    "N9/1042,MNT - PAP V4,Paper V4,PricewaterhouseCoopers,N,0001,Bug fixing\n"
+    "N9/1042,MNT - PAP V4,Paper V4,PricewaterhouseCoopers,N,0002,Change request\n"
+    "C1/500,Client work,Client work,ACME Corp,C,0001,Analysis\n"
+)
+
+HEADERED_HEADERLESS = (
+    "N9/1042,MNT - PAP V4,Paper V4,0001,Bug fixing\nN9/1042,MNT - PAP V4,Paper V4,0002,Change request\n"
+)
+
+
+@pytest.mark.parametrize("text", [ENRICHED_HEADERLESS, HEADERED_HEADERLESS])
+def test_parse_wide_file_without_header_raises(text: str) -> None:
+    """A 5- or 7-column export stripped of its header is rejected, not read as the 4-column layout.
+
+    Without this guard the headerless fallback shifts every field left: ``code_name`` is taken for
+    ``activity_code`` and the remaining columns are glued into one activity label. That produces a
+    silently corrupt catalog rather than an error.
+    """
+    with pytest.raises(CatalogImportError, match="header"):
+        parse_catalog_csv(text)
+
+
+def test_parse_headerless_tolerates_an_occasional_wide_row() -> None:
+    """The 4-column layout still parses when an unquoted comma widens *some* rows.
+
+    Only a file whose rows are *uniformly* 5 or 7 fields wide looks like a decapitated export; a
+    ragged file is the legitimate headerless layout with commas in the labels.
+    """
+    ragged = (
+        "N0/6005003/010,Attend-GO SPA,0001,ENG-08/05/2005\nN0/6005003/010,Attend-GO SPA,0002,ENG-19/06/2005,EVT-3651\n"
+    )
+
+    parsed = parse_catalog_csv(ragged)
+
+    assert [(a.code, a.label) for a in parsed[0].activities] == [
+        ("0001", "ENG-08/05/2005"),
+        ("0002", "ENG-19/06/2005,EVT-3651"),
+    ]
+
+
 def test_parse_empty_input_raises() -> None:
     with pytest.raises(CatalogImportError):
         parse_catalog_csv("")

@@ -34,6 +34,14 @@ occupe plusieurs lignes). Deux dispositions sont acceptées :
 
   Ici `code_name` prend par défaut la valeur de `code_label`.
 
+!!! warning "Seule la disposition à quatre colonnes peut se passer d'en-tête"
+
+    Si votre export compte cinq colonnes, la ligne d'en-tête est obligatoire. Walker refuse un
+    fichier aussi large dépourvu d'en-tête plutôt que de le mal lire : sans en-tête, chaque champ se
+    décale d'un cran, `code_name` est pris pour `activity_code`, et le catalogue se remplit
+    silencieusement de valeurs absurdes. La plupart des clients SQL omettent les noms de colonnes
+    sauf demande explicite — dans SSMS, c'est *Include column headers* dans les options de résultats.
+
 | Colonne | Signification |
 | --- | --- |
 | `code_number` | Le code d'imputation tel que votre système de feuille de temps le connaît (par ex. `N9/1042`) |
