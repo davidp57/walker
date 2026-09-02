@@ -58,6 +58,19 @@ new ones are added, and a color is auto-assigned to each. Large catalogs (thousa
 in a couple of seconds and stay responsive, because the catalog and the code picker render a capped
 slice and rely on search.
 
+### Getting rid of codes that no longer exist
+
+An import adds and refreshes, but by default it removes nothing — so a charge code that has since
+been **closed in your timesheet system** stays in Walker's reference catalog and keeps being
+suggested, long after you can still book to it.
+
+To clear those out, tick **"This file is my complete catalog"** on the import dialog. Codes absent
+from the file are then removed from the reference catalog. Only the reference catalog is pruned:
+codes you have already added to your own list stay, along with all the time booked to them.
+
+Leave it unticked whenever the file covers only part of your catalog — combined with pruning, a
+partial file would wipe everything it doesn't mention.
+
 ## Producing the CSV
 
 How you produce the file depends on your timesheet or ERP system — typically an export, or a query

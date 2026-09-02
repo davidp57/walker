@@ -133,10 +133,12 @@ class VirtualCodeUpdate(BaseModel):
 
 
 class ImportSummary(BaseModel):
-    """Result of a catalog import: how many codes were created vs updated."""
+    """Result of a catalog import: how many codes were created, updated, and pruned."""
 
     created: int
     updated: int
+    # Non-zero only for a complete-catalog import, which drops reference codes the file omits.
+    removed: int = 0
 
 
 class ReferenceCodeRead(BaseModel):

@@ -5,6 +5,17 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- **A catalog import can now be declared complete, and clears out what the file no longer contains**
+  (TEC-019). Import only ever added and refreshed, so a charge code closed in the Timesheet system
+  since your last export stayed in Walker's reference catalog for good — struck through and
+  padlocked over there, perfectly live here, and still offered every time you looked for a code.
+  Ticking *"This file is my complete catalog"* on the import dialog now removes the reference codes
+  the file omits. Only the reference catalog is pruned: codes already in your own list stay, and so
+  does every minute booked to them. It stays off by default, because a file covering just part of
+  your catalog would otherwise wipe the rest.
+
 ### Fixed
 
 - **A catalog export that lost its header line is now refused instead of silently importing

@@ -28,6 +28,18 @@ that is the genuine headerless layout with unquoted commas in its labels.
 
 Import upserts by `code_number` (re-importing is idempotent); colors are auto-assigned from a palette.
 
+## Complete-catalog import (TEC-019)
+
+The import never removes anything by default, which is right for a scoped extract and wrong for a
+full export: a charge code closed in the source system since the previous import stays in the
+reference catalog for ever and keeps being suggested. `POST /api/catalog/import` therefore takes a
+`complete_catalog` form flag (surfaced as a checkbox on the import dialog). When set,
+`reference.import_reference` additionally deletes the reference codes the file omits.
+
+The pruning is confined to `ReferenceCode`. `TimesheetCode` rows and their Entries are never touched:
+activating a code copies it, so an active code outlives its reference row. The flag defaults to off
+because a partial file plus pruning empties the catalog.
+
 ## Example source query
 
 The exact query depends on your own system; the one below is **illustrative only** — adjust the

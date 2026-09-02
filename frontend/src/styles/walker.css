@@ -2415,8 +2415,9 @@ html[data-theme='light'] body {
   opacity: 0.4;
   cursor: default;
 }
-/* The retire dialog: an opt-in sweep, its window spelled out, and the shared-code warning. */
-.wk-retire-lead {
+/* Shared modal-body blocks: the opening explanation, an opt-in checkbox, and the fine print under
+   it. Born in the retire dialog, now also used by the catalog-import one — hence the neutral names. */
+.wk-dialog-lead {
   margin: 8px 2px 12px;
   font-size: var(--wk-fs-13);
   line-height: 1.5;
@@ -2432,7 +2433,7 @@ html[data-theme='light'] body {
   line-height: 1.5;
   color: var(--wk-text-mid);
 }
-.wk-retire-sweep {
+.wk-dialog-choice {
   display: flex;
   gap: 8px;
   align-items: flex-start;
@@ -2456,7 +2457,7 @@ html[data-theme='light'] body {
   font-size: var(--wk-fs-12);
   color: var(--wk-text-hi);
 }
-.wk-retire-scope {
+.wk-dialog-fine {
   margin: 0 2px 8px;
   font-size: var(--wk-fs-11);
   line-height: 1.5;

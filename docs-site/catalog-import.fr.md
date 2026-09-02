@@ -63,6 +63,20 @@ attribuée automatiquement à chacun. Les gros catalogues (des milliers de codes
 quelques secondes et restent réactifs, car le catalogue et le sélecteur de code n'affichent qu'une
 tranche plafonnée et s'appuient sur la recherche.
 
+### Se débarrasser des codes qui n'existent plus
+
+Un import ajoute et met à jour, mais par défaut il ne supprime rien — un code de facturation
+**clôturé depuis dans votre système de feuilles de temps** reste donc dans le catalogue de référence
+de Walker et continue d'être proposé, bien après que vous ne pouvez plus y imputer.
+
+Pour faire le ménage, cochez **« This file is my complete catalog »** dans la boîte de dialogue
+d'import. Les codes absents du fichier sont alors retirés du catalogue de référence. Seul le
+catalogue de référence est purgé : les codes que vous avez déjà ajoutés à votre liste restent, ainsi
+que tout le temps qui y est imputé.
+
+Laissez la case décochée dès que le fichier ne couvre qu'une partie de votre catalogue — combinée à
+la purge, une extraction partielle effacerait tout ce qu'elle ne mentionne pas.
+
 ## Produire le CSV
 
 La manière de produire le fichier dépend de votre système de feuille de temps ou ERP — généralement
