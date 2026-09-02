@@ -31,6 +31,9 @@ export interface TimesheetCode {
   // BIZ-090: retired. Still resolves everywhere past work references it, but hidden from every
   // picker and, unless the catalog toggle is on, from the catalog.
   obsolete?: boolean
+  // BIZ-092: the last complete-catalog import didn't contain this code's number — for a virtual code,
+  // its backing's. A prompt to retire or repoint it, not a verdict: a too-narrow export looks the same.
+  missingFromCatalog?: boolean
   // T&E grid-ordering keys (BIZ-068), resolved virtual→real; null/absent before the enriched catalog
   // import. Optional so the many test fixtures predating the field stay valid.
   customer?: string | null // the client name

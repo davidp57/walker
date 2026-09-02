@@ -63,6 +63,23 @@ Then run the two commands it prints (`.venv\Scripts\Activate.ps1` + `uvicorn wal
 --port 8000`) — this serves the API and the built SPA on one port. Re-run the script against the
 same `-Path` later to pick up newer commits.
 
+## Standalone Windows build
+
+`.\scripts\build-exe.ps1` produces both published artifacts: `dist\walker.exe` (one file) and
+`dist\walker-<version>-windows.zip` (the same program with its dependencies in a folder beside it).
+Pass `-Mode onefile` or `-Mode onedir` to build just one. `.github/workflows/cd-exe.yml` runs the
+same two builds and attaches both to a tagged release.
+
+Both are shipped because a onefile executable unpacks its own appended archive at startup, which no
+antivirus heuristic can tell apart from a packer — Defender quarantined the v1.14.0 `walker.exe` on
+that behavior alone. The zip does no self-extraction and gives the user a second thing to try; it is
+not immune either. The zip holds a single `walker` folder: `walker.exe` and the `_internal` folder
+beside it are one unit, so the whole folder is what gets extracted, moved, and replaced on upgrade.
+
+Users are told all of this — which asset to take, how to unblock and extract the zip, and what to do
+when an antivirus objects — on the
+[standalone download page](https://davidp57.github.io/walker/self-hosting/standalone-exe/).
+
 ## License
 
 Proprietary — All rights reserved.

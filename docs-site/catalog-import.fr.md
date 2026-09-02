@@ -77,6 +77,30 @@ que tout le temps qui y est imputé.
 Laissez la case décochée dès que le fichier ne couvre qu'une partie de votre catalogue — combinée à
 la purge, une extraction partielle effacerait tout ce qu'elle ne mentionne pas.
 
+### Les codes que vous imputez et que le catalogue ne liste plus
+
+La purge ne touche jamais aux codes de votre propre liste : c'est pourquoi un code d'imputation
+**clôturé dans votre système de feuilles de temps** restait indéfiniment dans Walker, proposé dans
+tous les sélecteurs, sans que rien ne signale qu'il était mort.
+
+Après un import « catalogue complet », Walker vous dit désormais lesquels de vos codes le fichier ne
+contenait pas, et propose les deux gestes qui ont du sens :
+
+- **Le retirer** — le bon choix quand la ligne d'imputation est réellement fermée. Le temps déjà
+  imputé reste intact ; le code cesse simplement d'être proposé.
+- **Le repointer** — quand d'autres de vos codes imputent *à travers* lui. Choisissez le remplaçant
+  et ils suivent tous en une seule fois.
+
+C'est surtout vrai pour un code que vous ne voyez pas. Quand vous créez un code qui impute sur un
+code existant, Walker garde ce code sous-jacent masqué — le vôtre peut donc paraître en parfaite
+santé dans le catalogue alors que ce sur quoi il impute est verrouillé depuis des mois. C'est pour
+cette raison que Walker nomme explicitement les codes dépendants.
+
+**Rien n'est modifié à votre place.** Un code peut manquer simplement parce que votre export ne
+couvrait qu'une partie du catalogue, et retirer un code que vous imputez encore serait la pire des
+erreurs. La mention reste ensuite sur le code dans le **Code catalog**, pour qu'une décision remise à
+plus tard ne disparaisse pas en silence.
+
 ## Produire le CSV
 
 La manière de produire le fichier dépend de votre système de feuille de temps ou ERP — généralement

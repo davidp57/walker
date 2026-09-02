@@ -278,6 +278,12 @@ function CatalogCard({
               c.realCodeNumber &&
               c.realCodeNumber !== c.number &&
               ` · backed by ${c.realCodeNumber}`}
+            {/* BIZ-092: the same fact the post-import alert raised, kept where the code lives so it
+                survives the message. Deliberately understated — it is a prompt, not a verdict: the
+                code may simply be outside the scope of the file that was imported. */}
+            {c.missingFromCatalog && !c.obsolete && (
+              <span className="wk-code-missing"> · not in your imported catalog</span>
+            )}
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center' }}>
