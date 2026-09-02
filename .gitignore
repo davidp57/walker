@@ -47,6 +47,9 @@ Thumbs.db
 # --- Claude Code (personal, not shared) ---
 .claude/settings.local.json
 
+# --- Local, employer-specific scripts (Walker stays PwC-agnostic; never commit these) ---
+/scripts/local/
+
 # --- Impeccable (design tooling) ---
 # design.json (the tokens) IS versioned; critique reports and live-session logs are local run output.
 .impeccable/critique/

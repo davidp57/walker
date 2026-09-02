@@ -500,10 +500,23 @@ export async function searchReference(q: string, limit = 20): Promise<ReferenceC
   return refs.map((r) => ({ ...r, id: String(r.id) }))
 }
 
-/** Import a catalog CSV into the reference catalog; upserts by number. Returns created/updated. */
-export async function importCatalog(file: File): Promise<{ created: number; updated: number }> {
+export interface ImportSummary {
+  created: number
+  updated: number
+  removed: number
+}
+
+/**
+ * Import a catalog CSV into the reference catalog; upserts by number.
+ *
+ * `completeCatalog` declares the file exhaustive, so reference codes it omits are pruned — how a
+ * charge code closed since the last export stops being suggested. Off by default: a scoped extract
+ * would otherwise empty the catalog.
+ */
+export async function importCatalog(file: File, completeCatalog = false): Promise<ImportSummary> {
   const form = new FormData()
   form.append('file', file)
+  form.append('complete_catalog', String(completeCatalog))
   const response = await fetch('/api/catalog/import', { method: 'POST', body: form })
   if (!response.ok) {
     let detail = `${response.status} ${response.statusText}`
@@ -515,7 +528,12 @@ export async function importCatalog(file: File): Promise<{ created: number; upda
     }
     throw new Error(detail)
   }
-  return (await response.json()) as { created: number; updated: number }
+  const summary = (await response.json()) as Partial<ImportSummary>
+  return {
+    created: summary.created ?? 0,
+    updated: summary.updated ?? 0,
+    removed: summary.removed ?? 0,
+  }
 }
 
 interface ApiPeriodRow {

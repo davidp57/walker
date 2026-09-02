@@ -47,6 +47,60 @@ def test_import_malformed_is_rejected(client: TestClient) -> None:
     assert response.status_code == 400
 
 
+SHRUNK_CSV = "N1/6016508/010,PRJ - Connect,0001,Project management\n"
+
+
+def _numbers(client: TestClient) -> list[str]:
+    return [r["number"] for r in client.get("/api/reference", params={"q": ""}).json()]
+
+
+def test_complete_import_removes_codes_absent_from_the_file(client: TestClient) -> None:
+    """A catalog declared complete prunes what it doesn't contain — a code closed since the last export."""
+    _import(client)
+
+    response = client.post(
+        "/api/catalog/import",
+        files={"file": ("c.csv", SHRUNK_CSV.encode(), "text/csv")},
+        data={"complete_catalog": "true"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["removed"] == 1
+    assert _numbers(client) == ["N1/6016508/010"]
+
+
+def test_partial_import_leaves_absent_codes_alone(client: TestClient) -> None:
+    """The default stays a pure upsert: a scoped file must not wipe the rest of the catalog."""
+    _import(client)
+
+    response = client.post("/api/catalog/import", files={"file": ("c.csv", SHRUNK_CSV.encode(), "text/csv")})
+
+    assert response.status_code == 200
+    assert response.json()["removed"] == 0
+    assert sorted(_numbers(client)) == ["N1/6016508/010", "N9/0007"]
+
+
+def test_complete_import_does_not_touch_active_codes(client: TestClient) -> None:
+    """Pruning clears the reference catalog only — an active code keeps its place in the catalog.
+
+    The file keeps the activated code and drops the other, so the assertion can't be satisfied by
+    ``search_reference`` merely hiding already-active codes.
+    """
+    _import(client)
+    client.post("/api/codes/from-reference", json={"number": "N9/0007"})
+    kept_active = "N9/0007,INT - INTERNAL,0003,Meeting\n"
+
+    response = client.post(
+        "/api/catalog/import",
+        files={"file": ("c.csv", kept_active.encode(), "text/csv")},
+        data={"complete_catalog": "true"},
+    )
+
+    assert response.json()["removed"] == 1
+    assert [c["number"] for c in client.get("/api/codes").json()] == ["N9/0007"]
+    assert _numbers(client) == []  # N1 pruned; N9 hidden from search because it is active
+
+
 def test_add_from_reference_copies_into_active(client: TestClient) -> None:
     _import(client)
 

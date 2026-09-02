@@ -7,6 +7,7 @@ list); the user picks the handful they actually charge to, which are copied into
 from __future__ import annotations
 
 import unicodedata
+from dataclasses import dataclass
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -36,13 +37,38 @@ def _search_blob(entry: ParsedCode) -> str:
     return normalize_for_search(" ".join(part or "" for part in parts))
 
 
-def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -> tuple[int, int]:
-    """Upsert parsed codes into the reference catalog by number. Returns ``(created, updated)``.
+@dataclass(frozen=True)
+class ImportOutcome:
+    """What an import did to the reference catalog: rows added, refreshed, and pruned."""
+
+    created: int
+    updated: int
+    removed: int
+
+
+def import_reference(
+    session: Session,
+    user_id: int,
+    parsed: list[ParsedCode],
+    *,
+    complete_catalog: bool = False,
+) -> ImportOutcome:
+    """Upsert parsed codes into the reference catalog by number.
 
     When the import carries the enriched T&E ordering keys (``customer``/``code_type``, BIZ-068), they
     are stored on the reference codes and also **backfilled onto the matching already-active real
     codes** (by number, within the user's visible catalog) so the Enter-in-Timesheet-system view can
     order to match T&E without re-activating each code.
+
+    Args:
+        session: Database session.
+        user_id: Owner of the reference catalog being imported into.
+        parsed: The codes read from the file.
+        complete_catalog: Whether the file is the *whole* catalog. Defaults to ``False``, which makes
+            the import a pure upsert — the safe reading of a file that may well be a scoped extract.
+            Set it when the export really is exhaustive and reference codes it omits should go: that
+            is how a charge code closed since the previous export finally stops being suggested.
+            Only the reference catalog is pruned; active codes and their Entries are untouched.
     """
     existing = {
         ref.number: ref for ref in session.scalars(select(ReferenceCode).where(ReferenceCode.user_id == user_id))
@@ -79,6 +105,14 @@ def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -
             ref.search_blob = _search_blob(entry)
             updated += 1
 
+    removed = 0
+    if complete_catalog:
+        imported_numbers = {entry.number for entry in parsed}
+        for number, ref in existing.items():
+            if number not in imported_numbers:
+                session.delete(ref)
+                removed += 1
+
     # Backfill the ordering keys onto already-active real codes sharing the number (BIZ-068), again
     # only for the keys the import provides (never clobber existing values with None).
     active_real: dict[str, TimesheetCode] | None = None
@@ -95,7 +129,7 @@ def import_reference(session: Session, user_id: int, parsed: list[ParsedCode]) -
                 code.code_type = entry.code_type
 
     session.commit()
-    return created, updated
+    return ImportOutcome(created=created, updated=updated, removed=removed)
 
 
 def search_reference(session: Session, user_id: int, query: str, limit: int = 20) -> list[ReferenceCode]:

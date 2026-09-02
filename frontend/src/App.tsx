@@ -8,6 +8,7 @@ import { BlockingEntriesModal } from './components/BlockingEntriesModal'
 import { CodePicker } from './components/CodePicker'
 import { CodeTotalsModal } from './components/CodeTotalsModal'
 import { RetireCodeModal } from './components/RetireCodeModal'
+import { ImportCatalogModal } from './components/ImportCatalogModal'
 import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
@@ -320,6 +321,8 @@ function AppInner() {
   // BIZ-090: the code being retired, while its confirm + optional sweep is on screen.
   const [retiringCode, setRetiringCode] = useState<TimesheetCode | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
+  // TEC-019: the catalog file chosen in the OS picker, waiting on the import modal's confirmation.
+  const [pendingImport, setPendingImport] = useState<File | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(isoDate(new Date()), -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
   // BIZ-076: the entry a break is being punched into, or null when the break modal is closed.
@@ -878,19 +881,26 @@ function AppInner() {
     picker.onchange = () => {
       const file = picker.files?.[0]
       if (!file) return
-      setImportMessage(`Importing "${file.name}"…`)
-      apiImportCatalog(file)
-        .then((summary) => {
-          setImportMessage(
-            `Reference catalog: ${summary.created} codes added, ${summary.updated} updated. Search below to add codes.`,
-          )
-          return reloadCodes()
-        })
-        .catch((err: unknown) => {
-          setImportMessage(`Import failed — ${err instanceof Error ? err.message : String(err)}`)
-        })
+      // The file is chosen first, then confirmed: the modal names it and carries the one decision
+      // the import needs — whether it is the complete catalog (TEC-019).
+      setPendingImport(file)
     }
     picker.click()
+  }
+  const runCatalogImport = (file: File, completeCatalog: boolean): Promise<void> => {
+    setPendingImport(null)
+    setImportMessage(`Importing "${file.name}"…`)
+    return apiImportCatalog(file, completeCatalog)
+      .then((summary) => {
+        const pruned = summary.removed > 0 ? `, ${summary.removed} removed` : ''
+        setImportMessage(
+          `Reference catalog: ${summary.created} codes added, ${summary.updated} updated${pruned}. Search below to add codes.`,
+        )
+        return reloadCodes()
+      })
+      .catch((err: unknown) => {
+        setImportMessage(`Import failed — ${err instanceof Error ? err.message : String(err)}`)
+      })
   }
 
   // ---- Tasks (server-backed — BIZ-021) ----
@@ -1563,6 +1573,13 @@ function AppInner() {
           periodEnd={isoDate(periodBounds(periodScheme, today).end)}
           onRetire={(sweep) => retireCode(retiringCode, sweep)}
           onClose={() => setRetiringCode(null)}
+        />
+      )}
+      {pendingImport && (
+        <ImportCatalogModal
+          fileName={pendingImport.name}
+          onImport={(completeCatalog) => runCatalogImport(pendingImport, completeCatalog)}
+          onClose={() => setPendingImport(null)}
         />
       )}
       {totalsCode && (

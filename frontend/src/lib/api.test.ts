@@ -578,7 +578,8 @@ describe('importCatalog', () => {
 
   it('POSTs the file as multipart form data and returns the summary', async () => {
     const fetchMock = vi.fn(
-      async () => new Response(JSON.stringify({ created: 2, updated: 0 }), { status: 200 }),
+      async () =>
+        new Response(JSON.stringify({ created: 2, updated: 0, removed: 0 }), { status: 200 }),
     )
     vi.stubGlobal('fetch', fetchMock)
 
@@ -588,7 +589,22 @@ describe('importCatalog', () => {
     expect(url).toBe('/api/catalog/import')
     expect(init.method).toBe('POST')
     expect(init.body).toBeInstanceOf(FormData)
-    expect(result).toEqual({ created: 2, updated: 0 })
+    expect((init.body as FormData).get('complete_catalog')).toBe('false')
+    expect(result).toEqual({ created: 2, updated: 0, removed: 0 })
+  })
+
+  it('flags the file as the complete catalog when asked, so the server prunes what it omits', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ created: 0, updated: 2, removed: 7 }), { status: 200 }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await importCatalog(new File(['csv'], 'catalog.csv', { type: 'text/csv' }), true)
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect((init.body as FormData).get('complete_catalog')).toBe('true')
+    expect(result.removed).toBe(7)
   })
 })
 

@@ -32,6 +32,13 @@ rows). Two layouts are accepted:
 
   Here `code_name` defaults to `code_label`.
 
+!!! warning "Only the four-column layout may omit its header"
+
+    If your export has five columns, it needs the header row. Walker refuses a headerless file that
+    wide instead of misreading it — without the header every field shifts left, `code_name` is taken
+    for `activity_code`, and the catalog is quietly filled with nonsense. Most SQL clients omit
+    column names unless asked: in SSMS that is *Include column headers* in the results options.
+
 | Column | Meaning |
 | --- | --- |
 | `code_number` | The charge code as your timesheet system knows it (e.g. `N9/1042`) |
@@ -50,6 +57,19 @@ In the **Code catalog** screen, choose **Import from file** and pick your CSV. I
 new ones are added, and a color is auto-assigned to each. Large catalogs (thousands of codes) import
 in a couple of seconds and stay responsive, because the catalog and the code picker render a capped
 slice and rely on search.
+
+### Getting rid of codes that no longer exist
+
+An import adds and refreshes, but by default it removes nothing — so a charge code that has since
+been **closed in your timesheet system** stays in Walker's reference catalog and keeps being
+suggested, long after you can still book to it.
+
+To clear those out, tick **"This file is my complete catalog"** on the import dialog. Codes absent
+from the file are then removed from the reference catalog. Only the reference catalog is pruned:
+codes you have already added to your own list stay, along with all the time booked to them.
+
+Leave it unticked whenever the file covers only part of your catalog — combined with pruning, a
+partial file would wipe everything it doesn't mention.
 
 ## Producing the CSV
 
