@@ -9,6 +9,7 @@ import { CodePicker } from './components/CodePicker'
 import { CodeTotalsModal } from './components/CodeTotalsModal'
 import { RetireCodeModal } from './components/RetireCodeModal'
 import { ImportCatalogModal } from './components/ImportCatalogModal'
+import { OrphanedCodesModal } from './components/OrphanedCodesModal'
 import { CodeEditor, type CodePrefill } from './components/CodeEditor'
 import { VirtualCodeEditor } from './components/VirtualCodeEditor'
 import { EntryEditor } from './components/EntryEditor'
@@ -53,7 +54,7 @@ import { shouldRetagInPlace } from './lib/timer'
 import { lastDescriptionFor, soleActivity } from './lib/tasks'
 import { describeDue } from './lib/dueDate'
 import { ToastProvider } from './lib/toast'
-import type { CodeSweep } from './lib/api'
+import type { CodeSweep, OrphanedCode } from './lib/api'
 import { errorMessage, useToast } from './lib/toastContext'
 import {
   addAbsence as apiAddAbsence,
@@ -323,6 +324,10 @@ function AppInner() {
   const [importMessage, setImportMessage] = useState<string | null>(null)
   // TEC-019: the catalog file chosen in the OS picker, waiting on the import modal's confirmation.
   const [pendingImport, setPendingImport] = useState<File | null>(null)
+  // BIZ-092: active codes the last complete-catalog import no longer found, awaiting a decision.
+  const [orphanedCodes, setOrphanedCodes] = useState<OrphanedCode[]>([])
+  // The orphan whose dependent virtual codes are being repointed, while the backing picker is open.
+  const [repointTarget, setRepointTarget] = useState<OrphanedCode | null>(null)
   const [trackerFrom, setTrackerFrom] = useState<string>(() => addDays(isoDate(new Date()), -13))
   const [editorEntry, setEditorEntry] = useState<Entry | null>(null)
   // BIZ-076: the entry a break is being punched into, or null when the break modal is closed.
@@ -896,12 +901,51 @@ function AppInner() {
         setImportMessage(
           `Reference catalog: ${summary.created} codes added, ${summary.updated} updated${pruned}. Search below to add codes.`,
         )
+        // BIZ-092: a code you still charge to that the complete catalog no longer lists is worth
+        // interrupting for — it is almost always a closed charge line, and a hidden backing is
+        // something the catalog screen cannot show you on its own.
+        if (summary.orphaned.length > 0) setOrphanedCodes(summary.orphaned)
         return reloadCodes()
       })
       .catch((err: unknown) => {
         setImportMessage(`Import failed — ${err instanceof Error ? err.message : String(err)}`)
       })
   }
+  const retireOrphanedCode = (orphan: OrphanedCode): Promise<void> =>
+    apiSetCodeObsolete(orphan.id, true)
+      .then(() => Promise.all([reloadCodes(), reload()]))
+      .then(() => {
+        setOrphanedCodes((current) => current.filter((c) => c.id !== orphan.id))
+        notify(`${orphan.name} retired.`)
+      })
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not retire the code.')))
+  /**
+   * Point every virtual code that charges through `orphan` at `newRealCodeId` (BIZ-092).
+   *
+   * Repointing is per-backing, not per-virtual-code: they all charge through the same dead line, so
+   * asking once and fixing them together is both fewer steps and less room to leave one behind.
+   */
+  const repointOrphanedCode = (orphan: OrphanedCode, newRealCodeId: string): Promise<void> =>
+    Promise.all(
+      orphan.virtualCodes.map((v) =>
+        apiUpdateVirtualCode(v.id, {
+          realCodeId: newRealCodeId,
+          name: v.name,
+          color: codes.find((c) => c.id === v.id)?.color ?? '',
+        }),
+      ),
+    )
+      .then(() => Promise.all([reloadCodes(), reload()]))
+      .then(() => {
+        setOrphanedCodes((current) => current.filter((c) => c.id !== orphan.id))
+        setRepointTarget(null)
+        notify(
+          orphan.virtualCodes.length === 1
+            ? `${orphan.virtualCodes[0].name} now charges to another code.`
+            : `${orphan.virtualCodes.length} codes now charge to another code.`,
+        )
+      })
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not repoint the code.')))
 
   // ---- Tasks (server-backed — BIZ-021) ----
   const reloadTasks = () =>
@@ -1580,6 +1624,26 @@ function AppInner() {
           fileName={pendingImport.name}
           onImport={(completeCatalog) => runCatalogImport(pendingImport, completeCatalog)}
           onClose={() => setPendingImport(null)}
+        />
+      )}
+      {orphanedCodes.length > 0 && repointTarget === null && (
+        <OrphanedCodesModal
+          orphaned={orphanedCodes}
+          onRetire={retireOrphanedCode}
+          onRepoint={setRepointTarget}
+          onClose={() => setOrphanedCodes([])}
+        />
+      )}
+      {/* Rendered after the orphan list so it stacks above it: picking the replacement is a step
+          inside that flow, not a separate screen (TEC-009's DOM-order stacking rule). */}
+      {repointTarget && (
+        <CodePicker
+          title={`Charge ${repointTarget.name} to…`}
+          codes={pickableCodes.filter((c) => !c.isVirtual && c.id !== repointTarget.id)}
+          codeOnly
+          realOnly
+          onClose={() => setRepointTarget(null)}
+          onPick={(codeId) => void repointOrphanedCode(repointTarget, codeId)}
         />
       )}
       {totalsCode && (

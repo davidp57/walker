@@ -71,6 +71,30 @@ codes you have already added to your own list stay, along with all the time book
 Leave it unticked whenever the file covers only part of your catalog — combined with pruning, a
 partial file would wipe everything it doesn't mention.
 
+### Codes you charge to that the catalog no longer lists
+
+Pruning never touches the codes in your own list, which is why a charge code **closed in your
+timesheet system** used to stay in Walker for good, offered in every picker with nothing saying it
+was dead.
+
+After a complete-catalog import, Walker now tells you which of your codes the file didn't contain,
+and offers the two things worth doing about it:
+
+- **Retire it** — right when the charge line really has closed. Time already booked to it is
+  untouched; the code simply stops being offered.
+- **Repoint it** — when other codes of yours charge *through* it. Pick the replacement and every one
+  of them follows in a single step.
+
+This matters most for a code you cannot see. When you create a code that charges to an existing one,
+Walker keeps that underlying code hidden — so your code can look perfectly healthy in the catalog
+while what it actually charges to has been locked for months. Walker names those dependent codes
+explicitly for that reason.
+
+**Nothing is changed for you.** A code can be missing simply because your export covered part of the
+catalog rather than all of it, and retiring a code you still book to would be the worse mistake. The
+note stays on the code in the **Code catalog** afterwards, so a decision you postpone doesn't quietly
+disappear.
+
 ## Producing the CSV
 
 How you produce the file depends on your timesheet or ERP system — typically an export, or a query

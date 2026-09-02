@@ -62,6 +62,7 @@ describe('fetchCodes', () => {
         realCodeNumber: null,
         backingOnly: false,
         obsolete: false,
+        missingFromCatalog: false,
         customer: null,
         type: null,
       },
@@ -590,7 +591,7 @@ describe('importCatalog', () => {
     expect(init.method).toBe('POST')
     expect(init.body).toBeInstanceOf(FormData)
     expect((init.body as FormData).get('complete_catalog')).toBe('false')
-    expect(result).toEqual({ created: 2, updated: 0, removed: 0 })
+    expect(result).toEqual({ created: 2, updated: 0, removed: 0, orphaned: [] })
   })
 
   it('flags the file as the complete catalog when asked, so the server prunes what it omits', async () => {

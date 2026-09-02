@@ -40,6 +40,27 @@ The pruning is confined to `ReferenceCode`. `TimesheetCode` rows and their Entri
 activating a code copies it, so an active code outlives its reference row. The flag defaults to off
 because a partial file plus pruning empties the catalog.
 
+### Codes the complete catalog no longer contains (BIZ-092)
+
+Leaving active codes alone is right, and it is not the whole job: a code you still charge to that the
+complete catalog omits has almost certainly been closed in the Timesheet system, and Walker used to
+say nothing. `import_reference` therefore also **reconciles the active codes** when
+`complete_catalog` is set:
+
+- real codes whose number the file carries have `missing_from_catalog_at` cleared;
+- real codes it omits get the timestamp set (first occurrence only — re-importing the same narrow
+  file must not make an old problem look new) and are returned in `ImportOutcome.orphaned`, each with
+  the virtual codes it backs.
+
+The dependent virtual codes matter most for a `backing_only` row: the user sees a healthy virtual
+code while what it actually charges to is locked, and the backing is by construction not inspectable.
+
+Nothing is retired or repointed automatically, and a *partial* import reconciles nothing at all.
+Absence from a scoped file is not evidence: `N0/6061169/010` was reported missing on 2026-09-02 only
+because the export's scope was `N9`/`N1`, while the code was perfectly open. `CodeRead` exposes the
+state as `missing_from_catalog` (a virtual code reports its backing's) so the catalog can show it
+after the import message is gone.
+
 ## Example source query
 
 The exact query depends on your own system; the one below is **illustrative only** — adjust the

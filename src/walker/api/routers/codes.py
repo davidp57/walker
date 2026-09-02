@@ -20,9 +20,11 @@ from walker.api.schemas import (
     EntryRead,
     ImportSummary,
     LikelyCodeRead,
+    OrphanedCodeRead,
     ReassignBlockingEntries,
     SetObsolete,
     VirtualCodeCreate,
+    VirtualCodeRef,
     VirtualCodeUpdate,
 )
 from walker.db import get_session
@@ -55,6 +57,13 @@ def _code_read(code: TimesheetCode) -> CodeRead:
         real_code_number=code.real_code.number if code.real_code is not None else None,
         backing_only=code.backing_only,
         obsolete=code.obsolete,
+        # BIZ-092: a virtual code has no number of its own in the catalog, so the flag it should
+        # display is its backing's — that is the code whose charge line went missing.
+        missing_from_catalog=(
+            code.real_code.missing_from_catalog_at is not None
+            if code.is_virtual and code.real_code is not None
+            else code.missing_from_catalog_at is not None
+        ),
     )
 
 
@@ -368,4 +377,18 @@ def import_catalog(
     except CatalogImportError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
     outcome = reference.import_reference(session, user.id, parsed, complete_catalog=complete_catalog)
-    return ImportSummary(created=outcome.created, updated=outcome.updated, removed=outcome.removed)
+    return ImportSummary(
+        created=outcome.created,
+        updated=outcome.updated,
+        removed=outcome.removed,
+        orphaned=[
+            OrphanedCodeRead(
+                id=orphan.id,
+                number=orphan.number,
+                name=orphan.name,
+                backing_only=orphan.backing_only,
+                virtual_codes=[VirtualCodeRef(id=vid, name=vname) for vid, vname in orphan.virtual_codes],
+            )
+            for orphan in outcome.orphaned
+        ],
+    )

@@ -87,9 +87,6 @@ One `- **ID** (priority, LOT) — …` entry per open ticket. The shape is load-
 reads exactly these lines, so prose elsewhere may cite a closed ticket without being mistaken for a
 claim that it is open.
 
-- **BIZ-092** (P1, POLISH) — a complete-catalog import says nothing about the active codes it just
-  orphaned: three closed charge codes stayed live after the first prune, one of them the hidden
-  backing of a virtual code.
 - **TEC-020** (P3, TECH) — Walker never reclaims SQLite space after a bulk delete: a
   complete-catalog import can now drop hundreds of thousands of rows, and the file keeps its
   high-water mark for ever.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, String
@@ -52,6 +53,16 @@ class TimesheetCode(TimestampMixin, Base):
     # ``backing_only``, which is hidden because it was never meant to be picked in the first place.
     # For a *real* code this is Organization-wide: the row is shared (BIZ-030, ADR-0010).
     obsolete: Mapped[bool] = mapped_column(default=False)
+    # BIZ-092: when a *complete-catalog* import last found this code's number missing from the file.
+    # Set on real codes only (a virtual code has no number of its own in the catalog) and cleared the
+    # moment any import carries the number again. It is stored rather than derived from the absence
+    # of a matching ``ReferenceCode`` because that absence is ambiguous: an empty or scoped reference
+    # catalog would make every code look orphaned. Absence from a *complete* file is a claim someone
+    # made deliberately, so it is that claim which is recorded, with the date it was made.
+    #
+    # It is a prompt, never a verdict: a code can be missing simply because the export was scoped too
+    # narrowly, so nothing is retired or repointed on its own (see the ticket's N0 case).
+    missing_from_catalog_at: Mapped[datetime | None] = mapped_column(default=None)
 
     activities: Mapped[list[Activity]] = relationship(
         back_populates="timesheet_code",
