@@ -5,6 +5,18 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- **The standalone Windows build now ships in two shapes, so an antivirus can't leave you with
+  nothing** (TEC-021). `walker.exe` unpacks itself in memory when it starts — very convenient, and
+  indistinguishable from how real malware hides, which is why Defender quarantined the 1.14.0
+  executable minutes after it was published, killing the running server mid-request. Releases now
+  also carry `walker-<version>-windows.zip`: the same program, with its dependencies in a folder
+  beside it instead of hidden inside it, so nothing self-extracts at startup. Start with the `.exe`;
+  if it is blocked or disappears, take the zip. Both keep your data in the same place, so switching
+  costs you nothing. The download page explains all of this, in English and French, along with what
+  to do when an antivirus objects.
+
 ## [1.14.0] - 2026-09-02
 
 ### Added

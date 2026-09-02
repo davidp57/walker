@@ -1,11 +1,17 @@
 name: CD - standalone .exe
 
-# CHR-009: builds the standalone Windows .exe (PyInstaller). Mirrors exactly the steps verified
-# locally with scripts/build-exe.ps1 (frontend build -> pip install -> pyinstaller).
+# CHR-009 / TEC-021: builds the standalone Windows program (PyInstaller) in both packagings.
+# Mirrors exactly the steps verified locally with scripts/build-exe.ps1 (frontend build -> pip
+# install -> pyinstaller, twice).
 #
-# Version tags publish walker.exe to the GitHub Release. Pushes to develop only build it and keep
-# it as a workflow artifact (retained by GitHub Actions, downloadable from the run) so the .exe can
-# be smoke-tested ahead of a release, without creating one.
+# Two artifacts, because a onefile executable unpacks its own appended archive and runs code from
+# it at startup — indistinguishable from a packer to an antivirus heuristic. Defender quarantined
+# the v1.14.0 walker.exe on that behavior, killing the running process mid-request. The onedir zip
+# does no self-extraction, so the user has something else to try. Neither is claimed to be immune.
+#
+# Version tags publish both to the GitHub Release. Pushes to develop only build them and keep them
+# as workflow artifacts (retained by GitHub Actions, downloadable from the run) so either can be
+# smoke-tested ahead of a release, without creating one.
 on:
   push:
     tags:
@@ -40,19 +46,43 @@ jobs:
       - name: Install walker + PyInstaller
         run: pip install -e ".[build-exe]"
 
-      - name: Build the .exe
+      - name: Read the version
+        id: version
+        shell: pwsh
+        run: |
+          $v = (Select-String -Path pyproject.toml -Pattern '^version = "(.+)"').Matches[0].Groups[1].Value
+          "version=$v" >> $env:GITHUB_OUTPUT
+
+      - name: Build the onefile .exe
+        env:
+          WALKER_BUILD_MODE: onefile
         run: pyinstaller walker.spec --noconfirm
 
-      - name: Upload walker.exe as a workflow artifact (develop)
+      - name: Build the onedir folder
+        env:
+          WALKER_BUILD_MODE: onedir
+        run: pyinstaller walker.spec --noconfirm
+
+      - name: Zip the onedir build
+        shell: pwsh
+        # Zip dist/walker itself, not its contents, so the archive holds one top-level folder and
+        # unzipping never scatters files.
+        run: Compress-Archive -Path dist/walker -DestinationPath "dist/walker-${{ steps.version.outputs.version }}-windows.zip"
+
+      - name: Upload both artifacts (develop)
         if: startsWith(github.ref, 'refs/heads/')
         uses: actions/upload-artifact@v4
         with:
-          name: walker-exe
-          path: dist/walker.exe
+          name: walker-standalone
+          path: |
+            dist/walker.exe
+            dist/walker-*-windows.zip
 
-      - name: Attach walker.exe to the GitHub Release (version tags)
+      - name: Attach both to the GitHub Release (version tags)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
         with:
-          files: dist/walker.exe
+          files: |
+            dist/walker.exe
+            dist/walker-*-windows.zip
           body_path: RELEASE_NOTES.md
