@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from walker.api.dependencies import get_current_user
@@ -351,14 +351,21 @@ def add_from_reference(
 @router.post("/catalog/import", response_model=ImportSummary)
 def import_catalog(
     file: UploadFile = File(),
+    complete_catalog: bool = Form(default=False),
     session: Session = Depends(get_session),
     user: User = Depends(get_current_user),
 ) -> ImportSummary:
-    """Import a hierarchical CSV into the reference catalog, upserting by number."""
+    """Import a hierarchical CSV into the reference catalog, upserting by number.
+
+    ``complete_catalog`` declares the file exhaustive, which additionally prunes reference codes it
+    omits — the only way a charge code closed since the previous export stops being suggested. It
+    defaults off because a scoped extract is just as likely, and pruning on one would empty the
+    catalog.
+    """
     content = file.file.read().decode("utf-8-sig")
     try:
         parsed = catalog.parse_catalog_csv(content)
     except CatalogImportError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc)) from exc
-    created, updated = reference.import_reference(session, user.id, parsed)
-    return ImportSummary(created=created, updated=updated)
+    outcome = reference.import_reference(session, user.id, parsed, complete_catalog=complete_catalog)
+    return ImportSummary(created=outcome.created, updated=outcome.updated, removed=outcome.removed)

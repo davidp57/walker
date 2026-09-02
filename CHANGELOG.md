@@ -5,6 +5,33 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+### Added
+
+- **A catalog import can now be declared complete, and clears out what the file no longer contains**
+  (TEC-019). Import only ever added and refreshed, so a charge code closed in the Timesheet system
+  since your last export stayed in Walker's reference catalog for good — struck through and
+  padlocked over there, perfectly live here, and still offered every time you looked for a code.
+  Ticking *"This file is my complete catalog"* on the import dialog now removes the reference codes
+  the file omits. Only the reference catalog is pruned: codes already in your own list stay, and so
+  does every minute booked to them. It stays off by default, because a file covering just part of
+  your catalog would otherwise wipe the rest.
+
+### Fixed
+
+- **A catalog export that lost its header line is now refused instead of silently importing
+  nonsense** (TEC-017). Most SQL clients only emit column names if you ask them to, and the five- and
+  seven-column layouts have no way to be recognised without them. Walker used to fall back to the
+  four-column headerless layout, which shifts every field one to the left: the project name was read
+  as the activity number and everything after it collapsed into a single activity label. Nothing
+  failed — the import reported success and the catalog filled up with entries like a code labelled
+  with a country and an activity named after a customer. Such a file is now rejected with a message
+  naming the header line to add. A file whose rows are *ragged* is still accepted: that is the real
+  headerless layout, with unquoted commas in its labels.
+- **A long import no longer makes a concurrent request fail with "database is locked"** (TEC-018).
+  SQLite allows a single writer at a time, and a bulk catalog import holds the write lock far longer
+  than the five seconds the driver waits by default, so anything else touching the database at that
+  moment gave up rather than waiting its turn. Walker now waits thirty seconds.
+
 ## [1.13.0] - 2026-08-21
 
 ### Added

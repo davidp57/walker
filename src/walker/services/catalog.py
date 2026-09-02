@@ -514,6 +514,27 @@ def _cleanup_orphan_backing(session: Session, backing_id: int) -> None:
     session.commit()
 
 
+def _reject_headerless_wide_export(rows: list[list[str]]) -> None:
+    """Raise when a headered/enriched export appears to have simply lost its header line.
+
+    The headerless layout is four columns, so a file whose rows are *uniformly* five or seven fields
+    wide is a headered or enriched export whose first line was dropped — typically a SQL client that
+    didn't emit column names. Parsed as headerless it would shift every field left (``code_name``
+    read as ``activity_code``, the rest glued into one activity label) and silently produce a corrupt
+    catalog, so it is refused instead.
+
+    A *ragged* file stays legal: that is the genuine headerless layout with unquoted commas in its
+    labels, which the caller re-joins.
+    """
+    widths = {len(row) for row in rows}
+    for columns in (_ENRICHED_COLUMNS, _REQUIRED_COLUMNS):
+        if widths == {len(columns)}:
+            raise CatalogImportError(
+                f"The import file has {len(columns)} columns but no header line. Add "
+                f"'{','.join(columns)}' as its first line and import again."
+            )
+
+
 def parse_catalog_csv(text: str) -> list[ParsedCode]:
     """Parse a hierarchical catalog CSV, grouped by ``code_number`` (one row per code × activity).
 
@@ -528,7 +549,8 @@ def parse_catalog_csv(text: str) -> list[ParsedCode]:
       ``code_number,code_label,activity_code,activity_label`` (``code_name`` defaults to
       ``code_label``); quoted fields may contain commas.
 
-    Raises ``CatalogImportError`` on an empty file or one with no codes.
+    Raises ``CatalogImportError`` on an empty file, one with no codes, or one that looks like a
+    headered/enriched export stripped of its header line (see ``_reject_headerless_wide_export``).
     """
     rows = [row for row in csv.reader(io.StringIO(text.lstrip("\ufeff"))) if row]
     if not rows:
@@ -537,6 +559,8 @@ def parse_catalog_csv(text: str) -> list[ParsedCode]:
     header = [cell.strip().lower() for cell in rows[0]]
     enriched = header == _ENRICHED_COLUMNS
     headered = header == _REQUIRED_COLUMNS
+    if not (enriched or headered):
+        _reject_headerless_wide_export(rows)
     data_rows = rows[1:] if (enriched or headered) else rows
     min_columns = 7 if enriched else 5 if headered else 4
 

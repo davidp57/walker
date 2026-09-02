@@ -81,7 +81,7 @@ export function RetireCodeModal({
         </div>
 
         <div className="wk-modal-body">
-          <p className="wk-retire-lead">
+          <p className="wk-dialog-lead">
             It disappears from your catalog and from every code picker. Time already booked to it
             stays exactly as it is — this is not a deletion.
           </p>
@@ -95,7 +95,7 @@ export function RetireCodeModal({
             </p>
           )}
 
-          <label className="wk-retire-sweep">
+          <label className="wk-dialog-choice">
             <input
               type="checkbox"
               checked={sweeping}
@@ -122,7 +122,7 @@ export function RetireCodeModal({
           )}
 
           {sweeping && (
-            <p className="wk-retire-scope">
+            <p className="wk-dialog-fine">
               Earlier periods are left untouched: they have already been keyed into the Timesheet
               system, so their entries stay on {code.number}.
             </p>

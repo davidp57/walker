@@ -34,6 +34,14 @@ occupe plusieurs lignes). Deux dispositions sont acceptées :
 
   Ici `code_name` prend par défaut la valeur de `code_label`.
 
+!!! warning "Seule la disposition à quatre colonnes peut se passer d'en-tête"
+
+    Si votre export compte cinq colonnes, la ligne d'en-tête est obligatoire. Walker refuse un
+    fichier aussi large dépourvu d'en-tête plutôt que de le mal lire : sans en-tête, chaque champ se
+    décale d'un cran, `code_name` est pris pour `activity_code`, et le catalogue se remplit
+    silencieusement de valeurs absurdes. La plupart des clients SQL omettent les noms de colonnes
+    sauf demande explicite — dans SSMS, c'est *Include column headers* dans les options de résultats.
+
 | Colonne | Signification |
 | --- | --- |
 | `code_number` | Le code d'imputation tel que votre système de feuille de temps le connaît (par ex. `N9/1042`) |
@@ -54,6 +62,20 @@ les codes existants sont mis à jour sur place, les nouveaux sont ajoutés, et u
 attribuée automatiquement à chacun. Les gros catalogues (des milliers de codes) s'importent en
 quelques secondes et restent réactifs, car le catalogue et le sélecteur de code n'affichent qu'une
 tranche plafonnée et s'appuient sur la recherche.
+
+### Se débarrasser des codes qui n'existent plus
+
+Un import ajoute et met à jour, mais par défaut il ne supprime rien — un code de facturation
+**clôturé depuis dans votre système de feuilles de temps** reste donc dans le catalogue de référence
+de Walker et continue d'être proposé, bien après que vous ne pouvez plus y imputer.
+
+Pour faire le ménage, cochez **« This file is my complete catalog »** dans la boîte de dialogue
+d'import. Les codes absents du fichier sont alors retirés du catalogue de référence. Seul le
+catalogue de référence est purgé : les codes que vous avez déjà ajoutés à votre liste restent, ainsi
+que tout le temps qui y est imputé.
+
+Laissez la case décochée dès que le fichier ne couvre qu'une partie de votre catalogue — combinée à
+la purge, une extraction partielle effacerait tout ce qu'elle ne mentionne pas.
 
 ## Produire le CSV
 
