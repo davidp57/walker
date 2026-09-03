@@ -1,6 +1,6 @@
 # Switch blocks — PRD
 
-Status: 🔄 in-progress
+Status: ✅ done
 Lot: SWITCH
 Branch: feature/\* per ticket → PR → develop
 

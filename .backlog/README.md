@@ -13,7 +13,7 @@ source of truth for **scope and status**.
 | Lot | Status |
 |-----|--------|
 | [HABITS](HABITS/PRD.md) — Likely codes: rank (code, activity) pairs by time-of-day/weekday habit, shown as a band above the picker list (ADR-0015) | 🔄 |
-| [SWITCH](SWITCH/PRD.md) — Switch blocks: one-click codes on the Timer bar, selected by habit and topped up by recency (ADR-0016) | 🔄 |
+| [SWITCH](SWITCH/PRD.md) — Switch blocks: one-click codes on the Timer bar, selected by habit and topped up by recency (ADR-0016) | ✅ |
 | [POLISH](POLISH/PRD.md) — Incremental UX polish (living lot; small tracker/UI improvements) | 🔄 |
 | [DOCS](DOCS/PRD.md) — User-facing documentation-site content (living lot; bilingual EN/FR pages) | 🔄 |
 | [TECH](TECH/PRD.md) — Cross-cutting technical debt (living lot; tickets added/resolved individually) | 🔄 |

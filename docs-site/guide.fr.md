@@ -26,6 +26,31 @@ Chaque durée est enregistrée à la minute — Walker n'arrondit jamais. L'arro
 par votre système de feuille de temps (généralement le quart d'heure) est quelque chose que vous
 faites au moment de recopier les chiffres là-bas, pas quelque chose que Walker décide pour vous.
 
+### Les blocs de bascule
+
+À côté de la pastille de tâche s'affiche une courte rangée de **blocs de bascule** — un par code
+d'imputation, avec sa couleur et son nom. Cliquer sur l'un d'eux fait passer le minuteur sur ce code
+sans passer par le sélecteur : l'entrée en cours est close et une nouvelle s'ouvre, exactement comme
+si vous étiez passé par la pastille. Si le code a plusieurs Activités, survoler le bloc (ou l'atteindre
+au clavier) les propose ; cliquer sans survoler choisit celle sur laquelle vous travaillez d'habitude
+à cette heure-là.
+
+Ces blocs ne sont pas une liste que vous entretenez. Walker les remplit à partir de vos propres
+entrées passées : les codes sur lesquels vous travaillez d'habitude à ce moment de la journée, ce
+jour-là de la semaine, complétés par ce sur quoi vous avez travaillé le plus récemment pour que la
+rangée ne soit jamais à moitié vide. Elle suit donc l'horloge, et celle que vous voyez à 9h n'est pas
+forcément celle d'après le déjeuner — mais les blocs gardent le même ordre, trié par nom, pour qu'aucun
+ne se déplace sous votre curseur.
+
+Le code que vous suivez en ce moment n'a jamais de bloc : il est déjà sur la barre, juste à côté, sous
+forme de pastille de tâche. Pour changer seulement d'Activité sur le code où vous êtes déjà, passez
+par la pastille.
+
+Les blocs s'affichent tant qu'il y a de la place sur la barre. Sur une fenêtre étroite, le champ de
+description passe sur sa propre ligne pour leur en laisser, et si la fenêtre se réduit encore, moins
+de blocs sont affichés. Vous pouvez régler leur nombre — ou les désactiver complètement — dans
+**Settings › Switch blocks**.
+
 **Si vous oubliez d'arrêter le minuteur** et revenez le lendemain matin, Walker ne devine pas à votre
 place : il vous demande à quelle heure vous vous êtes arrêté, sous forme d'une heure de la journée que
 le minuteur suivait. C'est la seule réponse qui puisse être vraie — Walker enregistre des minutes

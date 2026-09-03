@@ -1,7 +1,7 @@
 # BIZ-093 — Switch blocks on the Timer bar
 
 ID: BIZ-093
-Status: 🔄 in-progress
+Status: ✅ done
 Type: feature
 Priority: P2
 
@@ -60,3 +60,7 @@ never offers them outside the picker.
 ## Blocked by
 
 Nothing — builds on BIZ-083 (shipped).
+
+## Delivery
+
+Shipped in [PR #167](https://github.com/davidp57/walker/pull/167) → `develop`.
