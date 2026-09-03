@@ -73,7 +73,13 @@ Whether a given version has been cut is **not** recorded here — that is `CHANG
   band **above** the picker's name-sorted Tier 1, which is left untouched. BIZ-083 shipped (PR #144):
   the slice end-to-end — `services/likely_codes.py`, `GET /api/codes/likely`, and the band wired to the
   Timer, entry categorization and manual add; BIZ-084 then turned the row cap into the `likely_count`
-  view preference (0–10, `0` disabling the band). See `.backlog/HABITS/PRD.md`, ADR-0015.
+  view preference (0–10, `0` disabling the band). Lot closed — see `.backlog/archive/HABITS.md`,
+  ADR-0015.
+- **SWITCH** (switch blocks) — reuse that ranking on the Timer bar itself: a row of one-click blocks,
+  one per code, so changing task no longer opens the picker. BIZ-093 shipped (PR #167). The band
+  departs from ADR-0015 on two points that only matter for a surface which is *clicked by position*
+  rather than read — it is always full (recency tops it up below the habit threshold) and sorted by
+  name rather than by score. Lot closed — see `.backlog/archive/SWITCH.md`, ADR-0016.
 - **DOCS** (living lot, bilingual docs-site content) — CHR-011 (catalog-import page) shipped. See
   `.backlog/DOCS/PRD.md`.
 - **TECH** (living lot, cross-cutting tech debt) — TEC-007 (doc URL casing) shipped; TEC-015
