@@ -98,6 +98,22 @@ class LikelyCodeRead(BaseModel):
     activity: str
 
 
+class SwitchTargetRead(BaseModel):
+    """One Switch block, as returned by ``GET /api/codes/switch-targets`` (BIZ-093, ADR-0016).
+
+    A block is a **code**, not a pair: ``activity`` is what a plain click starts (the pair the habit
+    model ranked, or the most recent one), while ``activities`` is every activity the block's menu
+    offers. Like ``LikelyCodeRead`` it carries no score — ADR-0015 forbids surfacing one.
+    """
+
+    code_id: int
+    number: str
+    name: str
+    color: str
+    activity: str
+    activities: list[str]
+
+
 class ActivityWrite(BaseModel):
     """An activity as supplied when creating/updating a code."""
 
@@ -440,6 +456,7 @@ class ViewPreferencesRead(BaseModel):
     enter_rounding: bool
     task_hide_done: bool
     likely_count: int
+    switch_count: int
     show_obsolete: bool
 
 
@@ -458,6 +475,7 @@ class ViewPreferencesUpdate(BaseModel):
     # Deliberately unconstrained here: the service is the single place that validates a preference,
     # so an out-of-range value falls back to the default like every other one rather than 422-ing.
     likely_count: int | None = None
+    switch_count: int | None = None
 
 
 class TaskStateRead(BaseModel):

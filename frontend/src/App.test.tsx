@@ -73,6 +73,14 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[], theme: Theme = 's
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
   vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
   vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
+  // BIZ-093: the Timer bar asks for its Switch blocks on boot. Stubbed empty by default so no test
+  // fires a stray request whose late rejection would re-render at an unpredictable moment; the tests
+  // that exercise the band override it.
+  vi.spyOn(api, 'fetchSwitchTargets').mockResolvedValue([])
+  // Likewise the code picker's "Likely at this time" band, which fires as soon as the picker opens:
+  // unstubbed it is a real network call from jsdom, and a pending socket is exactly the kind of
+  // background load that turns a 1s `findBy*` budget into a coin toss on a busy CI runner.
+  vi.spyOn(api, 'fetchLikelyCodes').mockResolvedValue([])
 }
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -221,6 +229,7 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
+    vi.spyOn(api, 'fetchSwitchTargets').mockResolvedValue([])
 
     render(<App />)
 
@@ -264,6 +273,7 @@ describe('App — visible API errors and loading feedback (TEC-002)', () => {
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
+    vi.spyOn(api, 'fetchSwitchTargets').mockResolvedValue([])
 
     render(<App />)
 
@@ -714,6 +724,7 @@ describe('App — theme preference applied to the document (BIZ-032)', () => {
     vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
     vi.spyOn(api, 'fetchTasks').mockResolvedValue([])
     vi.spyOn(api, 'fetchTaskTags').mockResolvedValue([])
+    vi.spyOn(api, 'fetchSwitchTargets').mockResolvedValue([])
     // `fetchSettings` deliberately never resolves in this test — it stands in for the real network
     // delay the effect above must survive without ever painting the wrong theme in between.
     vi.spyOn(api, 'fetchSettings').mockReturnValue(new Promise(() => {}))
@@ -843,6 +854,10 @@ describe('App — editing the running Timer (BIZ-058)', () => {
     await screen.findByPlaceholderText('What are you working on?')
 
     // Open the code picker for the running timer and pick a different code's activity.
+    // Flush the pending boot resolutions (and the passive effect registering the global key
+    // listener) before firing the shortcut, so a late re-render cannot race the picker mount —
+    // the same guard as App.keyboard.test.tsx, and the same flake it was written for.
+    await act(async () => {})
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
     fireEvent.click(await screen.findByText('Design'))
 
@@ -959,6 +974,52 @@ describe('App — the running entry owns its categorization (BIZ-085)', () => {
     expect(blanked).toEqual([])
   })
 
+  // BIZ-093: found while verifying the Switch blocks in a browser. `resetDraft` clears the
+  // "the user typed this" flag, so reading it *after* the reset always answered no and the typed
+  // description vanished with the segment it described.
+  it('keeps a description typed on the bar when a Switch block closes the running segment', async () => {
+    const blockCode: TimesheetCode = {
+      id: '3',
+      number: 'N9/2000',
+      label: 'MNT - OTHER',
+      name: 'Other project',
+      color: '#3fb68b',
+      activities: [{ code: '0002', label: 'Design' }],
+      isVirtual: false,
+      realCodeId: null,
+      realCodeNumber: null,
+    }
+    mockBaseApi([realCode, blockCode], [runningCategorized])
+    const patchEntry = mockLiveEntries([runningCategorized])
+    vi.spyOn(api, 'fetchSwitchTargets').mockResolvedValue([
+      {
+        codeId: blockCode.id,
+        codeNumber: blockCode.number,
+        codeName: blockCode.name,
+        color: blockCode.color,
+        activity: 'Design',
+        activities: ['Design'],
+      },
+    ])
+    const switchTimer = vi.spyOn(api, 'switchTimer').mockResolvedValue(runningCategorized)
+
+    render(<App />)
+    const input = await screen.findByPlaceholderText('What are you working on?')
+    fireEvent.change(input, { target: { value: 'reviewing the specs' } })
+
+    fireEvent.click(await screen.findByRole('button', { name: /Other project/ }))
+
+    await waitFor(() =>
+      expect(patchEntry).toHaveBeenCalledWith('11', { description: 'reviewing the specs' }),
+    )
+    // The new segment starts blank — a block carries no description of its own.
+    await waitFor(() =>
+      expect(switchTimer).toHaveBeenCalledWith(
+        expect.objectContaining({ codeId: blockCode.id, activity: 'Design', description: '' }),
+      ),
+    )
+  })
+
   it('reports a failure to carry the picked code, instead of pretending it stuck', async () => {
     mockBaseApi([realCode], [])
     vi.spyOn(api, 'fetchEntriesRange').mockResolvedValue([])
@@ -967,6 +1028,14 @@ describe('App — the running entry owns its categorization (BIZ-085)', () => {
 
     render(<App />)
     await screen.findByPlaceholderText('What are you working on?')
+
+    // Flush the pending boot resolutions (and the passive effect registering the global key
+
+    // listener) before firing the shortcut, so a late re-render cannot race the picker mount —
+
+    // the same guard as App.keyboard.test.tsx, and the same flake it was written for.
+
+    await act(async () => {})
 
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
     fireEvent.click(await screen.findByText('Bug fixing'))
@@ -985,6 +1054,10 @@ describe('App — the running entry owns its categorization (BIZ-085)', () => {
     await screen.findByPlaceholderText('What are you working on?')
 
     // Pick a code while stopped, then Start.
+    // Flush the pending boot resolutions (and the passive effect registering the global key
+    // listener) before firing the shortcut, so a late re-render cannot race the picker mount —
+    // the same guard as App.keyboard.test.tsx, and the same flake it was written for.
+    await act(async () => {})
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
     fireEvent.click(await screen.findByText('Bug fixing'))
     fireEvent.click(screen.getByRole('button', { name: 'Start' }))

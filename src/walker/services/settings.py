@@ -22,9 +22,11 @@ from walker.models import Absence, Settings, Task
 from walker.models.settings import (
     DEFAULT_LIKELY_COUNT,
     DEFAULT_PERIOD_SCHEME,
+    DEFAULT_SWITCH_COUNT,
     DEFAULT_THEME,
     DEFAULT_WORKDAYS,
     MAX_LIKELY_COUNT,
+    MAX_SWITCH_COUNT,
     PeriodScheme,
     Theme,
 )
@@ -61,6 +63,10 @@ DEFAULT_VIEW_PREFERENCES: dict[str, object] = {
     # why the range starts there rather than at 1 — it doubles as the off switch, sparing a second
     # toggle. The model's own constants stay hardcoded on purpose (see the ticket).
     "likely_count": DEFAULT_LIKELY_COUNT,
+    # BIZ-093: how many Switch blocks the Timer bar may show (ADR-0016). ``0`` removes the band —
+    # it sits on the app's busiest bar and pushes the description field onto a second line, so
+    # turning it off has to be possible. Distinct from ``likely_count`` (see models/settings.py).
+    "switch_count": DEFAULT_SWITCH_COUNT,
     # BIZ-090: the Code catalog hides retired codes by default. Off rather than on because the point
     # of retiring one is to stop seeing it; the toggle is for the rare look-back.
     "show_obsolete": False,
@@ -72,7 +78,10 @@ _BOOL_VIEW_PREFERENCES = ("done_collapsed", "enter_rounding", "task_hide_done", 
 # The integer view-preference keys, with their inclusive ``(min, max)`` range. Out-of-range and
 # non-integer values fall back to the default rather than being clamped, matching how every other
 # preference treats an invalid value.
-_INT_VIEW_PREFERENCES: dict[str, tuple[int, int]] = {"likely_count": (0, MAX_LIKELY_COUNT)}
+_INT_VIEW_PREFERENCES: dict[str, tuple[int, int]] = {
+    "likely_count": (0, MAX_LIKELY_COUNT),
+    "switch_count": (0, MAX_SWITCH_COUNT),
+}
 
 
 def _valid_int_preference(value: object, bounds: tuple[int, int]) -> bool:

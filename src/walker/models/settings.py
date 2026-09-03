@@ -31,6 +31,13 @@ DEFAULT_THEME: Theme = "system"
 DEFAULT_LIKELY_COUNT = 5
 MAX_LIKELY_COUNT = 10
 
+# How many Switch blocks the Timer bar may show, and its ceiling (BIZ-093, ADR-0016). Kept separate
+# from ``likely_count`` on purpose: the picker's band is a vertical list inside a modal, the Switch
+# blocks are a horizontal row competing for the Timer bar's width, so one number cannot serve both —
+# and ``0`` here must be able to remove the band without also silencing the picker.
+DEFAULT_SWITCH_COUNT = 4
+MAX_SWITCH_COUNT = 10
+
 
 class Settings(TimestampMixin, Base):
     """A user's settings: which weekdays are workdays, the grid density, the period scheme, and the

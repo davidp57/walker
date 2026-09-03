@@ -27,6 +27,13 @@ get closed as wontfix) and are removed from this file. See `CLAUDE.md`.
 - 2026-08-06 — The activities collapse toggle ("N activities ▸") is very quiet `text-lo` mono — easy
   to miss on a fast scan.
 
+ - 2026-09-03 — Les Switch blocks (BIZ-093) disparaissent parfois pendant qu'un timer tourne : la queue
+  de la barre (pastille + horloge + ✕ + pause + Stop) passe de ~500 à ~750px une fois le minuteur
+  lancé, donc sur une fenêtre de largeur moyenne la bande s'efface exactement au moment où on veut
+  basculer. Constaté à ~890px de barre. Piste : réduire la pastille pendant que ça tourne (l'entrée en
+  cours est déjà visible dans la liste juste dessous), ou laisser les blocs tronquer plus agressivement
+  au lieu de disparaître.
+
  - 2026-08-21 — The CI quality gate runs `ruff check`/`ruff format --check` on `src tests` only, so
   `alembic/` is unchecked — and `alembic/versions/d7a1b2c3e4f5_backing_only_codes.py` is already
   unformatted on `develop` without anything failing. Migrations are production code; either widen the

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Absence, Density, PeriodScheme, Theme } from '../types'
-import { LIKELY_COUNT_MAX, LIKELY_COUNT_MIN } from '../types'
+import { LIKELY_COUNT_MAX, LIKELY_COUNT_MIN, SWITCH_COUNT_MAX, SWITCH_COUNT_MIN } from '../types'
 
 interface SettingsScreenProps {
   workdays: boolean[] // index by JS getDay(): 0=Sun … 6=Sat
@@ -16,6 +16,8 @@ interface SettingsScreenProps {
   onRemoveAbsence: (date: string) => void
   likelyCount: number // BIZ-084: rows in the likely-codes band; 0 hides it
   onLikelyCountChange: (count: number) => void
+  switchCount: number // BIZ-093: Switch blocks on the Timer bar; 0 removes the band
+  onSwitchCountChange: (count: number) => void
 }
 
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] // Mon … Sun
@@ -146,6 +148,8 @@ export function SettingsScreen({
   onRemoveAbsence,
   likelyCount,
   onLikelyCountChange,
+  switchCount,
+  onSwitchCountChange,
 }: SettingsScreenProps) {
   const [newDate, setNewDate] = useState('')
   const [newEndDate, setNewEndDate] = useState('')
@@ -287,6 +291,36 @@ export function SettingsScreen({
                   return
                 onLikelyCountChange(next)
                 markSaved('likely')
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="wk-set-card is-row">
+          <div>
+            <h2 className="wk-set-title">Switch blocks</h2>
+            <div className="wk-set-desc">
+              How many codes the timer bar offers as one-click blocks, drawn from your habits and
+              topped up with what you worked on last.{' '}
+              {switchCount === 0 ? 'Currently off — no blocks.' : 'Set to 0 to remove them.'}
+            </div>
+          </div>
+          <div className="wk-set-control">
+            {savedTick('switch')}
+            <input
+              className="wk-input wk-input--count"
+              type="number"
+              min={SWITCH_COUNT_MIN}
+              max={SWITCH_COUNT_MAX}
+              step={1}
+              value={switchCount}
+              aria-label="Switch blocks shown on the timer bar"
+              onChange={(e) => {
+                const next = Number(e.target.value)
+                if (!Number.isInteger(next) || next < SWITCH_COUNT_MIN || next > SWITCH_COUNT_MAX)
+                  return
+                onSwitchCountChange(next)
+                markSaved('switch')
               }}
             />
           </div>

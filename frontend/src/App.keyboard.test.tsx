@@ -50,6 +50,8 @@ function mockBaseApi(codes: TimesheetCode[], entries: Entry[]) {
     uncategorizedByDay: {},
   })
   vi.spyOn(api, 'fetchChecklist').mockResolvedValue({})
+  // BIZ-093: keep the Timer bar's Switch-blocks request off the network in tests.
+  vi.spyOn(api, 'fetchSwitchTargets').mockResolvedValue([])
 }
 
 describe('App — keyboard-driven timer loop (BIZ-009)', () => {

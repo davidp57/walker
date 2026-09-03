@@ -5,6 +5,20 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-09-03
+
+### Added
+
+- **One-click blocks on the Timer bar to switch charge code** (BIZ-093). Changing what you're working
+  on was the app's most frequent gesture and its most expensive one: Stop, then a modal, then a search
+  through a couple of hundred codes — for a destination that, most days, is one of the same four
+  projects. Those projects now sit on the bar as **Switch blocks**, one click away. Walker fills them
+  from your own past entries — what you usually work on around this hour, on this kind of day, topped
+  up with what you worked on last so the row is never half-empty — and keeps them in alphabetical
+  order, so the contents follow the clock but nothing ever moves under your cursor. A code with several
+  Activities offers them on hover; the code you're already tracking gets no block, since it's already
+  on the bar as the task chip. Set how many you want, or turn them off, in Settings.
+
 ## [1.15.0] - 2026-09-02
 
 ### Added

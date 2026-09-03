@@ -25,6 +25,27 @@ Every duration is recorded to the minute — Walker never rounds. Rounding to wh
 timesheet system expects (typically the quarter hour) is something you do when you copy the numbers
 over there, not something Walker decides for you.
 
+### Switch blocks
+
+Next to the task chip sits a short row of **Switch blocks** — one per charge code, showing its colour
+and its name. Clicking one moves the Timer straight onto that code, with no picker in between: the
+entry that was running is closed and a new one opens, exactly as switching through the chip would.
+If the code has several Activities, hovering the block (or reaching it with the keyboard) offers
+them; clicking without hovering picks the one you usually work on at that hour.
+
+The blocks are not a list you maintain. Walker fills them from your own past entries: the codes you
+usually work on around this time of day, on this kind of day, topped up with whatever you worked on
+most recently so the row is never half-empty. It follows the clock, so the row you see at 9am is not
+necessarily the one you see after lunch — but the blocks stay in the same order, sorted by name, so
+you are never surprised by one moving under your cursor.
+
+The code you are currently tracking never gets a block: it's already on the bar, right next to them,
+as the task chip. To change only the Activity on the code you're already on, use the chip.
+
+Blocks appear on the Timer bar as long as there's room for them. On a narrow window the description
+field moves to its own line to make space, and if the window is narrower still, fewer blocks are
+shown. You can set how many you want — or turn them off entirely — in **Settings › Switch blocks**.
+
 **If you forget to stop the Timer** and come back the next morning, Walker won't guess for you: it
 asks when you stopped, as a time on the day the Timer was tracking. That's the only answer that can
 be true — Walker records real minutes and invents none, so it would rather ask than credit you with

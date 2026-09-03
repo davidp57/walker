@@ -28,6 +28,7 @@ def test_get_settings_includes_default_view_preferences(client: TestClient) -> N
         "enter_rounding": False,
         "task_hide_done": True,
         "likely_count": 5,
+        "switch_count": 4,
         "show_obsolete": False,
     }
 
@@ -47,6 +48,16 @@ def test_patch_out_of_range_likely_count_keeps_the_default(client: TestClient) -
 
     assert response.status_code == 200
     assert response.json()["view_preferences"]["likely_count"] == 5
+
+
+def test_patch_switch_count_round_trips(client: TestClient) -> None:
+    """BIZ-093: the Switch blocks have their own cap; 0 removes the band from the Timer bar."""
+    patched = client.patch("/api/view-preferences", json={"switch_count": 0}).json()
+    assert patched["view_preferences"]["switch_count"] == 0
+    # Independent of the picker's band, which keeps its own default.
+    assert patched["view_preferences"]["likely_count"] == 5
+
+    assert client.get("/api/settings").json()["view_preferences"]["switch_count"] == 0
 
 
 def test_patch_view_preferences_merges_and_persists(client: TestClient) -> None:

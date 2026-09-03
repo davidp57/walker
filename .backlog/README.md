@@ -12,7 +12,6 @@ source of truth for **scope and status**.
 
 | Lot | Status |
 |-----|--------|
-| [HABITS](HABITS/PRD.md) — Likely codes: rank (code, activity) pairs by time-of-day/weekday habit, shown as a band above the picker list (ADR-0015) | 🔄 |
 | [POLISH](POLISH/PRD.md) — Incremental UX polish (living lot; small tracker/UI improvements) | 🔄 |
 | [DOCS](DOCS/PRD.md) — User-facing documentation-site content (living lot; bilingual EN/FR pages) | 🔄 |
 | [TECH](TECH/PRD.md) — Cross-cutting technical debt (living lot; tickets added/resolved individually) | 🔄 |
@@ -31,6 +30,8 @@ source of truth for **scope and status**.
 | [I18N](archive/I18N.md) — Bilingual user-facing documentation site (EN primary, FR secondary) via `mkdocs-static-i18n` | ✅ |
 | [CODEUX](archive/CODEUX.md) — Code colour automation (64-colour palette, least-used-first suggestion, rich picker) + unified tiered code-selection UX (BIZ-048, BIZ-049) | ✅ |
 | [STATES](archive/STATES.md) — User-defined task states / kanban columns: add·rename·move·delete, positional initial/terminal roles, edited in the kanban (BIZ-056, BIZ-057; ADR-0011) | ✅ |
+| [HABITS](archive/HABITS.md) — Likely codes: rank (code, activity) pairs by time-of-day/weekday habit, shown as a band above the picker list (BIZ-083, BIZ-084; ADR-0015) | ✅ |
+| [SWITCH](archive/SWITCH.md) — Switch blocks: one-click codes on the Timer bar, selected by habit and topped up by recency (BIZ-093; ADR-0016) | ✅ |
 
 ## ID prefixes & priorities
 

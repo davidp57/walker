@@ -36,6 +36,7 @@ import type {
   Task,
   TaskState,
   TaskSuggestion,
+  SwitchTarget,
   Theme,
   TimesheetCode,
   ViewPreferences,
@@ -79,6 +80,7 @@ import {
   fetchCodes,
   fetchEntriesRange,
   fetchLikelyCodes,
+  fetchSwitchTargets,
   fetchHealth,
   fetchPeriod,
   fetchSettings,
@@ -114,6 +116,11 @@ const VIRTUAL_CHILDREN_BLOCK = 'Virtual codes point at this one — delete those
 
 // The moment the code picker's likely-codes band ranks against (BIZ-083, ADR-0015). Local wall clock,
 // matching how an Entry stores its `date` + minutes-since-midnight.
+// BIZ-093 (ADR-0016): how often the Switch blocks are recomputed. A quarter of an hour is well under
+// the width of the habit model's kernel, so the band never lags the time of day noticeably, and it
+// costs one small request per idle quarter-hour.
+const SWITCH_REFRESH_MS = 15 * 60 * 1000
+
 const momentNow = (): string => {
   const d = new Date()
   return formatLocalMoment(isoDate(d), d.getHours() * 60 + d.getMinutes())
@@ -290,6 +297,9 @@ function AppInner() {
   // BIZ-070: per-day minutes tracked but excluded from the matrix (missing a code or activity).
   const [uncategorizedByDay, setUncategorizedByDay] = useState<Record<number, number>>({})
   const [checked, setChecked] = useState<ChecklistState>({})
+  // BIZ-093 (ADR-0016): the codes the Switch blocks offer. Fetched, not derived — the band composes
+  // the habit ranking with a recency fill, which is domain logic and lives server-side.
+  const [switchTargets, setSwitchTargets] = useState<SwitchTarget[]>([])
   // `at` is the moment the picker's likely-codes band ranks against (BIZ-083, ADR-0015): "now" from
   // the Timer, the date + start being edited elsewhere. Null when there is no usable context.
   const [picker, setPicker] = useState<{ target: 'timer' | string; at: string | null } | null>(null)
@@ -489,6 +499,15 @@ function AppInner() {
     return () => window.clearInterval(iv)
   }, [runningId])
 
+  // BIZ-093 (ADR-0016): the Switch blocks follow the time of day, so they need a slow tick of their
+  // own — the second-by-second clock above runs only while a Timer runs, and the band must keep
+  // ageing while the app sits idle.
+  const [switchTick, setSwitchTick] = useState(0)
+  useEffect(() => {
+    const iv = window.setInterval(() => setSwitchTick((t) => t + 1), SWITCH_REFRESH_MS)
+    return () => window.clearInterval(iv)
+  }, [])
+
   const codesById = useMemo(() => Object.fromEntries(codes.map((c) => [c.id, c])), [codes])
   // BIZ-075 (ADR-0014): backing-only real codes exist only to resolve a virtual code's Timesheet
   // export; they are hidden from every user-facing surface (catalog + pickers). `codesById` stays
@@ -659,6 +678,51 @@ function AppInner() {
         .catch((err: unknown) => notifyError(errorMessage(err, 'Could not save the entry.')))
     }
   }
+
+  // BIZ-093 (ADR-0016): one click on a Switch block moves the Timer onto that code. Same split rule
+  // as resuming an entry or starting a Task — an empty capture stub is re-tagged in place so its
+  // elapsed minutes are attributed, real work is closed and a new segment opens. The block carries no
+  // description, so anything typed on the bar is saved onto the segment that closes, exactly as Stop
+  // does; the new segment starts blank rather than inheriting a comment written about the old one.
+  const switchToTarget = (target: SwitchTarget, activity: ActivityName) => {
+    // Read the bar's pending description *before* resetting the draft — `resetDraft` clears the
+    // "the user typed this" flag, so asking afterwards always answers no and the text is lost.
+    const typed = descriptionTouched.current ? draft.description : null
+    resetDraft(EMPTY_DRAFT)
+    const apply =
+      running && shouldRetagInPlace(running)
+        ? // The stub keeps its own minutes, so it keeps what was typed about them too.
+          apiPatchEntry(running.id, {
+            codeId: target.codeId,
+            activity,
+            ...(typed !== null ? { description: typed } : {}),
+          })
+        : (running && typed !== null
+            ? apiPatchEntry(running.id, { description: typed })
+            : Promise.resolve()
+          ).then(() => apiSwitchTimer({ codeId: target.codeId, activity, description: '' }))
+    apply
+      .then(reload)
+      .catch((err: unknown) => notifyError(errorMessage(err, 'Could not switch the timer.')))
+  }
+
+  // The band is refetched when the clock ages past a quarter-hour, when the running code changes
+  // (it is excluded server-side), and whenever entries move — a closed segment is fresh recency.
+  const switchCount = viewPreferences.switch_count
+  const runningCodeId = running?.codeId ?? null
+  useEffect(() => {
+    if (switchCount <= 0) {
+      setSwitchTargets([])
+      return
+    }
+    let cancelled = false
+    fetchSwitchTargets(momentNow(), switchCount, runningCodeId)
+      .then((rows) => !cancelled && setSwitchTargets(rows))
+      .catch(() => !cancelled && setSwitchTargets([]))
+    return () => {
+      cancelled = true
+    }
+  }, [switchCount, runningCodeId, switchTick, entries.length, codes.length])
 
   const resumeEntry = (id: string) => {
     const e = entries.find((x) => x.id === id)
@@ -1325,6 +1389,8 @@ function AppInner() {
       taskId={running?.taskId ?? null}
       onComplete={completeTimer}
       onInsertBreak={running ? () => setBreakTarget(running) : undefined}
+      switchTargets={switchTargets}
+      onPickSwitchTarget={switchToTarget}
       startMinute={running?.start ?? null}
       onEditStart={(minute) => {
         if (running) {
@@ -1467,6 +1533,8 @@ function AppInner() {
           onRemoveAbsence={removeAbsence}
           likelyCount={viewPreferences.likely_count}
           onLikelyCountChange={(likely_count) => updateViewPreferences({ likely_count })}
+          switchCount={viewPreferences.switch_count}
+          onSwitchCountChange={(switch_count) => updateViewPreferences({ switch_count })}
         />
       )}
 
