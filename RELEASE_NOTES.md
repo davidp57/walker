@@ -1,65 +1,54 @@
-# Walker 1.15.0 — no more charging to a code that died months ago
+# Walker 1.16.0 — changing task no longer opens a dialog
 
-Walker stops letting you book time against charge lines that no longer exist. Import your complete
-catalog and it now tells you which of *your own* codes the file didn't contain — including the one
-you cannot see, the hidden code another of yours quietly charges through — and offers to retire it or
-point it somewhere else.
+The handful of projects you switch between all day now sit on the timer bar itself, one click away.
+No Stop, no picker, no scrolling through two hundred charge codes to reach the one you were on an
+hour ago.
 
-And if your antivirus confiscates the executable, there is now a second download to fall back on.
+You don't choose which ones. Walker works them out from your own past entries.
 
-## Your catalog stops hiding dead codes
+## Switch blocks
 
-Importing a complete catalog removes reference codes the file omits, but it has always left the codes
-in your own list alone — the time booked to them is real, and deleting them would be worse. The
-consequence was quiet and permanent: a charge line closed in your timesheet system stayed live in
-Walker, offered in every picker, with nothing on screen saying it was dead.
+Next to the task chip there is now a short row of blocks — one per charge code, with its colour and
+its name. Click one and the timer moves onto that code: the entry that was running is closed, a new
+one opens, exactly as it would have if you had gone through the picker. Nothing in between.
 
-The worst version was invisible. When one of your codes charges *through* another one, Walker keeps
-that underlying code hidden — so your code looks perfectly healthy while what it actually charges to
-has been locked for months. There was no way to notice.
+If the code has several Activities, hovering the block offers them. Clicking without hovering takes
+the one you usually work on at that hour, so the common case stays a single click and the rarer case
+costs a hover rather than a dialog.
 
-After a complete-catalog import, Walker now names the codes the file didn't contain, names the codes
-of yours that depend on each of them, and offers the two things worth doing:
+**The row is not a list you maintain.** Walker fills it from what you actually do: the codes you tend
+to work on around this time of day, on this kind of day, topped up with whatever you worked on most
+recently so the row is never half-empty. It follows the clock — the blocks you see first thing in the
+morning are not necessarily the ones you see after lunch.
 
-- **Retire it** — right when the charge line really has closed. The time already booked stays exactly
-  as it is; the code simply stops being offered.
-- **Repoint it** — when other codes of yours charge through it. Choose the replacement once and all
-  of them follow, in a single step.
+**But they never move under your cursor.** The blocks are sorted alphabetically, not by how likely
+Walker thinks each one is. What is in the row changes with the hour; where each block sits does not.
+That distinction is the whole point: you click a block by position, often without reading past the
+colour, and a row that reshuffled itself at midday would book your afternoon to the wrong project
+without either of you noticing until the end of the period.
 
-The note then stays on the code in the **Code catalog**, so a decision you postpone doesn't quietly
-disappear along with the message.
+**The code you're currently tracking never gets a block.** It is already on the bar, right beside
+them, as the task chip. To change just the Activity on the code you're already on, use the chip.
 
-**Nothing is changed for you.** A code can be missing simply because your export covered part of the
-catalog rather than all of it — that is a real case, not a hypothetical — and retiring a code you
-still book to would be far worse than saying nothing.
-
-## A second download, when the first one gets blocked
-
-`walker.exe` is a single file that unpacks itself in memory when it starts. Convenient, and — to an
-antivirus heuristic — indistinguishable from how real malware hides. Microsoft Defender quarantined
-the 1.14.0 executable minutes after it was published.
-
-**This is the first release to carry both downloads.** Alongside `walker.exe` there is now
-`walker-1.15.0-windows.zip`: the same program, with its dependencies in a folder beside it instead of
-hidden inside it, so nothing self-extracts at startup and there is far less for an antivirus to
-object to.
-
-Start with `walker.exe`. If it is blocked or disappears, take the zip. Both keep your data in the
-same place, so switching costs you nothing.
-
-The download page now walks through the zip properly: unblocking the archive *before* extracting it
-(so the internet mark isn't copied onto every file inside), where to put it, why `walker.exe` and its
-`_internal` folder are one unit that must stay together, and how to upgrade a folder rather than a
-file.
+The blocks show as long as there is room. On a narrow window the description field moves to its own
+line to make space; narrower still and fewer blocks are shown. **Settings › Switch blocks** sets how
+many you want — or `0` to remove the row entirely.
 
 ## Before you upgrade
 
-**There is a migration this time.** A new column records when a complete-catalog import last found a
-code missing. The standalone build and the Docker image apply it themselves on startup — you only run
-`alembic upgrade head` by hand in the raw development flow.
+**No migration, and nothing breaks.** The new preference lives alongside the others; the code picker,
+including its "Likely at this time" band, behaves exactly as it did.
 
-**Nothing is flagged retroactively.** Upgrading does not make a list of dead codes appear: the column
-starts empty, and it is your **next complete-catalog import** that makes the comparison. If you have
-been charging to a closed code for months, run that import to find out.
+**The row appears on its own.** It is on by default — four blocks — so the first time you open Walker
+after upgrading, your timer bar will have a row it didn't have before. That is deliberate: a feature
+that ships switched off is a feature nobody finds. Set it to `0` in Settings if you would rather not
+have it.
 
-**No breaking changes.** The API gained two fields, both optional with defaults.
+**A fresh install sees nothing at first.** The blocks are built from your past entries, so with no
+history there is nothing to show and the row is simply absent. Track a few days and it fills in by
+itself. This is not a setting you have missed.
+
+**One rough edge, known and not yet fixed.** Starting the timer widens the clock-and-buttons area on
+the right of the bar by a fair margin, which leaves less room for the blocks. On a mid-width window
+that can push them off exactly when you want to switch. Widening the window brings them back; it is
+on the list.

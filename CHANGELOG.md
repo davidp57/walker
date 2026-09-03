@@ -5,6 +5,8 @@ All notable changes to Walker are documented here. Format loosely follows
 
 ## [Unreleased]
 
+## [1.16.0] - 2026-09-03
+
 ### Added
 
 - **One-click blocks on the Timer bar to switch charge code** (BIZ-093). Changing what you're working
