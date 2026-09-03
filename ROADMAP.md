@@ -93,6 +93,8 @@ claim that it is open.
 - **TEC-021** (P2, TECH) — ship the standalone build as both onefile and onedir and document the
   antivirus risk where people download: Defender quarantined the v1.14.0 `.exe` on a behavioural ML
   verdict, and every release re-tosses that coin.
+- **BIZ-093** (P2, SWITCH) — Switch blocks on the Timer bar: one click per code to jump onto,
+  selected by the habit model and topped up by recency, so changing task no longer opens the picker.
 
 Further work comes from triaging `IDEAS.md` into new tickets.
 

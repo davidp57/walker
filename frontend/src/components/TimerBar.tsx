@@ -1,7 +1,12 @@
-import { useState } from 'react'
-import type { ActivityName, TaskSuggestion, TimesheetCode } from '../types'
+import { useLayoutEffect, useRef, useState } from 'react'
+import type { ActivityName, SwitchTarget, TaskSuggestion, TimesheetCode } from '../types'
 import { formatClock, formatStopwatch, parseMilitaryClock, selectOnFocus } from '../lib/time'
+import { planSwitchLayout, type SwitchLayout } from '../lib/switchLayout'
+import { SwitchBlocks } from './SwitchBlocks'
 import { IconBreak, IconChecklist, IconPlay, IconStop } from './icons'
+
+// Horizontal breathing room around the blocks, matching `.wk-timerbar`'s gap on either side.
+const SWITCH_GUTTER = 28
 
 interface TimerBarProps {
   running: boolean
@@ -26,6 +31,10 @@ interface TimerBarProps {
   taskId?: string | null
   onComplete?: () => void // stop the Timer and mark the linked Task Done
   onInsertBreak?: () => void // BIZ-076: carve a past break out of the running session
+  // BIZ-093: the codes the band offers, already capped by the `switch_count` preference and stripped
+  // of the running code server-side. How many actually render is a matter of available width.
+  switchTargets?: SwitchTarget[]
+  onPickSwitchTarget?: (target: SwitchTarget, activity: ActivityName) => void
 }
 
 export function TimerBar({
@@ -47,9 +56,46 @@ export function TimerBar({
   taskId,
   onComplete,
   onInsertBreak,
+  switchTargets = [],
+  onPickSwitchTarget,
 }: TimerBarProps) {
   const [focused, setFocused] = useState(false)
   const showSuggestions = focused && suggestions.length > 0
+
+  // BIZ-093: the bar's width decides how many blocks show, and whether the description field has to
+  // take a line of its own. Measured rather than guessed from a media query, because the untouchable
+  // tail (chip, clock, buttons) changes width with the Timer's state.
+  const barRef = useRef<HTMLDivElement>(null)
+  const tailRef = useRef<HTMLDivElement>(null)
+  // `null` means "not measured yet" — the band then shows everything it was given rather than
+  // nothing, so the first paint is never a flash of an empty row.
+  const [layout, setLayout] = useState<SwitchLayout | null>(null)
+  useLayoutEffect(() => {
+    const bar = barRef.current
+    if (!bar) return
+    const measure = () => {
+      // An unmeasurable bar (hidden, or a DOM without layout) keeps the last plan rather than
+      // collapsing the band to nothing.
+      if (bar.clientWidth <= 0) return
+      setLayout(
+        planSwitchLayout({
+          barWidth: bar.clientWidth,
+          reservedWidth: (tailRef.current?.offsetWidth ?? 0) + SWITCH_GUTTER,
+          maxBlocks: switchTargets.length,
+        }),
+      )
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(bar)
+    return () => observer.disconnect()
+  }, [switchTargets.length, running, taskId, startMinute])
+  const blocks = !onPickSwitchTarget
+    ? []
+    : layout
+      ? switchTargets.slice(0, layout.blocks)
+      : switchTargets
 
   const [editingStart, setEditingStart] = useState(false)
   const [startBuffer, setStartBuffer] = useState('')
@@ -72,7 +118,10 @@ export function TimerBar({
   const suggestTitle = hasTask ? `Recent on ${code!.name}` : 'Resume a recent task'
 
   return (
-    <div className={`wk-timerbar${running ? ' is-running' : ''}`}>
+    <div
+      ref={barRef}
+      className={`wk-timerbar${running ? ' is-running' : ''}${layout?.stacked ? ' is-stacked' : ''}`}
+    >
       <div className="wk-timer-input-wrap">
         <input
           className="wk-timer-input"
@@ -114,96 +163,102 @@ export function TimerBar({
         )}
       </div>
 
-      <button type="button" className="wk-taskchip" onClick={onSwitchTask}>
-        <span className="wk-dot" style={{ background: code ? code.color : 'var(--wk-amber)' }} />
-        <span style={{ textAlign: 'left' }}>
-          <span className="wk-taskchip-main" style={{ display: 'block' }}>
-            {code ? code.name : 'Uncategorized'}
-          </span>
-          <span className="wk-taskchip-sub" style={{ display: 'block' }}>
-            {code ? (activity ?? 'pick an activity') : 'pick a code'}
-          </span>
-        </span>
-        <span className="wk-taskchip-caret">code ⌄</span>
-      </button>
+      {onPickSwitchTarget && <SwitchBlocks targets={blocks} onPick={onPickSwitchTarget} />}
 
-      <div className="wk-timer-right">
-        <span className={`wk-timer-dot${running ? ' is-running' : ''}`} />
-        <div className="wk-timer-clock-wrap">
-          {canEditStart && editingStart ? (
-            <>
-              <span className="wk-timer-clock is-running">{formatStopwatch(elapsedSeconds)}</span>
-              <input
-                className="wk-input-inline"
-                autoFocus
-                value={startBuffer}
-                onFocus={selectOnFocus}
-                onChange={(e) => setStartBuffer(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') commitStart()
-                  if (e.key === 'Escape') setEditingStart(false)
-                }}
-                onBlur={commitStart}
-                style={{ width: 60 }}
-              />
-            </>
-          ) : canEditStart ? (
-            // The whole widget is the click target — clock + "since" line (BIZ-071).
-            <button
-              type="button"
-              className="wk-timer-clock-edit"
-              title="Edit the start time of the running timer"
-              onClick={beginEditStart}
-            >
-              <span className="wk-timer-clock is-running">{formatStopwatch(elapsedSeconds)}</span>
-              <span className="wk-timer-since">since {formatClock(startMinute)}</span>
-            </button>
-          ) : (
-            <span className={`wk-timer-clock${running ? ' is-running' : ''}`}>
-              {formatStopwatch(elapsedSeconds)}
+      <div className="wk-timer-tail" ref={tailRef}>
+        <button type="button" className="wk-taskchip" onClick={onSwitchTask}>
+          <span className="wk-dot" style={{ background: code ? code.color : 'var(--wk-amber)' }} />
+          <span style={{ textAlign: 'left' }}>
+            <span className="wk-taskchip-main" style={{ display: 'block' }}>
+              {code ? code.name : 'Uncategorized'}
             </span>
-          )}
-        </div>
-      </div>
-
-      {canCancel && (
-        <button type="button" className="wk-btn-icon" title={cancelTitle} onClick={onCancel}>
-          ✕
+            <span className="wk-taskchip-sub" style={{ display: 'block' }}>
+              {code ? (activity ?? 'pick an activity') : 'pick a code'}
+            </span>
+          </span>
+          <span className="wk-taskchip-caret">code ⌄</span>
         </button>
-      )}
 
-      {running ? (
-        <>
-          {onInsertBreak && (
-            <button
-              type="button"
-              className="wk-btn-icon"
-              title="Insert a break — carve past non-worked time (e.g. lunch) out of this session"
-              aria-label="Insert a break"
-              onClick={onInsertBreak}
-            >
-              <IconBreak />
-            </button>
-          )}
-          <button type="button" className="wk-btn wk-btn-danger" onClick={onStop}>
-            <IconStop style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }} />{' '}
-            Stop
+        <div className="wk-timer-right">
+          <span className={`wk-timer-dot${running ? ' is-running' : ''}`} />
+          <div className="wk-timer-clock-wrap">
+            {canEditStart && editingStart ? (
+              <>
+                <span className="wk-timer-clock is-running">{formatStopwatch(elapsedSeconds)}</span>
+                <input
+                  className="wk-input-inline"
+                  autoFocus
+                  value={startBuffer}
+                  onFocus={selectOnFocus}
+                  onChange={(e) => setStartBuffer(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') commitStart()
+                    if (e.key === 'Escape') setEditingStart(false)
+                  }}
+                  onBlur={commitStart}
+                  style={{ width: 60 }}
+                />
+              </>
+            ) : canEditStart ? (
+              // The whole widget is the click target — clock + "since" line (BIZ-071).
+              <button
+                type="button"
+                className="wk-timer-clock-edit"
+                title="Edit the start time of the running timer"
+                onClick={beginEditStart}
+              >
+                <span className="wk-timer-clock is-running">{formatStopwatch(elapsedSeconds)}</span>
+                <span className="wk-timer-since">since {formatClock(startMinute)}</span>
+              </button>
+            ) : (
+              <span className={`wk-timer-clock${running ? ' is-running' : ''}`}>
+                {formatStopwatch(elapsedSeconds)}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {canCancel && (
+          <button type="button" className="wk-btn-icon" title={cancelTitle} onClick={onCancel}>
+            ✕
           </button>
-          {taskId != null && (
-            <button type="button" className="wk-btn wk-btn-primary" onClick={onComplete}>
-              <IconChecklist
+        )}
+
+        {running ? (
+          <>
+            {onInsertBreak && (
+              <button
+                type="button"
+                className="wk-btn-icon"
+                title="Insert a break — carve past non-worked time (e.g. lunch) out of this session"
+                aria-label="Insert a break"
+                onClick={onInsertBreak}
+              >
+                <IconBreak />
+              </button>
+            )}
+            <button type="button" className="wk-btn wk-btn-danger" onClick={onStop}>
+              <IconStop
                 style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }}
               />{' '}
-              Complete
+              Stop
             </button>
-          )}
-        </>
-      ) : (
-        <button type="button" className="wk-btn wk-btn-primary" onClick={onStart}>
-          <IconPlay style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }} />{' '}
-          Start
-        </button>
-      )}
+            {taskId != null && (
+              <button type="button" className="wk-btn wk-btn-primary" onClick={onComplete}>
+                <IconChecklist
+                  style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }}
+                />{' '}
+                Complete
+              </button>
+            )}
+          </>
+        ) : (
+          <button type="button" className="wk-btn wk-btn-primary" onClick={onStart}>
+            <IconPlay style={{ display: 'inline-block', verticalAlign: '-1px', marginRight: 6 }} />{' '}
+            Start
+          </button>
+        )}
+      </div>
     </div>
   )
 }

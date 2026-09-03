@@ -121,6 +121,21 @@ export interface LikelyCode {
   activity: ActivityName
 }
 
+/**
+ * One Switch block: a code you can jump onto in a single click (BIZ-093, ADR-0016).
+ *
+ * A block is a **code**, not a pair — `activity` is what a plain click starts, `activities` is the
+ * whole menu the block offers when the code has more than one.
+ */
+export interface SwitchTarget {
+  codeId: string
+  codeNumber: string
+  codeName: string
+  color: string
+  activity: ActivityName
+  activities: ActivityName[]
+}
+
 /** One activity's share of a code's time (BIZ-089). `activity` is null for code-only entries. */
 export interface ActivityTotal {
   activity: ActivityName | null
@@ -191,12 +206,17 @@ export interface ViewPreferences {
   enter_rounding: boolean // BIZ-063: round Enter-view durations to the quarter-hour
   task_hide_done: boolean // BIZ-087: keep terminal-state Tasks out of the Tasks *list*
   likely_count: number // BIZ-084: rows in the likely-codes band, 0–10; 0 disables it entirely
+  switch_count: number // BIZ-093: Switch blocks on the Timer bar, 0–10; 0 removes the band
   show_obsolete: boolean // BIZ-090: reveal retired codes in the Code catalog
 }
 
 /** The inclusive bounds of `likely_count` (BIZ-084), mirroring the server's (models/settings.py). */
 export const LIKELY_COUNT_MIN = 0
 export const LIKELY_COUNT_MAX = 10
+
+/** The inclusive bounds of `switch_count` (BIZ-093), mirroring the server's (models/settings.py). */
+export const SWITCH_COUNT_MIN = 0
+export const SWITCH_COUNT_MAX = 10
 
 /** The built-in view-preference defaults, mirroring the server's (services/settings.py). */
 export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
@@ -209,6 +229,7 @@ export const DEFAULT_VIEW_PREFERENCES: ViewPreferences = {
   enter_rounding: false,
   task_hide_done: true,
   likely_count: 5,
+  switch_count: 4,
   show_obsolete: false,
 }
 

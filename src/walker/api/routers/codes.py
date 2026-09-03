@@ -23,6 +23,7 @@ from walker.api.schemas import (
     OrphanedCodeRead,
     ReassignBlockingEntries,
     SetObsolete,
+    SwitchTargetRead,
     VirtualCodeCreate,
     VirtualCodeRef,
     VirtualCodeUpdate,
@@ -30,9 +31,10 @@ from walker.api.schemas import (
 from walker.db import get_session
 from walker.exceptions import CatalogImportError, NotFoundError, ValidationError
 from walker.models import TimesheetCode, User
-from walker.services import catalog, code_totals, likely_codes, reference
+from walker.services import catalog, code_totals, likely_codes, reference, switch_targets
 from walker.services.catalog import ParsedActivity
 from walker.services.likely_codes import DEFAULT_LIKELY_COUNT, MAX_LIKELY_COUNT
+from walker.services.switch_targets import DEFAULT_SWITCH_COUNT, MAX_SWITCH_COUNT
 
 router = APIRouter(tags=["codes"])
 
@@ -103,6 +105,38 @@ def list_likely_codes(
             activity=activity,
         )
         for code, activity in likely_codes.resolve(session, user.id, ranked)
+    ]
+
+
+@router.get("/codes/switch-targets", response_model=list[SwitchTargetRead])
+def list_switch_targets(
+    at: datetime,
+    limit: int = Query(DEFAULT_SWITCH_COUNT, ge=1, le=MAX_SWITCH_COUNT),
+    exclude: int | None = Query(None, description="Code id of the running Timer, dropped from the band"),
+    session: Session = Depends(get_session),
+    user: User = Depends(get_current_user),
+) -> list[SwitchTargetRead]:
+    """Return the codes the Switch blocks offer at ``at`` (BIZ-093, ADR-0016).
+
+    Unlike ``/codes/likely`` this band is **always full**: the habit ranking selects what it can, and
+    plain recency tops the rest up. One block per code, sorted by name, with the click's default
+    activity and the whole activity menu.
+
+    ``limit`` starts at 1 for the same reason as the likely band: ``switch_count`` 0 means the SPA
+    does not call at all. ``exclude`` is the running code — it already sits on the bar as the Timer
+    chip, so it never doubles as a block.
+    """
+    targets = switch_targets.switch_targets(session, user.id, at=at, limit=limit, exclude_code_id=exclude)
+    return [
+        SwitchTargetRead(
+            code_id=target.code.id,
+            number=target.code.resolved_number,
+            name=target.code.name,
+            color=target.code.color,
+            activity=target.activity,
+            activities=target.activities,
+        )
+        for target in targets
     ]
 
 
