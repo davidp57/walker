@@ -15,6 +15,7 @@ import type {
   TaskStatus,
   Theme,
   TimesheetCode,
+  SwitchTarget,
   ViewPreferences,
 } from '../types'
 
@@ -104,6 +105,34 @@ export async function fetchLikelyCodes(at: string, limit?: number): Promise<Like
     codeName: row.name,
     color: row.color,
     activity: row.activity,
+  }))
+}
+
+interface ApiSwitchTarget extends ApiLikelyCode {
+  activities: string[]
+}
+
+/**
+ * Fetch the Switch blocks for `at` — a local ISO moment, `"YYYY-MM-DDTHH:MM"` (BIZ-093).
+ *
+ * `excludeCodeId` is the running Timer's code, which never doubles as a block. Unlike the likely
+ * band this one is topped up by recency, so an empty array means no usable history at all.
+ */
+export async function fetchSwitchTargets(
+  at: string,
+  limit: number,
+  excludeCodeId?: string | null,
+): Promise<SwitchTarget[]> {
+  const exclude = excludeCodeId ? `&exclude=${encodeURIComponent(excludeCodeId)}` : ''
+  const query = `at=${encodeURIComponent(at)}&limit=${limit}${exclude}`
+  const targets = await getJson<ApiSwitchTarget[]>(`/api/codes/switch-targets?${query}`)
+  return targets.map((row) => ({
+    codeId: String(row.code_id),
+    codeNumber: row.number,
+    codeName: row.name,
+    color: row.color,
+    activity: row.activity,
+    activities: row.activities,
   }))
 }
 

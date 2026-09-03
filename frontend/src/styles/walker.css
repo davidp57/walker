@@ -286,7 +286,8 @@ html[data-theme='light'] body {
 
 /* ---------- Timer bar ---------- */
 .wk-timerbar {
-  height: 76px;
+  /* BIZ-093: a floor, not a height — the description field drops to a second line on a narrow bar. */
+  min-height: 76px;
   flex-shrink: 0;
   background: var(--wk-bg-1);
   border-bottom: 1px solid var(--wk-line);
@@ -294,6 +295,93 @@ html[data-theme='light'] body {
   align-items: center;
   gap: 14px;
   padding: 0 22px;
+}
+/* The part of the bar that never yields its width: the code chip, the clock, and the buttons. */
+.wk-timer-tail {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+/* Stacked: the blocks and the tail keep the first line, the description field takes its own below. */
+.wk-timerbar.is-stacked {
+  flex-wrap: wrap;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.wk-timerbar.is-stacked .wk-timer-input-wrap {
+  order: 10;
+  flex-basis: 100%;
+}
+
+/* ---------- Switch blocks (BIZ-093, ADR-0016) ---------- */
+.wk-switch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.wk-switch-block {
+  position: relative;
+}
+.wk-switch-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 160px;
+  padding: 8px 12px;
+  border-radius: var(--wk-radius-md);
+  border: 1px solid var(--wk-line);
+  background: var(--wk-bg-0);
+  color: var(--wk-text-hi);
+  font-size: var(--wk-fs-13);
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+.wk-switch-main:hover,
+.wk-switch-main:focus-visible {
+  border-color: var(--wk-accent-line);
+}
+.wk-switch-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wk-switch-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  min-width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  border-radius: var(--wk-radius-md);
+  border: 1px solid var(--wk-line);
+  background: var(--wk-bg-1);
+  box-shadow: var(--wk-shadow-2);
+}
+.wk-switch-act {
+  text-align: left;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border: none;
+  border-radius: var(--wk-radius-sm);
+  background: transparent;
+  color: var(--wk-text-mid);
+  font-size: var(--wk-fs-13);
+  cursor: pointer;
+}
+.wk-switch-act:hover,
+.wk-switch-act:focus-visible {
+  background: var(--wk-bg-2);
+  color: var(--wk-text-hi);
+}
+.wk-switch-act.is-default {
+  color: var(--wk-text-hi);
 }
 .wk-timer-right {
   display: flex;

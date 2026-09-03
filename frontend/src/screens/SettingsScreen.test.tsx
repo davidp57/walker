@@ -20,6 +20,8 @@ function renderScreen(overrides: Partial<Parameters<typeof SettingsScreen>[0]> =
     onRemoveAbsence: vi.fn(),
     likelyCount: 5,
     onLikelyCountChange: vi.fn(),
+    switchCount: 4,
+    onSwitchCountChange: vi.fn(),
     ...overrides,
   }
   render(<SettingsScreen {...props} />)
